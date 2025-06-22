@@ -1,4 +1,16 @@
+
+#' Title
+#'
+#' @param mu_O 
+#' @param mu_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 E.C = function(mu_O, mu_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -16,7 +28,23 @@ E.C = function(mu_O, mu_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"))
 	}
 }
 
+
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#' @param threshApprox 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 E.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"), threshApprox=NA) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -36,7 +64,21 @@ E.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=
 	return(vals)
 }
 
+
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 E.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -54,7 +96,18 @@ E.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, 
 	}
 }
 
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 E.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -68,7 +121,21 @@ E.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"))
 	}
 }
 
+
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#' @param threshApprox 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 E.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"), threshApprox=NA) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -84,7 +151,19 @@ E.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","
 	return(vals)
 }
 
+
+#' Title
+#'
+#' @param mu_O 
+#' @param mu_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 E.T = function(mu_O, mu_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -98,7 +177,22 @@ E.T = function(mu_O, mu_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	}
 }
 
+
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param alpha 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 PI.C = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -116,9 +210,22 @@ PI.C = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
-
-
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param alpha 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 PI.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -136,8 +243,21 @@ PI.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse
 	}
 }
 
-
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param alpha 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 PI.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -155,7 +275,19 @@ PI.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param alpha 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 PI.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -169,7 +301,20 @@ PI.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, type=
 	}
 }
 
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param alpha 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 PI.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -183,7 +328,21 @@ PI.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, 
 	}
 }
 
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param alpha 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 PI.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -201,7 +360,20 @@ PI.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 SD.C =  function(mu_O=NA, sigma_O, mu_D=NA, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -218,7 +390,23 @@ SD.C =  function(mu_O=NA, sigma_O, mu_D=NA, sigma_D=NA, minResponse=0, maxRespon
 	}
 }
 
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#' @param intFailLow 
+#' @param intFailHigh 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 SD.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"), intFailLow=NA, intFailHigh=NA) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -236,7 +424,20 @@ SD.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse
 	}
 }
 
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 SD.D = function(mu_O=NA, sigma_O=NA, mu_D=NA, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -253,7 +454,15 @@ SD.D = function(mu_O=NA, sigma_O=NA, mu_D=NA, sigma_D=NA, minResponse=0, maxResp
 	}
 }
 
+#' Title
+#'
+#' @param sigma_O 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 SD.O = function(sigma_O, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -267,8 +476,21 @@ SD.O = function(sigma_O, type=c("GP","BB")) {
 	}
 }
 
-
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param intFailLow 
+#' @param intFailHigh 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 SD.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, intFailLow=NA, intFailHigh=NA, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -282,8 +504,20 @@ SD.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, intFailLow=N
 	}
 }
 
-
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 SD.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -301,8 +535,21 @@ SD.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
-
+#' Title
+#'
+#' @param responseData 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param minS 
+#' @param maxS 
+#' @param init_params 
+#' @param hyperparameters 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 getMAP = function(responseData, minResponse=0, maxResponse=365,minS=1, maxS=3000,  init_params = c(180,20,60,7), hyperparameters = c(100, 7, 60, 6, 24, 12, 24, 12), type="BB") {
 	if(type == "BB") {
 		getMAP.T.BB(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, minS=minS, maxS=maxS,  init_params = init_params, hyperparameters = hyperparameters, dataProvided=TRUE)
@@ -312,7 +559,20 @@ getMAP = function(responseData, minResponse=0, maxResponse=365,minS=1, maxS=3000
 	}
 }
 
+#' Title
+#'
+#' @param responseData 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param minS 
+#' @param maxS 
+#' @param init_params 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 getMLE = function(responseData, minResponse=0, maxResponse=365, minS=1, maxS=3000, init_params = c(180, 20, 60, 7), type="BB") {
 	if(type == "BB") {
 		getMLE.T.BB(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, minS=minS, maxS=maxS, init_params = init_params, dataProvided=TRUE)
@@ -322,9 +582,20 @@ getMLE = function(responseData, minResponse=0, maxResponse=365, minS=1, maxS=300
 	}
 }
 
-
-
+#' Title
+#'
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 getPeakPhenophase = function(mu_O, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -342,8 +613,24 @@ getPeakPhenophase = function(mu_O, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, 
 	}
 }
 
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param type 
+#' @param precision 
+#' @param includePlot 
+#'
+#' @returns
 #' @export
 #' @importFrom ForestFit fitWeibull
+#'
+#' @examples
 fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"), precision=10000, includePlot=FALSE) {
 	type = match.arg(type)
 
@@ -395,7 +682,16 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 	return(list( CkNParams = fitCkN$estimate, Ok1Params = fitOk1$estimate ))
 }
 
+#' Title
+#'
+#' @param responseData 
+#' @param onsetCovariateData 
+#' @param durationCovariateData 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 runStandardLinearModel = function(responseData, onsetCovariateData, durationCovariateData) {
         # Combine response and predictors into one data frame
         merged = merge_df_by_column(onsetCovariateData, durationCovariateData)
@@ -411,8 +707,36 @@ runStandardLinearModel = function(responseData, onsetCovariateData, durationCova
 		return(fit)
 }
 
-
+#' Title
+#'
+#' @param type 
+#' @param responseData 
+#' @param hyperparams_noCovariates 
+#' @param onsetCovariateData 
+#' @param durationCovariateData 
+#' @param onsetHyperBeta 
+#' @param onsetHyperAnchor 
+#' @param durationHyperBeta 
+#' @param durationHyperAnchor 
+#' @param cessationHyperAnchor 
+#' @param sigmaHyper 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param maxDiv 
+#' @param setStringent 
+#' @param runMAP 
+#' @param processExtremes 
+#' @param N 
+#' @param partitionDataForPriors 
+#' @param maximizeSampleSize 
+#' @param threshApprox 
+#' @param byPassChecks 
+#' @param ... 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 runStanPhenology = function(type=c("intercept-only","full"), responseData, hyperparams_noCovariates=NA, onsetCovariateData=NA, durationCovariateData=NA, onsetHyperBeta=NA, onsetHyperAnchor=NA, durationHyperBeta=NA, durationHyperAnchor=NA, cessationHyperAnchor=NA, sigmaHyper=NA, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=TRUE, N=500, partitionDataForPriors=TRUE, maximizeSampleSize=FALSE, threshApprox=NA, byPassChecks=FALSE, ...) {
 
   ## ###########################################################################

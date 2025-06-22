@@ -222,7 +222,37 @@ scaled_dbeta = function(y, shape1, shape2, minResponse = 0, maxResponse = 1) {
 	dbeta(x, shape1, shape2) / (maxResponse - minResponse)
 }
 
+
+#' Prepare data for analysis
+#'
+#' This function prepares the phenological data for Bayesian estimation analysis using "runStanPhenology". The main inputs are the path to the data file and variable names. Note that all variable names should match the names of the columns in file.
+#' @param dataFile A matrix object or a path to a file. See 'Details' for the correct configuration of this file.
+#' @param responseVariableName The name of the response variable. Must match the name of a column in 'dataFile'.
+#' @param onsetCovariateNames A vector with the names of the onset covariate variables.  Must match the name of a column in 'dataFile'.
+#' @param durationCovariateNames A vector with the names of the duration covariate variables.  Must match the name of a column in 'dataFile'.
+#' @param removeDuplicateRows If duplicated rows should be removed (TRUE or FALSE).
+#' @param removeOutliers  If outliers should be removed (TRUE or FALSE).
+#' @param removeIncomplete If rows with missing data should be removed (TRUE or FALSE).
+#' @param dataSummaryDirectory If a directory should be created to save the summary of the results.
+#' @param taxonName The name of the taxon.
+#' @param origN Explain what this is and the input options.
+#'
+#' @returns Returns a list object with the elements necessary to use the "runStanPhenology" function. See 'Example".
 #' @export
+#'
+#' @examples
+#' \donttest{
+#' ##get the file name with data for the blood root plant
+#' file <- system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' ##get the phenology data
+#' data <- preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=c("Year","Latitude","Elevation"), durationCovariateNames=c("Year","Latitude","Elevation"), taxonName="Mertensia_virginica", removeOutliers=TRUE)
+#' ##run the Stan sampler
+#' stanResult <- runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' ##summarize the Stan run
+#' stanSummary <- summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Mertensia virginica",standardLinearModel = TRUE)
+#' ##make posterior predictive graph
+#' pp <- makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "Year", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+#' }
 preparePhenologyData = function(dataFile, responseVariableName, onsetCovariateNames, durationCovariateNames, removeDuplicateRows=TRUE, removeOutliers=FALSE, removeIncomplete=TRUE, dataSummaryDirectory=NA, taxonName=NA, origN=NA) {
 
 
@@ -276,8 +306,22 @@ preparePhenologyData = function(dataFile, responseVariableName, onsetCovariateNa
 	return(out)
 }
 
+
+#' Title
+#'
+#' @param responseDataForPrior 
+#' @param onsetCovariateDataForPrior 
+#' @param durationCovariateDataForPrior 
+#' @param lowerQuantile 
+#' @param upperQuantile 
+#' @param confidence 
+#' @param scale 
+#'
+#' @returns
 #' @export
 #' @importFrom quantreg rq
+#'
+#' @examples
 getHyperparametersViaQuantileRegression = function(responseDataForPrior,
 												   onsetCovariateDataForPrior,
 												   durationCovariateDataForPrior,
@@ -354,7 +398,18 @@ getHyperparametersViaQuantileRegression = function(responseDataForPrior,
 	return(out)
 }
 
+
+#' Title
+#'
+#' @param responseDataForPrior 
+#' @param scale 
+#' @param lowerQuantile 
+#' @param upperQuantile 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 getHyperparametersViaQuantiles = function(responseDataForPrior, scale=1, lowerQuantile=0.1, upperQuantile=0.9) {
 
 	if (lowerQuantile >= upperQuantile) stop("Lower quantile must be less than upper quantile.")
@@ -376,7 +431,18 @@ getHyperparametersViaQuantiles = function(responseDataForPrior, scale=1, lowerQu
 	return(c(H_M_MO, H_SD_MO, H_M_MD, H_SD_MD, H_M_S, H_SD_S))
 }
 
+
+#' Title
+#'
+#' @param responseData 
+#' @param onsetCovariateData 
+#' @param durationCovariateData 
+#' @param prop 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 partitionResponseCovariateData = function(responseData, onsetCovariateData, durationCovariateData, prop=0.3) {
 
 	#perhaps set seed...
@@ -424,7 +490,16 @@ partitionResponseCovariateData = function(responseData, onsetCovariateData, dura
 	return(out)
 }
 
+
+#' Title
+#'
+#' @param responseData 
+#' @param prop 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 partitionResponseData = function(responseData, prop=0.3) {
 	nRes = length(responseData)
 	train_indices = sample(nRes, size = floor(prop * nRes), replace=FALSE)
@@ -444,7 +519,18 @@ removeDuplicateRows = function(df) {
 	return(df_unique)
 }
 
+
+#' Title
+#'
+#' @param N 
+#' @param mu 
+#' @param sigma 
+#' @param k 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 E.Kth.approx = function(N, mu, sigma, k) {
 	if(k<0 || k>N || N<0) {
 		stop("k must be between 1 and N inclusive, and N must be a positive integer.")
@@ -584,7 +670,18 @@ pbeta_safe = function(q, shape1, shape2) {
 		   ifelse(q >= 1, 1, pbeta(q, shape1, shape2)))
 }
 
+
+#' Title
+#'
+#' @param stanRunResult 
+#' @param NTotal 
+#' @param taxonName 
+#' @param diagnostics 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=c("num_divergent", "num_max_treedepth", "ebfmi")) {
 
 	print(NTotal)
@@ -606,8 +703,22 @@ summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=
 	return(summary)
 }
 
+#' Title
+#'
+#' @param stanRunResult 
+#' @param taxonName 
+#' @param measures 
+#' @param quantiles 
+#' @param convergence 
+#' @param standardLinearModel 
+#' @param processExtremes 
+#' @param N 
+#'
+#' @returns
 #' @export
 #' @importFrom posterior as_draws_df quantile2
+#'
+#' @examples
 summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean", "median", "sd", "mad"), quantiles=c(2.5, 97.5), convergence=c("rhat","ess_bulk", "ess_tail"), standardLinearModel=NA, processExtremes=TRUE, N=500) {
 	if(processExtremes) {
 		variables=c("anchor_O", "anchor_D", "anchor_C", "anchor_T", "anchorOk1", "anchorCkN", "alpha_O", "alpha_D", "alpha_C", "alpha_T", "alphaOk1", "alphaCkN", "beta_O", "beta_D", "beta_C", "beta_T", "betaOk1", "betaCkN", "sigma")

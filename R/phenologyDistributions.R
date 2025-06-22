@@ -1,10 +1,32 @@
+#' Distribution functions
+#'
+#' These are distribution functions with 'd' (density), 'r' (sampling), 'q' (quantiles), and 'p' (probability) options. Most functions share the same input parameters.
+#' @rdname dist_family
+#' @param x data
+#' @param q the quantile
+#' @param p the probability
+#' @param n the number of samples
+#' @param t the parameter t
+#' @param mu_O mu 0
+#' @param sigma_O sigma 0
+#' @param mu_D mu D
+#' @param sigma_D sigma D 
+#' @param minResponse min of the response
+#' @param maxResponse max of the response
+#' @param N the population size.
+#' @param type the type
+#'
+#' @returns The results.
 #' @export
+#'
+#' @examples
 dO = function(x, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="GP") { dO.GP(x, mu_O, sigma_O) }
 	else { dO.BB(x, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 pO = function(q, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -12,6 +34,7 @@ pO = function(q, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"
 	else { pO.BB(q, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 qO = function(p, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -19,6 +42,7 @@ qO = function(p, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"
 	else { qO.BB(p, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 rO = function(n, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -26,6 +50,7 @@ rO = function(n, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"
 	else { rO.BB(n, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 dOk1 = function(x, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -33,6 +58,7 @@ dOk1 = function(x, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP"
 	else { dOk1.BB(x, N, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 qOk1 = function(p, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -40,6 +66,7 @@ qOk1 = function(p, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP"
 	else { qOk1.BB(p, N, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 pOk1 = function(q, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -47,7 +74,7 @@ pOk1 = function(q, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP"
 	else { pOk1.BB(q, N, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
-
+#' @rdname dist_family
 #' @export
 rOk1 = function(n, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -55,6 +82,7 @@ rOk1 = function(n, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP"
 	else { rOk1.BB(n, N, mu_O, sigma_O, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 dC = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -66,6 +94,7 @@ dC = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { dC.BB(x, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 pC = function(q, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -77,6 +106,7 @@ pC = function(q, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { pC.BB(q, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 rC = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -88,6 +118,7 @@ rC = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { rC.BB(n, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 qC = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -99,6 +130,7 @@ qC = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { qC.BB(p, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 Pt = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -110,6 +142,7 @@ Pt = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { Pt.BB(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) }
 }
 
+#' @rdname dist_family
 #' @export
 dT = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -121,6 +154,7 @@ dT = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { dT.BB(x, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse, nc=NULL) }
 }
 
+#' @rdname dist_family
 #' @export
 pT = function(q, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -132,6 +166,7 @@ pT = function(q, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { pT.BB(q, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, nc=NULL) }
 }
 
+#' @rdname dist_family
 #' @export
 qT = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -143,6 +178,7 @@ qT = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { qT.BB(p, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse, nc=NULL) }
 }
 
+#' @rdname dist_family
 #' @export
 rT = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -154,6 +190,7 @@ rT = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { rT.BB(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=minResponse, maxResponse=maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 rCkN = function(n, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -165,6 +202,7 @@ rCkN = function(n, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=3
 	else { rCkN.BB(n, N, mu_O, sigma_O, mu_D, sigma_D, minResponse = minResponse, maxResponse = maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 dCkN = function(x, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -176,6 +214,7 @@ dCkN = function(x, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=3
 	else { dCkN.BB(x, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=minResponse, maxResponse=maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 pCkN = function(q, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -187,6 +226,7 @@ pCkN = function(q, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=3
 	else { pCkN.BB(q, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=minResponse, maxResponse=maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 qCkN = function(p, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -198,6 +238,7 @@ qCkN = function(p, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=3
 	else { qCkN.BB(p, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=minResponse, maxResponse=maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 dR = function(x, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -209,6 +250,7 @@ dR = function(x, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365
 	else { dR.BB(x, N, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 rR = function(n, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -220,6 +262,7 @@ rR = function(n, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365
 	else { rR.BB(n, N, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
+#' @rdname dist_family
 #' @export
 dPNt = function(x, t, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
@@ -231,6 +274,7 @@ dPNt = function(x, t, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=3
 	else { dPNt.BB(x, t, mu_O, sigma_O, mu_D, sigma_D, minResponse=minResponse, maxResponse=maxResponse, res = 1000) }
 }
 
+#' @rdname dist_family
 #' @export
 rPNt = function(n, t, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)

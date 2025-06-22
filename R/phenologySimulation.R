@@ -1,4 +1,18 @@
+#' Title
+#'
+#' @param n 
+#' @param slopeO 
+#' @param interceptO 
+#' @param sigma 
+#' @param slopeD 
+#' @param interceptD 
+#' @param minCovariate 
+#' @param maxCovariate 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 simulateCovariate = function(n, slopeO, interceptO, sigma, slopeD, interceptD, minCovariate, maxCovariate) {
 
 x = runif(n, minCovariate, maxCovariate)
@@ -19,8 +33,21 @@ return(out)
 
 }
 
+#' Title
+#'
+#' @param n 
+#' @param beta 
+#' @param cov_names 
+#' @param response_name 
+#' @param Sigma 
+#' @param anchor 
+#' @param noise_sd 
+#'
+#' @returns
 #' @export
 #' @importFrom MASS mvrnorm
+#'
+#' @examples
 simulateCorrelatedCovariateData = function(n, beta, cov_names, response_name = "Y",
 		Sigma = NULL, anchor = 0, noise_sd = 1) {
 # Load required package
@@ -199,7 +226,23 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 		return(output)
 }
 
+#' Title
+#'
+#' @param N 
+#' @param mu_O 
+#' @param sigma_O 
+#' @param mu_D_raw 
+#' @param sigma_D 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param mins 
+#' @param maxs 
+#' @param type 
+#'
+#' @returns
 #' @export
+#'
+#' @examples
 simulatePopulation =  function(N, mu_O, sigma_O, mu_D_raw, sigma_D=NA, minResponse=0, maxResponse=365, mins=1.5, maxs=3000, type="GP") {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, N=NA, n=N, minResponse=minResponse, maxResponse=maxResponse) # some redundancy with below...
 	if(N <= 0) {

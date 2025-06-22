@@ -59,7 +59,29 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 	preds
 }
 
-
+#' Title
+#'
+#' @param stanResult 
+#' @param responseData 
+#' @param responseVariableName 
+#' @param targetCovariateName 
+#' @param onsetCovariateData 
+#' @param durationCovariateData 
+#' @param n_samples 
+#' @param n_draws 
+#' @param n_hist 
+#' @param n_bin 
+#' @param resolution 
+#' @param slice 
+#' @param N 
+#' @param minResponse 
+#' @param maxResponse 
+#' @param adjustYLim 
+#' @param smooth 
+#' @param keepSigma 
+#' @param makeHistograms 
+#'
+#' @returns
 #' @export
 #' @importFrom posterior as_draws_df
 #' @importFrom copula pobs normalCopula fitCopula
@@ -68,6 +90,8 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 #' @importFrom stats predict
 #' @importFrom splines bs
 #' @importFrom cowplot plot_grid
+#'
+#' @examples
 makePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, onsetCovariateData, durationCovariateData, n_samples=100, n_draws=100, n_hist=10000, n_bin=100, resolution=50, slice = 0.25, N=1000, minResponse=0, maxResponse=365, adjustYLim=T, smooth=c("GAM", "LOESS", "SPLINE", "NONE"), keepSigma=T, makeHistograms=FALSE) {
 
 	smooth = match.arg(smooth)
@@ -365,7 +389,24 @@ makePosteriorPredictivePlot = function(stanResult, responseData, responseVariabl
 	return(figure)
 }
 
+#' Title
+#'
+#' @param observed_data 
+#' @param filtered_results 
+#' @param targetCovariateName 
+#' @param responseVariableName 
+#' @param legend 
+#' @param timeSlice1 
+#' @param timeSlice2 
+#' @param adjustYLim 
+#' @param minResponse 
+#' @param maxResponse 
+#'
+#' @returns
+#' @export
 #' @importFrom ggplot2 ggplot geom_ribbon aes geom_line geom_point scale_color_manual scale_fill_manual geom_vline theme_minimal labs theme element_rect ylim coord_cartesian
+#'
+#' @examples
 posterior_predictive_graphic = function(observed_data, filtered_results,targetCovariateName,responseVariableName,legend=TRUE, timeSlice1, timeSlice2, adjustYLim = T, minResponse=0, maxResponse=365) {
 
 	if(adjustYLim) {
