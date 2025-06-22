@@ -197,7 +197,7 @@ dPNt.GP = function(x, t, mu_O, mu_C, sigma, minResponse=0, maxResponse=365, res 
 	N = res
 	n = round(x * res)
 
-	Pt = Pt.GP(t, mu_O, mu_C, sigma, minResponse, maxResponse) 
+	Pt = Pt.GP(t, mu_O, mu_C, sigma, minResponse, maxResponse)
 	return( dbinom(x=n, size=N, prob=Pt))
 
 }

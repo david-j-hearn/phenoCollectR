@@ -58,12 +58,12 @@ rOk1 = function(n, N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP"
 #' @export
 dC = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
-	mu_C = mu_O + mu_D
 	if(type=="GP") {
+		mu_C = mu_O + mu_D
 		sigma = sigma_O
 		dC.GP(x, mu_C, sigma)
 	}
-	else { dC.BB(x, mu_C, sigma_C, mu_D, sigma_D, minResponse, maxResponse) }
+	else { dC.BB(x, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
 #' @export

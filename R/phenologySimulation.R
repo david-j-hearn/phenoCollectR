@@ -205,7 +205,7 @@ simulatePopulation =  function(N, mu_O, sigma_O, mu_D_raw, sigma_D=NA, minRespon
 	if(N <= 0) {
 		stop("Population size must be positive during simulations.")
 	}
-	if(sigma_O <=0 || sigma_D <=0 ) {
+	if(sigma_O <=0 ) {
 		stop("Standard deviations (sigmas) must be positive.")
 	}
 	if(mu_O<=minResponse || mu_O>=maxResponse) {
@@ -221,6 +221,9 @@ simulatePopulation =  function(N, mu_O, sigma_O, mu_D_raw, sigma_D=NA, minRespon
 		stop("Beta shape parameters must have positive values.")
 	}
 	if(type == "BB") {
+    if(sigma_D <=0 ) {
+        stop("Standard deviations (sigmas) must be positive.")
+    }
 		warning("The input mean duration, ", mu_D_raw, ", will be scaled so that all individual phenophases fit between ", minResponse, " and ", maxResponse, ".")
 			if(is.na(sigma_D)) {
 				stop("Missing the standard deviation of the phenophase duration distribution.")

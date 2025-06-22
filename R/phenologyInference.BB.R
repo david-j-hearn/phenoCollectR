@@ -53,7 +53,7 @@ E.T.BB = function(mu_O, mu_D, minResponse=0, maxResponse=365) {
 	muo = (mu_O-minResponse) / (maxResponse - minResponse)
 	mud = (mu_D) / (maxResponse - minResponse)
 	e = muo + mud * (1-muo)/2 #this should be checked! // is approximate
-	return(minResponse + e * (maxResponse-minResponse)) 
+	return(minResponse + e * (maxResponse-minResponse))
 }
 
 E.C.BB = function(mu_O, mu_D, minResponse=0, maxResponse=365) {
@@ -103,8 +103,8 @@ SD.Ok1.BB = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	alpha_s = dataO$alpha_s
 	beta_s = dataO$beta_s
 	E = E.Ok1.BB.s(N, alpha_s, beta_s)
-	integrand <- function(x) { x * x * dOk1.BB.s(x, N, alpha_s, beta_s) } 
-	E2 = integrate(integrand, 1e-4, 1-1e-4)$value 
+	integrand <- function(x) { x * x * dOk1.BB.s(x, N, alpha_s, beta_s) }
+	E2 = integrate(integrand, 1e-4, 1-1e-4)$value
 	var = (E2 - E^2) * (maxResponse-minResponse)^2
 	if(var < 0) { stop("Error calculating variance for first onset times") }
 	return(sqrt(var))
@@ -126,8 +126,8 @@ SD.T.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365)
 	beta_d = dataD$beta_s
 	E = (E.T.BB(mu_O, mu_D, minResponse, maxResponse) - minResponse) / (maxResponse - minResponse)
 	nc = Pt.nc.BB(mu_O, mu_D, minResponse, maxResponse)
-	integrand <- function(x) { x * x * Pt.BB.s(x, alpha_s, beta_s, alpha_d, beta_d)/nc } 
-	E2 = integrate(integrand, 0, 1)$value 
+	integrand <- function(x) { x * x * Pt.BB.s(x, alpha_s, beta_s, alpha_d, beta_d)/nc }
+	E2 = integrate(integrand, 0, 1)$value
 	var = (E2 - E^2) * (maxResponse-minResponse)^2
 	if(var < 0) { stop("Error calculating variance for observed times") }
 	return(sqrt(var))
@@ -160,8 +160,8 @@ SD.CkN.BB = function(N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse
 	beta_d = dataD$beta_s
 
 	E = E.CkN.BB.s(N, alpha_s, beta_s, alpha_d, beta_d)
-	integrand <- function(x) { x * x * dCkN.BB.s(x, N, alpha_s, beta_s, alpha_d, beta_d) } 
-	E2 = integrate(integrand, 1e-4, 1-1e-4)$value 
+	integrand <- function(x) { x * x * dCkN.BB.s(x, N, alpha_s, beta_s, alpha_d, beta_d) }
+	E2 = integrate(integrand, 1e-4, 1-1e-4)$value
 	var = (E2 - E^2) * (maxResponse-minResponse)^2
 	if(var < 0) { stop("Error calculating variance for first onset times") }
 	return(sqrt(var))
@@ -433,7 +433,7 @@ neg_log_posterior <- function(params, t_obs, a_o_m, b_o_m, a_d_m, b_d_m, a_o_sd,
 		dbeta(sd_d, a_d_sd, b_d_sd, log = TRUE)
 
 	# negative log-posterior
-	return(- (log_lik + log_prior))  
+	return(- (log_lik + log_prior))
 }
 
 getProportionOverlap.OC.BB.s = function(alpha_s, beta_s, alpha_d, beta_d) {

@@ -68,7 +68,7 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 #' @importFrom stats predict
 #' @importFrom splines bs
 #' @importFrom cowplot plot_grid
-makePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, onsetCovariateData, durationCovariateData, n_samples=100, n_draws=100, n_hist=10000, n_bin=100, resolution=50, slice = 0.25, N=1000, minResponse=0, maxResponse=365, adjustYLim=T, smooth=c("GAM", "LOESS", "SPLINE", "NONE"), keepSigma=T) {
+makePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, onsetCovariateData, durationCovariateData, n_samples=100, n_draws=100, n_hist=10000, n_bin=100, resolution=50, slice = 0.25, N=1000, minResponse=0, maxResponse=365, adjustYLim=T, smooth=c("GAM", "LOESS", "SPLINE", "NONE"), keepSigma=T, makeHistograms=FALSE) {
 
 	smooth = match.arg(smooth)
 
@@ -184,9 +184,11 @@ makePosteriorPredictivePlot = function(stanResult, responseData, responseVariabl
 		}
 		if(x == s1) {
 			s1_summary = pred_summary
+			s1_raw = pred_means
 		}
 		if(x == s2) {
 			s2_summary = pred_summary
+			s2_raw = pred_means
 		}
 
 		results  =  bind_rows(results, pred_summary)
@@ -195,6 +197,73 @@ makePosteriorPredictivePlot = function(stanResult, responseData, responseVariabl
 	minY = min(pred_summary$lower)
 	maxY = max(pred_summary$upper)
 
+	if(!makeHistograms) {
+
+    O1s0 = s1_raw["mO",]
+    D1s0 = s1_raw["mC",]- s1_raw["mO",]
+    T1s0 = s1_raw["mT",]
+    S1s0 = s1_raw["S",]
+
+    #print("O1s")
+    #print(O1s)
+
+    O2s0 = s2_raw["mO",]
+    D2s0 = s2_raw["mC",]- s2_raw["mO",]
+    T2s0 = s2_raw["mT",]
+    S2s0 = s2_raw["S",]
+
+    cat("Simulating shift distributions.\n")
+    n = 100
+
+    cat("\tOnset\n")
+    O1list = list()
+    O2list = list()
+    for( i in 1:length(O1s0))
+    {
+        O1list[[i]] = rO(n=n, mu_O=O1s0[i], sigma_O=S1s0[i], type="GP")
+        O2list[[i]] = rO(n=n, mu_O=O2s0[i], sigma_O=S2s0[i], type="GP")
+    }
+    O1s = unlist(O1list)
+    O2s = unlist(O2list)
+
+    cat("\tDuration\n")
+    D1list = list()
+    D2list = list()
+    sd1 = sd(D1s0)
+    sd2 = sd(D2s0)
+    for( i in 1:length(D1s0))
+    {
+        #includes intrinsic variation in D, which is not part of the GP model
+        D1list[[i]] = rD.GP(n=n, mu_D=D1s0[i]) + rnorm(n=n, 0, sd1)
+        D2list[[i]] = rD.GP(n=n, mu_D=D2s0[i]) + rnorm(n=n, 0, sd2)
+    }
+    D1s = unlist(D1list)
+    D2s = unlist(D2list)
+
+    cat("\tObserved\n")
+    T1list = list()
+    T2list = list()
+    for( i in 1:length(T1s0))
+    {
+        T1list[[i]] = rT(n=n, mu_O=O1s0[i], sigma_O=S1s0[i], mu_D=D1s0[i], type="GP")
+        T2list[[i]] = rT(n=n, mu_O=O2s0[i], sigma_O=S2s0[i], mu_D=D2s0[i], type="GP")
+    }
+    T1s = unlist(T1list)
+    T2s = unlist(T2list)
+
+    cat("Making shift panels.\n")
+    pO = makeShiftPanel(O1s, O2s,"red", "Mean Onset (O)")
+    pD = makeShiftPanel(D1s, D2s, "gray", "Mean Duration (D)")
+    pT = makeShiftPanel(T1s, T2s, "purple", "Mean Observed (T)")
+
+    slices = cowplot::plot_grid(pO, pD, pT, nrow = 3, ncol = 1, labels = c("B", "C", "D"), label_x = 0, label_y = 0.1)
+    #print(pO)
+    #dev.new()
+    #print(slices)
+}
+
+#make histograms of phenological distributions at two different time slices
+	else {
 
 	#make the time slice panels
 	cat("Making the time slice panels.\n")
@@ -217,6 +286,9 @@ makePosteriorPredictivePlot = function(stanResult, responseData, responseVariabl
 
 	pS1 = makeSimulatedAndTheoreticalOverlayGraph(mu_O=mu_O1, mu_C=mu_C1, sigma=sigma1, n_hist=n_hist, N=N, minResponse=minResponse, maxResponse=maxResponse, responseVariableName=NULL, nBin=n_bin, xlim=xlim)
 	pS2 = makeSimulatedAndTheoreticalOverlayGraph(mu_O=mu_O2, mu_C=mu_C2, sigma=sigma2, n_hist=n_hist, N=N, minResponse=minResponse, maxResponse=maxResponse, responseVariableName="DOY at Dotted Slice",nBin=n_bin, xlim=xlim)
+	    slices = cowplot::plot_grid(pS1, pS2, nrow = 2, ncol = 1, labels = c("B", "C"), label_x = 0, label_y = 0.1)
+    }
+
 
 	#get rid of the sigma data for graphing
 	if(!keepSigma) {
@@ -287,7 +359,7 @@ makePosteriorPredictivePlot = function(stanResult, responseData, responseVariabl
 	#create the posterior predictive plot
 	pPPP = posterior_predictive_graphic(observed_data, filtered_results,targetCovariateName,responseVariableName, timeSlice1 = s1, timeSlice2 = s2, adjustYLim=adjustYLim)
 
-	slices = plot_grid(pS1, pS2, nrow = 2, ncol = 1, labels = c("B", "C"), label_x = 0, label_y = 0.1)
+	#slices = plot_grid(pS1, pS2, nrow = 2, ncol = 1, labels = c("B", "C"), label_x = 0, label_y = 0.1)
 	figure = plot_grid(pPPP, slices, nrow = 1, ncol = 2, labels = c("A"), label_x = 0, label_y = 0.1, rel_widths = c(2, 1))
 
 	return(figure)
@@ -368,6 +440,57 @@ posterior_predictive_graphic = function(observed_data, filtered_results,targetCo
 		}
 		return(pPPP)
 }
+
+#' @importFrom ggplot2 ggplot aes  geom_vline labs theme_minimal geom_area theme annotate
+#' @importFrom grid arrow unit
+#' @importFrom dplyr tibble group_by bind_rows summarize
+makeShiftPanel = function(sample1, sample2, col, xlab) {
+
+df <- bind_rows(
+  tibble(value = sample1, timepoint = "T1"),
+  tibble(value = sample2, timepoint = "T2")
+)
+
+# Compute sample means
+means <- df %>%
+  group_by(timepoint) %>%
+  summarize(mean_value = mean(value))
+
+  x_range <- range(df$value)
+buffer <- 0.25 * diff(x_range)
+x_seq <- seq(x_range[1] - buffer, x_range[2] + buffer, length.out = 512)
+
+density_T1 <- density(df$value[df$timepoint == "T1"], from = min(x_seq), to = max(x_seq), n = 1000)
+density_T2 <- density(df$value[df$timepoint == "T2"], from = min(x_seq), to = max(x_seq), n = 1000)
+
+# Convert to data frames
+dens_T1_df <- tibble(x = density_T1$x, y = density_T1$y, timepoint = "T1")
+dens_T2_df <- tibble(x = density_T2$x, y = density_T2$y, timepoint = "T2")
+
+densities_df <- bind_rows(dens_T1_df, dens_T2_df)
+
+ymax <- max(densities_df$y)
+ymid <- ymax / 2
+
+ggplot(densities_df, aes(x = x, y = y)) +
+  #geom_area(fill = col, alpha = 0.1, position = "identity") +
+      geom_area(data = dens_T1_df, aes(x = x, y = y),
+            fill = col, alpha = 0.3, color = "black") +
+  geom_area(data = dens_T2_df, aes(x = x, y = y),
+            fill = col, alpha = 0.3, color = "black") +
+  geom_vline(data = means, aes(xintercept = mean_value), linetype = "dashed", color = "black") +
+  annotate("segment",
+           x = means$mean_value[means$timepoint == "T1"],
+           xend = means$mean_value[means$timepoint == "T2"],
+           y = ymid, yend = ymid,
+           arrow = arrow(length = unit(0.25, "cm"), type="closed"),
+           color = "black") +
+  labs( x = xlab, y = "Density") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+}
+
 
 #' @importFrom ggplot2 ggplot geom_histogram aes scale_fill_manual scale_color_manual stat_function xlim geom_vline labs theme_minimal geom_area geom_line theme element_rect
 #' @importFrom dplyr tibble
