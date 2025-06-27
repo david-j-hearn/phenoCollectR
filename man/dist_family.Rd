@@ -5,6 +5,10 @@
 \alias{pO}
 \alias{qO}
 \alias{rO}
+\alias{dD}
+\alias{pD}
+\alias{rD}
+\alias{qD}
 \alias{dOk1}
 \alias{qOk1}
 \alias{pOk1}
@@ -26,7 +30,7 @@
 \alias{rR}
 \alias{dPNt}
 \alias{rPNt}
-\title{Distribution functions}
+\title{Functions that model phenological distributions.}
 \usage{
 dO(x, mu_O, sigma_O, minResponse = 0, maxResponse = 365, type = c("GP", "BB"))
 
@@ -35,6 +39,50 @@ pO(q, mu_O, sigma_O, minResponse = 0, maxResponse = 365, type = c("GP", "BB"))
 qO(p, mu_O, sigma_O, minResponse = 0, maxResponse = 365, type = c("GP", "BB"))
 
 rO(n, mu_O, sigma_O, minResponse = 0, maxResponse = 365, type = c("GP", "BB"))
+
+dD(
+  x,
+  mu_O = NA,
+  sigma_O = NA,
+  mu_D,
+  sigma_D = NA,
+  minResponse = 0,
+  maxResponse = 365,
+  type = c("GP", "BB")
+)
+
+pD(
+  q,
+  mu_O = NA,
+  sigma_O = NA,
+  mu_D,
+  sigma_D = NA,
+  minResponse = 0,
+  maxResponse = 365,
+  type = c("GP", "BB")
+)
+
+rD(
+  n,
+  mu_O = NA,
+  sigma_O = NA,
+  mu_D,
+  sigma_D = NA,
+  minResponse = 0,
+  maxResponse = 365,
+  type = c("GP", "BB")
+)
+
+qD(
+  p,
+  mu_O = NA,
+  sigma_O = NA,
+  mu_D,
+  sigma_D = NA,
+  minResponse = 0,
+  maxResponse = 365,
+  type = c("GP", "BB")
+)
 
 dOk1(
   x,
@@ -272,35 +320,66 @@ rPNt(
 )
 }
 \arguments{
-\item{x}{data}
+\item{x}{The response data (e.g. day of year values)}
 
-\item{mu_O}{mu 0}
+\item{mu_O}{Mean onset time}
 
-\item{sigma_O}{sigma 0}
+\item{sigma_O}{Standard deviation for the onset time distribution}
 
-\item{minResponse}{min of the response}
+\item{minResponse}{Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)}
 
-\item{maxResponse}{max of the response}
+\item{maxResponse}{Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)}
 
-\item{type}{the type}
+\item{type}{The model type, either BB (beta onset, beta duration) or GP (Gaussian process with one standard deviation for onset and a constant duration) (default = "GP")}
 
-\item{q}{the quantile}
+\item{q}{The quantile}
 
-\item{p}{the probability}
+\item{p}{The lower tail area (probability)}
 
-\item{n}{the number of samples}
+\item{n}{The sample size}
 
-\item{N}{the population size.}
+\item{mu_D}{Mean duration time}
 
-\item{mu_D}{mu D}
+\item{sigma_D}{Standard deviation for the duration time distribution}
 
-\item{sigma_D}{sigma D}
+\item{N}{The population size for estimation of extreme events}
 
-\item{t}{the parameter t}
+\item{t}{The time at which the proportion of the population in the phenophase is to be evaluated}
 }
 \value{
-The results.
+The results as a vector for the specified function, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
 }
 \description{
-These are distribution functions with 'd' (density), 'r' (sampling), 'q' (quantiles), and 'p' (probability) options. Most functions share the same input parameters.
+These are distribution functions with 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) options. Most functions share a subset of the same input parameters, but if you use a model that does not require all the parameters, just provided the needed parameters.
+}
+\examples{
+#Set the sample size
+n=100000
+#Set the mean onset time
+mean_onset = 100
+#Set the onset time standard deviation, sigma
+sigma_onset = 10
+#Set the duration of the phenophase
+duration = 50
+#Sample the observed collection times
+observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=duration)
+#Make a histogram of the observed collection times
+hist(observed_t, probability=TRUE, xlab="Simulated observed collection times")
+#Overlay the theoretical curve on the histogram
+curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=duration),col="red",add=TRUE)
+
+#Or, for a more "extreme" distribution that illustrates the flexibility of the model's shape:
+#Set the mean onset time
+mean_onset = 180
+#Set the onset time standard deviation, sigma
+sigma_onset = 100
+#Set the duration of the phenophase
+mean_duration = 50
+sigma_duration = 10
+#Sample the observed collection times
+observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#Make a histogram of the observed collection times
+hist(observed_t, probability=TRUE, xlab="Simulated observed collection times (extreme BB model)")
+#Overlay the theoretical curve on the histogram
+curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB"),col="red",add=TRUE,from=0, to=365)
 }

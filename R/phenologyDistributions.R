@@ -1,25 +1,54 @@
-#' Distribution functions
+#' Functions that model phenological distributions.
 #'
-#' These are distribution functions with 'd' (density), 'r' (sampling), 'q' (quantiles), and 'p' (probability) options. Most functions share the same input parameters.
+#' These are distribution functions with 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) options. Most functions share a subset of the same input parameters, but if you use a model that does not require all the parameters, just provided the needed parameters.
 #' @rdname dist_family
-#' @param x data
-#' @param q the quantile
-#' @param p the probability
-#' @param n the number of samples
-#' @param t the parameter t
-#' @param mu_O mu 0
-#' @param sigma_O sigma 0
-#' @param mu_D mu D
-#' @param sigma_D sigma D 
-#' @param minResponse min of the response
-#' @param maxResponse max of the response
-#' @param N the population size.
-#' @param type the type
+#' @param x The response data (e.g. day of year values)
+#' @param q The quantile
+#' @param p The lower tail area (probability) 
+#' @param n The sample size
+#' @param t The time at which the proportion of the population in the phenophase is to be evaluated
+#' @param mu_O Mean onset time
+#' @param sigma_O Standard deviation for the onset time distribution
+#' @param mu_D Mean duration time
+#' @param sigma_D Standard deviation for the duration time distribution
+#' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
+#' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
+#' @param N The population size for estimation of extreme events
+#' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with one standard deviation for onset and a constant duration) (default = "GP")
 #'
-#' @returns The results.
+#' @return The results as a vector for the specified function, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
 #' @export
 #'
-#' @examples
+#' @examples 
+#' #Set the sample size
+#' n=100000
+#' #Set the mean onset time
+#' mean_onset = 100
+#' #Set the onset time standard deviation, sigma
+#' sigma_onset = 10
+#' #Set the duration of the phenophase
+#' duration = 50
+#' #Sample the observed collection times
+#' observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=duration)
+#' #Make a histogram of the observed collection times
+#' hist(observed_t, probability=TRUE, xlab="Simulated observed collection times")
+#' #Overlay the theoretical curve on the histogram
+#' curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=duration),col="red",add=TRUE)
+#'
+#' #Or, for a more "extreme" distribution that illustrates the flexibility of the model's shape:
+#' #Set the mean onset time
+#' mean_onset = 180
+#' #Set the onset time standard deviation, sigma
+#' sigma_onset = 100
+#' #Set the duration of the phenophase
+#' mean_duration = 50
+#' sigma_duration = 10
+#' #Sample the observed collection times
+#' observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#' #Make a histogram of the observed collection times
+#' hist(observed_t, probability=TRUE, xlab="Simulated observed collection times (extreme BB model)")
+#' #Overlay the theoretical curve on the histogram
+#' curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB"),col="red",add=TRUE,from=0, to=365)
 dO = function(x, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="GP") { dO.GP(x, mu_O, sigma_O) }
@@ -48,6 +77,54 @@ rO = function(n, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"
 	type = match.arg(type)
 	if(type=="GP") { rO.GP(n, mu_O, sigma_O) }
 	else { rO.BB(n, mu_O, sigma_O, minResponse, maxResponse) }
+}
+
+#' @rdname dist_family
+#' @export
+dD = function(x, mu_O=NA, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
+	type = match.arg(type)
+	if(type=="GP") {
+		dD.GP(x=x, mu_D=mu_D)
+	}
+	else {
+		dD.BB(x=x, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
+	}
+}
+
+#' @rdname dist_family
+#' @export
+pD = function(q, mu_O=NA, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
+	type = match.arg(type)
+	if(type=="GP") {
+		pD.GP(q=q, mu_D=mu_D)
+	}
+	else {
+		pD.BB(q=q, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
+	}
+}
+
+#' @rdname dist_family
+#' @export
+rD = function(n, mu_O=NA, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
+	type = match.arg(type)
+	if(type=="GP") {
+		rD.GP(n=n, mu_D=mu_D)
+	}
+	else {
+		rD.BB(n=n, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
+	}
+}
+
+#' @rdname dist_family
+#' @export
+qD = function(p, mu_O=NA, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
+	type = match.arg(type)
+	if(type=="GP") {
+		qD.GP(p=p, mu_D=mu_D)
+	}
+	else {
+		qD.BB(p=p, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
+	}
 }
 
 #' @rdname dist_family
@@ -180,6 +257,7 @@ qT = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 
 #' @rdname dist_family
 #' @export
+
 rT = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="GP") {

@@ -32,11 +32,11 @@ preparePhenologyData(
 
 \item{removeIncomplete}{If rows with missing data should be removed (TRUE or FALSE).}
 
-\item{dataSummaryDirectory}{If a directory should be created to save the summary of the results.}
+\item{dataSummaryDirectory}{Optionally provide the name of a directory where a summary of the data will be saved in a tab-delimited file named dataSummary.\if{html}{\out{<taxonName>}}.txt}
 
-\item{taxonName}{The name of the taxon.}
+\item{taxonName}{Optionally, the name of the taxon.}
 
-\item{origN}{Explain what this is and the input options.}
+\item{origN}{Optionally, the initial number of specimens before any filtering of specimens took place (saved to optional data summary file).}
 }
 \value{
 Returns a list object with the elements necessary to use the "runStanPhenology" function. See 'Example".
@@ -48,13 +48,17 @@ This function prepares the phenological data for Bayesian estimation analysis us
 \donttest{
 ##get the file name with data for the blood root plant
 file <- system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+##define the covariate names - remove up to all but 1
+vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
 ##get the phenology data
-data <- preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=c("Year","Latitude","Elevation"), durationCovariateNames=c("Year","Latitude","Elevation"), taxonName="Mertensia_virginica", removeOutliers=TRUE)
+data <- preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
 ##run the Stan sampler
 stanResult <- runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
 ##summarize the Stan run
-stanSummary <- summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Mertensia virginica",standardLinearModel = TRUE)
+stanSummary <- summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
 ##make posterior predictive graph
-pp <- makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "Year", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+pp <- makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+##display the posterior predictive graph		
+print(pp)		
 }
 }
