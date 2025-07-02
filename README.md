@@ -10,7 +10,7 @@ devtools::install_github("david-j-hearn/phenoCollectR", dependencies = TRUE)
 ## Installation notes
 `phenoCollectR` depends on STAN. The package will check if all dependencies to run STAN are available and will ask the user if STAN should be installed.
 
-STAN installation (and checks) are performed using the utilities of the `rstan` package. `phenoCollectR` will also install `rstan` if necessary.
+STAN installation (and checks) are performed using the utilities of the `cmdstanr` package. `phenoCollectR` will also install `cmdstanr` if necessary.
 
 ## Quick example:
 ```{r,R.options=list(max.print=20)}
