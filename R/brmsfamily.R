@@ -1,20 +1,48 @@
-robs_gp <- function(n, mu_O, duration, sigma) {
+obs_gp_nc <- function(mu_O, duration, sigma) {
+  mu_C <- mu_O + duration
+  mu_C_m1_over_sigma = (mu_C - 1) / sigma;
+  mu_C_over_sigma = mu_C / sigma;
+  mu_O_m1_over_sigma = (mu_O - 1) / sigma;
+  mu_O_over_sigma = mu_O / sigma;
+  
+  exp_sum = -exp(-0.5 * mu_C_m1_over_sigma^2) + exp(-0.5 * mu_C_over_sigma^2) +
+    exp(-0.5 * mu_O_m1_over_sigma^2) - exp(-0.5 * mu_O_over_sigma^2);
+  scaled_exp_sum = sqrt(1.0/(2 * pi)) * sigma * exp_sum;
+  mu_C_terms = -(mu_C - 1) * (pnorm(mu_C_m1_over_sigma) - 0.5) +
+    mu_C * (pnorm(mu_C_over_sigma) - 0.5);
+  mu_O_terms = -(mu_O - 1) * pnorm(-mu_O_m1_over_sigma) +
+    mu_O * pnorm(-mu_O_over_sigma);
+  
+  -0.5 + scaled_exp_sum + mu_C_terms + mu_O_terms;    
+}
+
+robs_gp <- function(n, mu_O, duration, sigma, max_rejection = 10000) {
   res <- rep(NA_real_, n)
   mu_C <- mu_O + duration
-  repeat {
+  if(length(mu_O) == 1) {
+    mu_O <- rep(mu_O, n)
+  }
+  if(length(mu_C) == 1) {
+    mu_C <- rep(mu_C, n)
+  }
+  if(length(sigma) == 1) {
+    sigma <- rep(sigma, n)
+  }
+  
+  for(i in 1:max_rejection) {
     na_indices <- is.na(res)
     n_na <- sum(na_indices)
     if(n_na == 0) {
       break
     }
     t <- runif(n_na)
-    gp_t_all <- rnorm(n_na, t, sigma)
-    seen <- mu_O < gp_t_all & gp_t_all < mu_C
+    gp_t_all <- rnorm(n_na, t, sigma[na_indices])
+    seen <- mu_O[na_indices] < gp_t_all & gp_t_all < mu_C[na_indices]
     t[!seen] <- NA_real_
     res[na_indices] <- t
   }
-  while(any(is.na(res))) {
-    
+  if(any(is.na(res))) {
+    warning("Could not produce viable observations for some indices by rejection sampling.")
   }
   res
 }
@@ -32,6 +60,25 @@ posterior_epred_obs_gp <- function(prep) {
   return(mu + 0.5 * duration)
 }
 
+log_lik_obs_gp <- function(i, prep) {
+  mu <- brms::get_dpar(prep, "mu", i = i)
+  duration <- brms::get_dpar(prep, "duration", i = i)
+  sigma <- brms::get_dpar(prep, "sigma", i = i)
+  t <- prep$data$Y[i]
+  
+  mu_O <- mu
+  mu_C <- mu + duration
+  base_ll <- 
+    dplyr::if_else(t > mu_O, 
+      brms:::log_diff_exp(pnorm(mu_C, t, sigma, log = TRUE), pnorm(mu_O, t, sigma, log = TRUE)),
+      brms:::log_diff_exp(pnorm(2 * t - mu_O, t, sigma, log = TRUE), pnorm(2 * t - mu_C, t, sigma, log = TRUE))
+    )
+  nc <- obs_gp_nc(mu_O, duration, sigma)                            
+  ll <- base_ll - log(nc)
+
+  ll
+}
+
 obs_gp_brmsfamily <- function(link = "identity", link_duration = "log", link_sigma = "log") {
   family <- brms::custom_family(
     "obs_gp",
@@ -40,7 +87,7 @@ obs_gp_brmsfamily <- function(link = "identity", link_duration = "log", link_sig
     lb = c(NA, 0, 0),
     ub = c(NA, NA, NA),
     type = "real",
-    # log_lik = log_lik_obs_gp, # Not implemented so far, but possible
+    log_lik = log_lik_obs_gp,
     posterior_predict = posterior_predict_obs_gp,
     posterior_epred = posterior_epred_obs_gp
   )
