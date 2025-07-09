@@ -351,7 +351,7 @@ runStan.NoCovariates.T.GP = function(fileOrData, minResponse=0, maxResponse=365,
 	return(result)
 }
 
-runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=365, onsetCovariateData, durationCovariateData, onsetHyperBeta, onsetHyperAnchor, durationHyperBeta, durationHyperAnchor, cessationHyperAnchor, sigmaHyper=c(10,50), dataProvided=FALSE, setStringent=TRUE, maxDiv=0, processExtremes=TRUE, N=500, ...) {
+runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=365, onsetCovariateData, durationCovariateData, onsetHyperBeta, onsetHyperAnchor, durationHyperBeta, durationHyperAnchor, cessationHyperAnchor, sigmaHyper=c(10,50), dataProvided=FALSE, setStringent=TRUE, maxDiv=0, processExtremes=TRUE, N=500, priorLevel=2, ...) {
 	options(mc.cores = 4)
 
 	if(processExtremes && !is.na(N)) {
@@ -444,7 +444,7 @@ runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=
 					 idx_O = idx_O,
 					 idx_D = idx_D,
 
-					 priors = 2,
+					 priors = priorLevel,
 
 					 T_raw = observed,
 					 T_min = minResponse,

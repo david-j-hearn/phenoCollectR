@@ -27,6 +27,7 @@ runStanPhenology(
   maximizeSampleSize = FALSE,
   threshApprox = NA,
   byPassChecks = FALSE,
+  priorLevel = 2,
   ...
 )
 }

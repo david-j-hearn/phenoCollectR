@@ -731,13 +731,14 @@ runStandardLinearModel = function(responseData, onsetCovariateData, durationCova
 #' @param maximizeSampleSize 
 #' @param threshApprox 
 #' @param byPassChecks 
+#' @param priorLevel
 #' @param ... 
 #'
 #' @returns
 #' @export
 #'
 #' @examples
-runStanPhenology = function(type=c("intercept-only","full"), responseData, hyperparams_noCovariates=NA, onsetCovariateData=NA, durationCovariateData=NA, onsetHyperBeta=NA, onsetHyperAnchor=NA, durationHyperBeta=NA, durationHyperAnchor=NA, cessationHyperAnchor=NA, sigmaHyper=NA, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=TRUE, N=500, partitionDataForPriors=TRUE, maximizeSampleSize=FALSE, threshApprox=NA, byPassChecks=FALSE, ...) {
+runStanPhenology = function(type=c("intercept-only","full"), responseData, hyperparams_noCovariates=NA, onsetCovariateData=NA, durationCovariateData=NA, onsetHyperBeta=NA, onsetHyperAnchor=NA, durationHyperBeta=NA, durationHyperAnchor=NA, cessationHyperAnchor=NA, sigmaHyper=NA, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=TRUE, N=500, partitionDataForPriors=TRUE, maximizeSampleSize=FALSE, threshApprox=NA, byPassChecks=FALSE,priorLevel=2, ...) {
 
   ## ###########################################################################
 	## CHECK STAN BLOCK
@@ -837,7 +838,7 @@ runStanPhenology = function(type=c("intercept-only","full"), responseData, hyper
 				stop("Please provide appropriate inputs")
 			}
 			cat("Calling specialized runStan functions.\n")
-		runStan.WithCovariates.T.GP(response=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, cessationHyperAnchor=cessationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE)
+		runStan.WithCovariates.T.GP(response=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, cessationHyperAnchor=cessationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel)
 		}
 	}
 }
