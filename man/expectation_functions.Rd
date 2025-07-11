@@ -70,17 +70,21 @@ The expected value of the associated random variable and input parameters
 }
 \description{
 O: phenological onset times
-D: phenophase durations
-C: phenological cessation times
-Ok1: first onset (order k = 1)
-CkN: last cessation (order k = N, the population size)
-T: observed specimen collection times, e.g., day of year for a yearly time period
-PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
 }
 \details{
+D: phenophase durations
+
+C: phenological cessation times
+
+Ok1: first onset (order k = 1)
+
+CkN: last cessation (order k = N, the population size)
+
+T: observed specimen collection times, e.g., day of year for a yearly time period
+
 Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
 
-The function name is E.* where * is one of the above random variables.
+The function name is created by prepending "E." in front of one of the above variables names.
 }
 \examples{
 

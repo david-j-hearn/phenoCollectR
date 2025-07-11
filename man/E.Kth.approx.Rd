@@ -2,19 +2,36 @@
 % Please edit documentation in R/helperFunctions.R
 \name{E.Kth.approx}
 \alias{E.Kth.approx}
-\title{Title}
+\title{Approximate the kth largest value in a normally-distributed finite population}
 \usage{
 E.Kth.approx(N, mu, sigma, k)
 }
 \arguments{
-\item{N}{}
+\item{N}{The population size}
 
-\item{mu}{}
+\item{mu}{The mean of the population}
 
-\item{sigma}{}
+\item{sigma}{The standard deviation of the population}
 
-\item{k}{}
+\item{k}{The rank order of the individual. k=1 gives the first, and k=N gives the last.}
+}
+\value{
+A vector of estimates of the expected value of the input kth ranked individual in the population.
 }
 \description{
-Title
+Uses an asymptotic approximation of order statistics for individuals in a finite population (Elfving, 1947; Cody, 1993) when the underlying population is normally distributed. For "exact", but slower, calculations, use the E.Ok1 function for first onset and the E.CkN function for last cessation.
+
+Input values can be vectors.
+}
+\examples{
+#Define population sizes
+N = c(1000,10000,100000)
+#Define the mean values of the populations
+mu = rep(100, length(N))
+#Define the standard deviation of the populations
+sigma = rep(7, length(N))
+#Set the rank order
+k = rep(1, length(N))
+#Calculate the expected value of the individuals at the kth rank
+eV = E.Kth.approx(N=N, mu=mu, sigma=sigma, k=k)
 }

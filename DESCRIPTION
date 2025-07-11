@@ -1,15 +1,42 @@
 Package: phenoCollectR
-Title: What the Package Does (One Line, Title Case)
+Title: Bayesian Inference of Phenology from Biocollection Data
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Hearn", "David", , "dhearn@towson.edu", role = c("aut", "cre"))
+    person("Caetano", "Daniel", , "dcaetano@towson.edu", role = c("aut", "cre"))
+    person("Modrák", "Martin", , "martin.modrak@lfmotol.cuni.cz", role = c("aut", "cre"))
+Description: Tools to model, simulate, and analyze phenological data obtained
+  from biocollection records. Provides a unified framework to explore
+  phenological extremes (first onset, last cessation, total phenophase duration
+  in a population), phenophase onset, peak, and cessation timing, and the
+  proportion of the population in the phenophase at a particular time. Includes
+  methods for Bayesian MCMC, maximum likelihood, and MAP point estimation. Two
+  models of phenological timing are currently implemented. The Gaussian process
+  (GP) model defines onset as the first time a Gaussian process crosses a lower
+  threshold, and cessation as the first time it crosses an upper threshold, with
+  a single shared standard deviation parameter. The beta onset, beta duration
+  (BB) model uses a beta distribution to model onset times and a second beta
+  distribution to model durations, constrained such that onset plus duration
+  falls within a fixed time window (e.g., a year). Mean onset and mean duration 
+  can be modeled as linear functions of covariates in the GP model, enabling
+  analysis of factors contributing to variation in onset, cessation, and
+  duration.
+License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
-    dplyr
 Imports:
-    dplyr
+	quantreg,
+	dplyr,
+	posterior,
+	ForestFit,
+	MASS,
+	copula,
+	mgcv,
+	splines,
+	cowplot,
+	ggplot2,
+	grid,
+	tidyr,
+	brms
 RoxygenNote: 7.3.2

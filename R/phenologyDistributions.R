@@ -1,19 +1,31 @@
 #' Functions that model phenological distributions.
 #'
-#' The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. After the 'd', 'r', 'q', and 'p' letters, the function name is the phenological variable as follows:
-#'
-#' O: phenological onset times
-#' D: phenophase durations
-#' C: phenological cessation times
-#' Ok1: first onset (order k = 1)
-#' CkN: last cessation (order k = N, the population size)
-#' T: observed specimen collection times, e.g., day of year for a yearly time period
-#' PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
+#' @description Functions provide methods to model and simulate phenological distributions. The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. After the 'd', 'r', 'q', and 'p' letters, the function name is the phenological variable as described in the details.
 #'
 #' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters. 
 #'
+#' Eight phenological properties are modeled by random variables. These include the following:
+#'
+#' O: phenological onset times 
+#'
+#' D: phenophase durations 
+#'
+#' C: phenological cessation times
+#'
+#' Ok1: first onset (order k = 1)
+#'
+#' CkN: last cessation (order k = N, the population size)
+#'
+#' T: observed specimen collection times, e.g., day of year for a yearly time period
+#'
+#' PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized 'd' and random sampling 'r' functions are currently implemented
+#'
+#' R: The total time range that at least one individual in a population is in the phenophase; only the 'd' and 'r' functions are currently implemented 
+#'
+#' The function name is constructed by combining one of 'd', 'r', 'q', and 'p' as a prefix with one of the above variables. For example, rT refers to the function that generates random samples from the distribution of observed collection times, T. 
+#'
 #' @rdname dist_family
-#' @param x The response data (e.g. day of year values)
+#' @param x A vector of the response data (e.g. day of year values)
 #' @param q The quantile
 #' @param p The lower tail area (probability) 
 #' @param n The sample size
@@ -24,7 +36,7 @@
 #' @param sigma_D Standard deviation for the duration time distribution
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
-#' @param N The population size for estimation of extreme events
+#' @param N The population size
 #' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
 #'
 #' @return The results as a vector for the specified function, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
@@ -221,8 +233,6 @@ qC = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	else { qC.BB(p, mu_O, sigma_O, mu_D, sigma_D, minResponse, maxResponse) }
 }
 
-#' @rdname dist_family
-#' @export
 Pt = function(x, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="GP") {
@@ -271,7 +281,6 @@ qT = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 
 #' @rdname dist_family
 #' @export
-
 rT = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="GP") {

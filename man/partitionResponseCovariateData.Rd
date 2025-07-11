@@ -2,7 +2,7 @@
 % Please edit documentation in R/helperFunctions.R
 \name{partitionResponseCovariateData}
 \alias{partitionResponseCovariateData}
-\title{Title}
+\title{Partition response and covariate data}
 \usage{
 partitionResponseCovariateData(
   responseData,
@@ -12,14 +12,20 @@ partitionResponseCovariateData(
 )
 }
 \arguments{
-\item{responseData}{}
+\item{prop}{The proportion of the data to be used for the first set of the partition. (default: 0.3)}
 
-\item{onsetCovariateData}{}
+\item{responseDataForPrior}{A vector of response data (e.g., day of year of collection values)}
 
-\item{durationCovariateData}{}
+\item{onsetCovariateDataForPrior}{A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.}
 
-\item{prop}{}
+\item{durationCovariateDataForPrior}{A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.}
+}
+\value{
+A list of six elements. The first three represent the first subset for response data (responseDataForInference), onset covariate data (onsetCovariateDataForInference) and duration covariate data (durationCovariateDataForInference), and the last three correspondingly represent the second subset.
 }
 \description{
-Title
+Randomly partitions response and covariate data into two non-intersecting sets whose sizes are determined by the input proportion. This may be useful if you would like to use a subset of your data for one inference task (e.g., hyperparameter estimates) and the other subset for a separate inference task (e.g., Bayesian inference).
+}
+\details{
+This procedure is automatically applied when the runStanPhenology function parameter partitionDataForPriors is set to TRUE at the default proportion of 0.3.
 }

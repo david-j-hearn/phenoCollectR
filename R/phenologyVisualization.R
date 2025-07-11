@@ -85,7 +85,7 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 #' @export
 #' @importFrom posterior as_draws_df
 #' @importFrom copula pobs normalCopula fitCopula
-#' @importFrom dplyr tibble bind_rows group_by filter ungroup n row_number group_modify
+#' @importFrom dplyr tibble bind_rows group_by filter ungroup n row_number group_modify %>% 
 #' @importFrom mgcv gam
 #' @importFrom stats predict
 #' @importFrom splines bs
@@ -484,7 +484,7 @@ posterior_predictive_graphic = function(observed_data, filtered_results,targetCo
 
 #' @importFrom ggplot2 ggplot aes  geom_vline labs theme_minimal geom_area theme annotate
 #' @importFrom grid arrow unit
-#' @importFrom dplyr tibble group_by bind_rows summarize
+#' @importFrom dplyr tibble group_by bind_rows summarize %>%
 makeShiftPanel = function(sample1, sample2, col, xlab) {
 
 df <- bind_rows(
@@ -534,7 +534,7 @@ ggplot(densities_df, aes(x = x, y = y)) +
 
 
 #' @importFrom ggplot2 ggplot geom_histogram aes scale_fill_manual scale_color_manual stat_function xlim geom_vline labs theme_minimal geom_area geom_line theme element_rect
-#' @importFrom dplyr tibble
+#' @importFrom dplyr tibble %>%
 #' @importFrom tidyr pivot_longer
 makeSimulatedAndTheoreticalOverlayGraph= function(mu_O, mu_C, sigma, n_hist, N, minResponse, maxResponse, responseVariableName="DOY", xlim=c(0,365), legend=FALSE, nBin=50, includeHistograms=FALSE) {
 	# Step 1 & 2: Generate samples and put in a tidy df

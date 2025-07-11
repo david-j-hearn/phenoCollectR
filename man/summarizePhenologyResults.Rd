@@ -2,7 +2,7 @@
 % Please edit documentation in R/helperFunctions.R
 \name{summarizePhenologyResults}
 \alias{summarizePhenologyResults}
-\title{Title}
+\title{Summary of Stan parameter estimates and associated diagnostics for a phenology model with covariates}
 \usage{
 summarizePhenologyResults(
   stanRunResult,
@@ -10,28 +10,46 @@ summarizePhenologyResults(
   measures = c("mean", "median", "sd", "mad"),
   quantiles = c(2.5, 97.5),
   convergence = c("rhat", "ess_bulk", "ess_tail"),
-  standardLinearModel = NA,
+  standardLinearModel = FALSE,
   processExtremes = TRUE,
   N = 500
 )
 }
 \arguments{
-\item{stanRunResult}{}
+\item{stanRunResult}{The output from runStanPhenology}
 
-\item{taxonName}{}
+\item{taxonName}{The name of the taxon being analyzed}
 
-\item{measures}{}
+\item{measures}{The metrics to calculate for each parameter. (default: c("mean", "median", "sd", "mad"))}
 
-\item{quantiles}{}
+\item{quantiles}{The quantiles to calculate for each metric. (default: c(2.5, 97.5))}
 
-\item{convergence}{}
+\item{convergence}{Stan sample diagnostic values to calculate for each metric. (default: c("rhat","ess_bulk", "ess_tail"))}
 
-\item{standardLinearModel}{}
+\item{standardLinearModel}{Optional Boolean indicating whether to fit a standard linear regression model through the observed collection times. Only used when the onset and duration covariates are the same. (default: FALSE)}
 
-\item{processExtremes}{}
+\item{processExtremes}{Boolean indicating whether to process phenological extremes (default: TRUE)}
 
-\item{N}{}
+\item{N}{The population size used when processing extremes. Not used when processExtremes = FALSE. (default: 500)}
+}
+\value{
+A data frame with the the following columns: taxon name, variable name, the type of phenological parameter being summarized (e.g., O onset), the name of the covariate, the marginal posterior probability that the slope coefficient is negative, the estimate for the observed collection time standard linear model, whether the estimate based on the standard linear model is in the 95\%CI of the Bayesian estimate, metrics, diagnostics.
 }
 \description{
-Title
+Provides a summary as a data frame of the results of a Stan analysis of phenology. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values.
+}
+\examples{
+\donttest{
+##get the file name with data for the blood root plant
+file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+##define the covariate names - remove up to all but 1
+vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+##get the phenology data
+data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+##run the Stan sampler
+stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+##summarize the Stan run
+stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+stanSummary
+}
 }

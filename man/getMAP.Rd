@@ -38,6 +38,9 @@ List including the results of the R optim function with results min-max scaled, 
 \description{
 Finds the MAP under the beta onset, beta duration model (BB) using numerical optimization rather than MCMC techniques. The method does not include covariates.
 }
+\details{
+This function may be useful to obtain estimates when the histogram of observed collection dates is highly skewed. The Gaussian process (GP) model implemented in Stan is limited to the inference of symmetric  distributions.
+}
 \examples{
 #Set the mean onset time
 mean_onset = 100

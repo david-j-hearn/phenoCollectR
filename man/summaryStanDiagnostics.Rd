@@ -2,7 +2,7 @@
 % Please edit documentation in R/helperFunctions.R
 \name{summaryStanDiagnostics}
 \alias{summaryStanDiagnostics}
-\title{Title}
+\title{Summary diagnostics of a Stan run}
 \usage{
 summaryStanDiagnostics(
   stanRunResult,
@@ -12,14 +12,17 @@ summaryStanDiagnostics(
 )
 }
 \arguments{
-\item{stanRunResult}{}
+\item{stanRunResult}{The output from the runStanPhenology function}
 
-\item{NTotal}{}
+\item{NTotal}{The sample size (i.e., number of specimens used in analysis)}
 
-\item{taxonName}{}
+\item{taxonName}{The taxon name}
 
-\item{diagnostics}{}
+\item{diagnostics}{A vector of named diagnostic quantities (default: c("num_divergent", "num_max_treedepth", "ebfmi"))}
+}
+\value{
+A list with the taxon name, sample size total, sample size used by Stan, and a data frame with the Stan diagnostics summary table
 }
 \description{
-Title
+Provides a data frame with diagnostic information for a Stan run.
 }

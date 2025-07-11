@@ -2,7 +2,7 @@
 % Please edit documentation in R/helperFunctions.R
 \name{getHyperparametersViaQuantileRegression}
 \alias{getHyperparametersViaQuantileRegression}
-\title{Title}
+\title{Hyperparameter estimates using quantile regression}
 \usage{
 getHyperparametersViaQuantileRegression(
   responseDataForPrior,
@@ -15,20 +15,32 @@ getHyperparametersViaQuantileRegression(
 )
 }
 \arguments{
-\item{responseDataForPrior}{}
+\item{responseDataForPrior}{A vector of response data (e.g., day of year of collection values)}
 
-\item{onsetCovariateDataForPrior}{}
+\item{onsetCovariateDataForPrior}{A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.}
 
-\item{durationCovariateDataForPrior}{}
+\item{durationCovariateDataForPrior}{A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.}
 
-\item{lowerQuantile}{}
+\item{lowerQuantile}{The quantile used to estimate the onset model}
 
-\item{upperQuantile}{}
+\item{upperQuantile}{The quantile used to estimate the cessation model}
 
-\item{confidence}{}
+\item{confidence}{Set the number of standard deviations to use for the prior. (default: 2)}
 
-\item{scale}{}
+\item{scale}{Set the scaling of hardcoded values for the standard deviation of the mean duration (two weeks), the standard deviation of the mean onset (two weeks), and the sigma mean (one week) and sigma standard deviation (half a week) values. For example, setting the scale to 0.5 would make the standard deviation of the prior distribution for mean onset equal to one week rather than two (default: 1)}
+}
+\value{
+A list with a two element vector (mean and SD) for the mean onset (onsetHyperAnchor), a data frame for the mean slope coefficient (first column) and SD (second column) for each of the onset coefficients (onsetHyperBeta), a two element vector (mean and SD) for the mean duration (durationHyperAnchor), a data frame for the mean slope coefficient (first column) and SD (second column) for each of the duration coefficients (durationHyperBeta), a two element vector (mean and SD) for the mean cessation (cessationHyperAnchor), and a two element vector (mean and SD) for the sigma phenology parameter (sigmaHyper).
 }
 \description{
-Title
+This function runs a quantile regression analysis and provides the quantile estimates of slope coefficients for onset and cessation. The quantile regression approach for phenology was first implemented by Park et al. (2024) https://doi.org/10.1111/ecog.06961
+}
+\details{
+Slope estimates for coefficients tend to be accurate at the 10\% (for onset) and 90\% (for cessation) quantiles. However, estimates of the onset and duration values themselves are prone to systematic errors due to fixing aribrary quantile levels.
+
+This approach to define prior hyperparameters depends on arbitrary quantile cutoffs and, although it may work well in practice for simulated botanical collection data, it is not currently theoretically justified, nor is it known how well it works for empirical data or non-botanical data. Use quantile regression estimates as a starting place, or if you already have domain-specific knownledge about your covariates, use this knowledge to set your prior hyperparameters.
+
+Note that this function is currently only implemented when the onset and duration models have the same covariates.
+
+This procedure is automatically applied when the runStanPhenology function parameter partitionDataForPriors is set to TRUE.
 }

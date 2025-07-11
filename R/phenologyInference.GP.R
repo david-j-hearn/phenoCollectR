@@ -199,7 +199,7 @@ PI.D.GP = function(mu_O, mu_C) {
 }
 
 #' @importFrom posterior as_draws_df
-#' @importFrom dplyr filter
+#' @importFrom dplyr filter %>%
 runStan.NoCovariates.T.GP = function(fileOrData, minResponse=0, maxResponse=365, hyperparameters = c(100,7,50,7,10,7), dataProvided=FALSE, runMAP=TRUE, setStringent=FALSE, processExtremes=TRUE, N=500, maxDiv=0, threshApprox=NA, ...) {
 	options(mc.cores = 4)
 

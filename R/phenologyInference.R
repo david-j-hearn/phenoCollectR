@@ -1,16 +1,20 @@
 #' Functions that calculate the expected value of the associated phenological random variable:
 #'
 #' O: phenological onset times
+#'
 #' D: phenophase durations
+#'
 #' C: phenological cessation times
+#'
 #' Ok1: first onset (order k = 1)
+#'
 #' CkN: last cessation (order k = N, the population size)
+#'
 #' T: observed specimen collection times, e.g., day of year for a yearly time period
-#' PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
 #'
 #' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
 #'
-#' The function name is E.* where * is one of the above random variables.
+#' The function name is created by prepending "E." in front of one of the above variables names. 
 #'
 #' @rdname expectation_functions
 #' @param mu_O Mean onset time
@@ -448,6 +452,8 @@ SD.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 #' Maximum a posteriori (MAP) point estimate
 #' 
 #' Finds the MAP under the beta onset, beta duration model (BB) using numerical optimization rather than MCMC techniques. The method does not include covariates.
+#' 
+#' This function may be useful to obtain estimates when the histogram of observed collection dates is highly skewed. The Gaussian process (GP) model implemented in Stan is limited to the inference of symmetric  distributions.
 #'
 #' @param responseData A vector of the observed collection times (e.g., day of year)
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
@@ -609,30 +615,6 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 	return(list( CkNParams = fitCkN$estimate, Ok1Params = fitOk1$estimate ))
 }
 
-#' Title
-#'
-#' @param responseData 
-#' @param onsetCovariateData 
-#' @param durationCovariateData 
-#'
-#' @returns
-#' @export
-#'
-#' @examples
-runStandardLinearModel = function(responseData, onsetCovariateData, durationCovariateData) {
-        # Combine response and predictors into one data frame
-        merged = merge_df_by_column(onsetCovariateData, durationCovariateData)
-        df <- data.frame(DOY = responseData, merged)
-
-        # Dynamically construct formula
-        formula <- as.formula(paste("DOY ~", paste(colnames(merged), collapse = " + ")))
-
-        # Fit the model
-        fit <- lm(formula, data = df)
-
-        print(summary(fit))
-		return(fit)
-}
 
 #' Title
 #'

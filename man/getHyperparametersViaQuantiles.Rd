@@ -2,7 +2,7 @@
 % Please edit documentation in R/helperFunctions.R
 \name{getHyperparametersViaQuantiles}
 \alias{getHyperparametersViaQuantiles}
-\title{Title}
+\title{Quantile estimates for hyperparameters of intercept-only (no covariates) models}
 \usage{
 getHyperparametersViaQuantiles(
   responseDataForPrior,
@@ -12,14 +12,26 @@ getHyperparametersViaQuantiles(
 )
 }
 \arguments{
-\item{responseDataForPrior}{}
+\item{responseDataForPrior}{A vector of response data (e.g., day of year of collection values)}
 
-\item{scale}{}
+\item{scale}{Set the scaling of hardcoded values for the standard deviation of the mean duration (two weeks), the standard deviation of the mean onset (two weeks), and the sigma mean (one week) and sigma standard deviation (half a week) values. For example, setting the scale to 0.5 would make the standard deviation of the prior distribution for mean onset equal to one week rather than two (default: 1)}
 
-\item{lowerQuantile}{}
+\item{lowerQuantile}{The quantile used to estimate the onset model}
 
-\item{upperQuantile}{}
+\item{upperQuantile}{The quantile used to estimate the cessation model}
+}
+\value{
+A vector with six hyperparameter values in the following order: mean of mean onset, standard deviation (SD) of mean onset, mean of mean duration, SD of mean duration, mean of sigma, SD of sigma.
 }
 \description{
-Title
+This function uses quantiles to estimate the mean onset, mean cessation, and mean duration (mean onset - mean duration). The quantile approach for phenology was first implemented by Park et al. (2024) https://doi.org/10.1111/ecog.06961
+}
+\details{
+Estimates of the mean onset and mean duration values are prone to systematic errors due to fixing aribrary quantile levels. Park et al. (2024) set quantiles to 10\% (onset) and 90\% (cessation).
+
+This approach to define prior hyperparameters depends on arbitrary quantile cutoffs and, although it may work well in practice for simulated botanical collection data, it is not currently theoretically justified, nor is it known how well it works for empirical data or non-botanical data. Use quantile estimates as a starting place, or if you already have domain-specific knownledge, use this knowledge to set your prior hyperparameters.
+
+The returned data structures can be used directly to provide the prior hyperparameters to the runStanPhenology function.
+
+This procedure is automatically applied when the runStanPhenology function parameter partitionDataForPriors is set to TRUE.
 }

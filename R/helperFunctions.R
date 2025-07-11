@@ -226,40 +226,40 @@ scaled_dbeta = function(y, shape1, shape2, minResponse = 0, maxResponse = 1) {
 #' Prepare data for analysis
 #'
 #' This function prepares the phenological data for Bayesian estimation analysis using "runStanPhenology". The main inputs are the path to the data file and variable names. Note that all variable names should match the names of the columns in file.
-#' @param dataFile A matrix object or a path to a file. See 'Details' for the correct configuration of this file.
+#' @details
+#' The file whose name is provided as input must be a text-formatted, tab-delimited spreadsheet. Each row corresponds to a single specimen, and the columns provide the specimen data. Any number of columns is fine, but the input names of the response variable, the onset covariates, and the duration covariates must match the corresponding header names in the spreadsheet. 
+#' @param dataFile A path to a file with the data. See 'Details' for the correct configuration of this file.
 #' @param responseVariableName The name of the response variable. Must match the name of a column in 'dataFile'.
-#' @param onsetCovariateNames A vector with the names of the onset covariate variables.  Must match the name of a column in 'dataFile'.
-#' @param durationCovariateNames A vector with the names of the duration covariate variables.  Must match the name of a column in 'dataFile'.
-#' @param removeDuplicateRows If duplicated rows should be removed (TRUE or FALSE).
-#' @param removeOutliers  If outliers should be removed (TRUE or FALSE).
-#' @param removeIncomplete If rows with missing data should be removed (TRUE or FALSE).
+#' @param onsetCovariateNames A vector with the names of the onset covariates. Must match name(s) of column(s) in 'dataFile'.
+#' @param durationCovariateNames A vector with the names of the duration covariates. Must match name(s) of column(s) in 'dataFile'.
+#' @param removeDuplicateRows If duplicated rows should be removed (default: TRUE).
+#' @param removeOutliers  If outliers should be removed (default: TRUE).
+#' @param removeIncomplete If rows with missing data should be removed (default: TRUE).
 #' @param dataSummaryDirectory Optionally provide the name of a directory where a summary of the data will be saved in a tab-delimited file named dataSummary.<taxonName>.txt
-#' @param taxonName Optionally, the name of the taxon.
-#' @param origN Optionally, the initial number of specimens before any filtering of specimens took place (saved to optional data summary file). 
+#' @param taxonName Optionally, the name of the taxon to be stored in the data summary file.
+#' @param origN Optionally, the initial number of specimens before any filtering of specimens took place (Use only if creating optional data summary file). 
 #'
-#' @returns Returns a list object with the elements necessary to use the "runStanPhenology" function. See 'Example".
+#' @return Returns a list object with elements necessary to use the "runStanPhenology" function. Elements include the original data (originalData) and the cleaned response data (responseData), onset covariate data (onsetCovariateData), and duration covariate data (durationCovariateData). The output data remain unscaled. The runStanPhenology function will scale data appropraitely. 
 #' @export
 #'
 #' @examples
 #' \donttest{
 #' ##get the file name with data for the blood root plant
-#' file <- system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
 #' ##define the covariate names - remove up to all but 1
 #' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
 #' ##get the phenology data
-#' data <- preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
 #' ##run the Stan sampler
-#' stanResult <- runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
 #' ##summarize the Stan run
-#' stanSummary <- summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
 #' ##make posterior predictive graph
-#' pp <- makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+#' pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
 #' ##display the posterior predictive graph		
 #' print(pp)		
 #' }
 preparePhenologyData = function(dataFile, responseVariableName, onsetCovariateNames, durationCovariateNames, removeDuplicateRows=TRUE, removeOutliers=FALSE, removeIncomplete=TRUE, dataSummaryDirectory=NA, taxonName=NA, origN=NA) {
-
-
 	if(!file.exists(dataFile)) {
 		stop(paste("Your phenology data file, ", dataFile, " could not be found. Please check the file name, path, and current working directory."))
 	}
@@ -311,21 +311,29 @@ preparePhenologyData = function(dataFile, responseVariableName, onsetCovariateNa
 }
 
 
-#' Title
+#' Hyperparameter estimates using quantile regression
+#' 
+#' This function runs a quantile regression analysis and provides the quantile estimates of slope coefficients for onset and cessation. The quantile regression approach for phenology was first implemented by Park et al. (2024) https://doi.org/10.1111/ecog.06961
 #'
-#' @param responseDataForPrior 
-#' @param onsetCovariateDataForPrior 
-#' @param durationCovariateDataForPrior 
-#' @param lowerQuantile 
-#' @param upperQuantile 
-#' @param confidence 
-#' @param scale 
+#' Slope estimates for coefficients tend to be accurate at the 10% (for onset) and 90% (for cessation) quantiles. However, estimates of the onset and duration values themselves are prone to systematic errors due to fixing aribrary quantile levels. 
 #'
-#' @returns
+#' @param responseDataForPrior A vector of response data (e.g., day of year of collection values)
+#' @param onsetCovariateDataForPrior  A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.
+#' @param durationCovariateDataForPrior  A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.
+#' @param lowerQuantile The quantile used to estimate the onset model
+#' @param upperQuantile The quantile used to estimate the cessation model
+#' @param confidence Set the number of standard deviations to use for the prior. (default: 2)
+#' @param scale Set the scaling of hardcoded values for the standard deviation of the mean duration (two weeks), the standard deviation of the mean onset (two weeks), and the sigma mean (one week) and sigma standard deviation (half a week) values. For example, setting the scale to 0.5 would make the standard deviation of the prior distribution for mean onset equal to one week rather than two (default: 1)
+#' @details 
+#' This approach to define prior hyperparameters depends on arbitrary quantile cutoffs and, although it may work well in practice for simulated botanical collection data, it is not currently theoretically justified, nor is it known how well it works for empirical data or non-botanical data. Use quantile regression estimates as a starting place, or if you already have domain-specific knownledge about your covariates, use this knowledge to set your prior hyperparameters.
+#'
+#' Note that this function is currently only implemented when the onset and duration models have the same covariates.
+#'
+#' This procedure is automatically applied when the runStanPhenology function parameter partitionDataForPriors is set to TRUE.
+#' 
+#' @return A list with a two element vector (mean and SD) for the mean onset (onsetHyperAnchor), a data frame for the mean slope coefficient (first column) and SD (second column) for each of the onset coefficients (onsetHyperBeta), a two element vector (mean and SD) for the mean duration (durationHyperAnchor), a data frame for the mean slope coefficient (first column) and SD (second column) for each of the duration coefficients (durationHyperBeta), a two element vector (mean and SD) for the mean cessation (cessationHyperAnchor), and a two element vector (mean and SD) for the sigma phenology parameter (sigmaHyper).
 #' @export
 #' @importFrom quantreg rq
-#'
-#' @examples
 getHyperparametersViaQuantileRegression = function(responseDataForPrior,
 												   onsetCovariateDataForPrior,
 												   durationCovariateDataForPrior,
@@ -357,7 +365,7 @@ getHyperparametersViaQuantileRegression = function(responseDataForPrior,
 	x_means_onset = colMeans(X_onset)
 
 	H_M_Anchor_meanOnset = alphaO + sum(betaO * x_means_onset)
-	H_SD_Anchor_meanOnset = 14
+	H_SD_Anchor_meanOnset = 14*scale
 	onsetHyperAnchor = c(mean = H_M_Anchor_meanOnset, sd = H_SD_Anchor_meanOnset)
 
 	onsetHyperBeta = data.frame(mean = betaO, sd = confidence * SEO_b, row.names = names(betaO))
@@ -403,17 +411,26 @@ getHyperparametersViaQuantileRegression = function(responseDataForPrior,
 }
 
 
-#' Title
+#' Quantile estimates for hyperparameters of intercept-only (no covariates) models
+#' 
+#' This function uses quantiles to estimate the mean onset, mean cessation, and mean duration (mean onset - mean duration). The quantile approach for phenology was first implemented by Park et al. (2024) https://doi.org/10.1111/ecog.06961
 #'
-#' @param responseDataForPrior 
-#' @param scale 
-#' @param lowerQuantile 
-#' @param upperQuantile 
+#' Estimates of the mean onset and mean duration values are prone to systematic errors due to fixing aribrary quantile levels. Park et al. (2024) set quantiles to 10% (onset) and 90% (cessation).
 #'
-#' @returns
+#' @details 
+#' This approach to define prior hyperparameters depends on arbitrary quantile cutoffs and, although it may work well in practice for simulated botanical collection data, it is not currently theoretically justified, nor is it known how well it works for empirical data or non-botanical data. Use quantile estimates as a starting place, or if you already have domain-specific knownledge, use this knowledge to set your prior hyperparameters.
+#'
+#' The returned data structures can be used directly to provide the prior hyperparameters to the runStanPhenology function.
+#' 
+#' This procedure is automatically applied when the runStanPhenology function parameter partitionDataForPriors is set to TRUE.
+#' 
+#' @param responseDataForPrior A vector of response data (e.g., day of year of collection values)
+#' @param lowerQuantile The quantile used to estimate the onset model
+#' @param upperQuantile The quantile used to estimate the cessation model
+#' @param scale Set the scaling of hardcoded values for the standard deviation of the mean duration (two weeks), the standard deviation of the mean onset (two weeks), and the sigma mean (one week) and sigma standard deviation (half a week) values. For example, setting the scale to 0.5 would make the standard deviation of the prior distribution for mean onset equal to one week rather than two (default: 1)
+#'
+#' @return A vector with six hyperparameter values in the following order: mean of mean onset, standard deviation (SD) of mean onset, mean of mean duration, SD of mean duration, mean of sigma, SD of sigma.
 #' @export
-#'
-#' @examples
 getHyperparametersViaQuantiles = function(responseDataForPrior, scale=1, lowerQuantile=0.1, upperQuantile=0.9) {
 
 	if (lowerQuantile >= upperQuantile) stop("Lower quantile must be less than upper quantile.")
@@ -432,21 +449,24 @@ getHyperparametersViaQuantiles = function(responseDataForPrior, scale=1, lowerQu
 	#  sd fo sigma estimated based on prior experience, scaled to match user-input response range
 	H_SD_S = 3.5 * scale
 
-	return(c(H_M_MO, H_SD_MO, H_M_MD, H_SD_MD, H_M_S, H_SD_S))
+	return(c(mean_mu_O = H_M_MO, SD_mu_O = H_SD_MO, mean_mu_D=H_M_MD, SD_mu_D=H_SD_MD, mean_sigma=H_M_S, SD_sigma=H_SD_S))
 }
 
 
-#' Title
+#' Partition response and covariate data
 #'
-#' @param responseData 
-#' @param onsetCovariateData 
-#' @param durationCovariateData 
-#' @param prop 
+#' Randomly partitions response and covariate data into two non-intersecting sets whose sizes are determined by the input proportion. This may be useful if you would like to use a subset of your data for one inference task (e.g., hyperparameter estimates) and the other subset for a separate inference task (e.g., Bayesian inference).
 #'
-#' @returns
+#' @details
+#' 
+#' This procedure is automatically applied when the runStanPhenology function parameter partitionDataForPriors is set to TRUE at the default proportion of 0.3.
+#' @param responseDataForPrior A vector of response data (e.g., day of year of collection values)
+#' @param onsetCovariateDataForPrior  A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.
+#' @param durationCovariateDataForPrior  A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.
+#' @param prop The proportion of the data to be used for the first set of the partition. (default: 0.3)
+#'
+#' @return A list of six elements. The first three represent the first subset for response data (responseDataForInference), onset covariate data (onsetCovariateDataForInference) and duration covariate data (durationCovariateDataForInference), and the last three correspondingly represent the second subset.
 #' @export
-#'
-#' @examples
 partitionResponseCovariateData = function(responseData, onsetCovariateData, durationCovariateData, prop=0.3) {
 
 	#perhaps set seed...
@@ -495,15 +515,14 @@ partitionResponseCovariateData = function(responseData, onsetCovariateData, dura
 }
 
 
-#' Title
+#' Partition data for models with no covariates (intercept-only)
+#' Randomly partitions response data into two non-intersecting sets whose sizes are determined by the input proportion. This may be useful if you would like to use a subset of your data for one inference task (e.g., hyperparameter estimates) and the other subset for a separate inference task (e.g., Bayesian inference).
 #'
-#' @param responseData 
-#' @param prop 
+#' @param responseData A vector of response data (e.g., day of year of collection values)
+#' @param prop The proportion of the data to be used for the first set of the partition. (default: 0.3)
 #'
-#' @returns
+#' @return A list with two vectors corresponding to the two sets of the partition.
 #' @export
-#'
-#' @examples
 partitionResponseData = function(responseData, prop=0.3) {
 	nRes = length(responseData)
 	train_indices = sample(nRes, size = floor(prop * nRes), replace=FALSE)
@@ -524,19 +543,32 @@ removeDuplicateRows = function(df) {
 }
 
 
-#' Title
+#' Approximate the kth largest value in a normally-distributed finite population
 #'
-#' @param N 
-#' @param mu 
-#' @param sigma 
-#' @param k 
+#' @description Uses an asymptotic approximation of order statistics for individuals in a finite population (Elfving, 1947; Cody, 1993) when the underlying population is normally distributed. For "exact", but slower, calculations, use the E.Ok1 function for first onset and the E.CkN function for last cessation. 
 #'
-#' @returns
+#' Input values can be vectors.
+#' @param N The population size
+#' @param mu The mean of the population
+#' @param sigma The standard deviation of the population
+#' @param k The rank order of the individual. k=1 gives the first, and k=N gives the last.
+#'
+#' @return A vector of estimates of the expected value of the input kth ranked individual in the population.
 #' @export
 #'
 #' @examples
+#' #Define population sizes
+#' N = c(1000,10000,100000)
+#' #Define the mean values of the populations
+#' mu = rep(100, length(N))
+#' #Define the standard deviation of the populations
+#' sigma = rep(7, length(N))
+#' #Set the rank order
+#' k = rep(1, length(N))
+#' #Calculate the expected value of the individuals at the kth rank
+#' eV = E.Kth.approx(N=N, mu=mu, sigma=sigma, k=k)
 E.Kth.approx = function(N, mu, sigma, k) {
-	if(k<0 || k>N || N<0) {
+	if(any(k<0 | k>N | N<0)) {
 		stop("k must be between 1 and N inclusive, and N must be a positive integer.")
 	}
 	approx = mu + sigma * qnorm((k - pi/8)/(N - pi/4 + 1))
@@ -675,17 +707,19 @@ pbeta_safe = function(q, shape1, shape2) {
 }
 
 
-#' Title
+#' Summary diagnostics of a Stan run
+#' 
+#' @description 
+#' Provides a data frame with diagnostic information for a Stan run.
 #'
-#' @param stanRunResult 
-#' @param NTotal 
-#' @param taxonName 
-#' @param diagnostics 
+#' @param stanRunResult The output from the runStanPhenology function
+#' @param NTotal The sample size (i.e., number of specimens used in analysis)
+#' @param taxonName The taxon name
+#' @param diagnostics A vector of named diagnostic quantities (default: c("num_divergent", "num_max_treedepth", "ebfmi"))
 #'
-#' @returns
+#' @return A list with the taxon name, sample size total, sample size used by Stan, and a data frame with the Stan diagnostics summary table
 #' @export
-#'
-#' @examples
+#' @importFrom dplyr %>%
 summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=c("num_divergent", "num_max_treedepth", "ebfmi")) {
 
 	print(NTotal)
@@ -707,23 +741,68 @@ summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=
 	return(summary)
 }
 
-#' Title
+#' Fit a standard linear model to the observed collection times, T
 #'
-#' @param stanRunResult 
-#' @param taxonName 
-#' @param measures 
-#' @param quantiles 
-#' @param convergence 
-#' @param standardLinearModel 
-#' @param processExtremes 
-#' @param N 
+#' Fits a standard linear model to the observed collection times based on the covariates used to model the onset and duration. 
+#' 
+#' Data objects for the input to this function can be obtained from the preparePhenologyData function and are provided with the output of the Stan run. 
 #'
-#' @returns
+#' This function is run automatically when the standardLinearModel parameter of the summarizePhenologyResults function is set to TRUE, with corresponding results provided in the output data frame columns 'standard.linear.model'  and 'in.95CI'.
+#' @param responseData A vector of the response data.
+#' @param onsetCovariateData A data frame with each named column providing a covariate for the onset model. 
+#' @param durationCovariateData A data frame with each named column providing a covariate for the duration model.
+#'
+#' @return The fit linear model object that is the output of the R lm function.
+#' @export
+runStandardLinearModel = function(responseData, onsetCovariateData, durationCovariateData) {
+        # Combine response and predictors into one data frame
+        merged = merge_df_by_column(onsetCovariateData, durationCovariateData)
+        df <- data.frame(response = responseData, merged)
+
+        # Dynamically construct formula
+        formula <- as.formula(paste("response ~", paste(colnames(merged), collapse = " + ")))
+
+        # Fit the model
+        fit <- lm(formula, data = df)
+
+        print(summary(fit))
+        return(fit)
+}
+
+
+#' Summary of Stan parameter estimates and associated diagnostics for a phenology model with covariates
+#' 
+#' Provides a summary as a data frame of the results of a Stan analysis of phenology. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values. 
+#'
+#' @param stanRunResult The output from runStanPhenology 
+#' @param taxonName The name of the taxon being analyzed
+#' @param measures The metrics to calculate for each parameter. (default: c("mean", "median", "sd", "mad"))
+#' @param quantiles The quantiles to calculate for each metric. (default: c(2.5, 97.5))
+#' @param convergence Stan sample diagnostic values to calculate for each metric. (default: c("rhat","ess_bulk", "ess_tail"))
+#' @param standardLinearModel Optional Boolean indicating whether to fit a standard linear regression model through the observed collection times. Only used when the onset and duration covariates are the same. (default: FALSE)
+#' @param processExtremes Boolean indicating whether to process phenological extremes (default: TRUE)
+#' @param N The population size used when processing extremes. Not used when processExtremes = FALSE. (default: 500)
+#'
+#' @return A data frame with the the following columns: taxon name, variable name, the type of phenological parameter being summarized (e.g., O onset), the name of the covariate, the marginal posterior probability that the slope coefficient is negative, the estimate for the observed collection time standard linear model, whether the estimate based on the standard linear model is in the 95%CI of the Bayesian estimate, metrics, diagnostics.
 #' @export
 #' @importFrom posterior as_draws_df quantile2
+#' @importFrom dplyr %>%
 #'
 #' @examples
-summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean", "median", "sd", "mad"), quantiles=c(2.5, 97.5), convergence=c("rhat","ess_bulk", "ess_tail"), standardLinearModel=NA, processExtremes=TRUE, N=500) {
+#' \donttest{
+#' ##get the file name with data for the blood root plant
+#' file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' ##define the covariate names - remove up to all but 1
+#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+#' ##get the phenology data
+#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+#' ##run the Stan sampler
+#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' ##summarize the Stan run
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+#' stanSummary
+#' }
+summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean", "median", "sd", "mad"), quantiles=c(2.5, 97.5), convergence=c("rhat","ess_bulk", "ess_tail"), standardLinearModel=FALSE, processExtremes=TRUE, N=500) {
 	if(processExtremes) {
 		variables=c("anchor_O", "anchor_D", "anchor_C", "anchor_T", "anchorOk1", "anchorCkN", "alpha_O", "alpha_D", "alpha_C", "alpha_T", "alphaOk1", "alphaCkN", "beta_O", "beta_D", "beta_C", "beta_T", "betaOk1", "betaCkN", "sigma")
 	}
@@ -759,6 +838,10 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	posterior.prob.neg.slope = rep(NA, nrow(summary))
 	standard.linear.model = rep(NA, nrow(summary))
 	in.95CI = rep(NA, nrow(summary))
+
+	if(standardLinearModel) {
+		standardLinearModel = runStandardLinearModel(stanRunResult$responseData, stanRunResult$onsetCovariateData, stanRunResult$durationCovariateData) 
+	}
 
 	if(class(standardLinearModel)=="lm") {
 		coefs  =  coef(standardLinearModel)

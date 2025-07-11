@@ -2,15 +2,20 @@
 % Please edit documentation in R/helperFunctions.R
 \name{partitionResponseData}
 \alias{partitionResponseData}
-\title{Title}
+\title{Partition data for models with no covariates (intercept-only)
+Randomly partitions response data into two non-intersecting sets whose sizes are determined by the input proportion. This may be useful if you would like to use a subset of your data for one inference task (e.g., hyperparameter estimates) and the other subset for a separate inference task (e.g., Bayesian inference).}
 \usage{
 partitionResponseData(responseData, prop = 0.3)
 }
 \arguments{
-\item{responseData}{}
+\item{responseData}{A vector of response data (e.g., day of year of collection values)}
 
-\item{prop}{}
+\item{prop}{The proportion of the data to be used for the first set of the partition. (default: 0.3)}
+}
+\value{
+A list with two vectors corresponding to the two sets of the partition.
 }
 \description{
-Title
+Partition data for models with no covariates (intercept-only)
+Randomly partitions response data into two non-intersecting sets whose sizes are determined by the input proportion. This may be useful if you would like to use a subset of your data for one inference task (e.g., hyperparameter estimates) and the other subset for a separate inference task (e.g., Bayesian inference).
 }

@@ -18,7 +18,6 @@
 \alias{pC}
 \alias{rC}
 \alias{qC}
-\alias{Pt}
 \alias{dT}
 \alias{pT}
 \alias{qT}
@@ -169,17 +168,6 @@ qC(
   type = c("GP", "BB")
 )
 
-Pt(
-  x,
-  mu_O,
-  sigma_O,
-  mu_D,
-  sigma_D,
-  minResponse = 0,
-  maxResponse = 365,
-  type = c("GP", "BB")
-)
-
 dT(
   x,
   mu_O,
@@ -321,7 +309,7 @@ rPNt(
 )
 }
 \arguments{
-\item{x}{The response data (e.g. day of year values)}
+\item{x}{A vector of the response data (e.g. day of year values)}
 
 \item{mu_O}{Mean onset time}
 
@@ -343,7 +331,7 @@ rPNt(
 
 \item{sigma_D}{Standard deviation for the duration time distribution}
 
-\item{N}{The population size for estimation of extreme events}
+\item{N}{The population size}
 
 \item{t}{The time at which the proportion of the population in the phenophase is to be evaluated}
 }
@@ -351,18 +339,29 @@ rPNt(
 The results as a vector for the specified function, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
 }
 \description{
-The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. After the 'd', 'r', 'q', and 'p' letters, the function name is the phenological variable as follows:
-}
-\details{
-O: phenological onset times
-D: phenophase durations
-C: phenological cessation times
-Ok1: first onset (order k = 1)
-CkN: last cessation (order k = N, the population size)
-T: observed specimen collection times, e.g., day of year for a yearly time period
-PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
+Functions provide methods to model and simulate phenological distributions. The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. After the 'd', 'r', 'q', and 'p' letters, the function name is the phenological variable as described in the details.
 
 Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
+
+Eight phenological properties are modeled by random variables. These include the following:
+
+O: phenological onset times
+
+D: phenophase durations
+
+C: phenological cessation times
+
+Ok1: first onset (order k = 1)
+
+CkN: last cessation (order k = N, the population size)
+
+T: observed specimen collection times, e.g., day of year for a yearly time period
+
+PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized 'd' and random sampling 'r' functions are currently implemented
+
+R: The total time range that at least one individual in a population is in the phenophase; only the 'd' and 'r' functions are currently implemented
+
+The function name is constructed by combining one of 'd', 'r', 'q', and 'p' as a prefix with one of the above variables. For example, rT refers to the function that generates random samples from the distribution of observed collection times, T.
 }
 \examples{
 #Set the sample size

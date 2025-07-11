@@ -18,46 +18,49 @@ preparePhenologyData(
 )
 }
 \arguments{
-\item{dataFile}{A matrix object or a path to a file. See 'Details' for the correct configuration of this file.}
+\item{dataFile}{A path to a file with the data. See 'Details' for the correct configuration of this file.}
 
 \item{responseVariableName}{The name of the response variable. Must match the name of a column in 'dataFile'.}
 
-\item{onsetCovariateNames}{A vector with the names of the onset covariate variables.  Must match the name of a column in 'dataFile'.}
+\item{onsetCovariateNames}{A vector with the names of the onset covariates. Must match name(s) of column(s) in 'dataFile'.}
 
-\item{durationCovariateNames}{A vector with the names of the duration covariate variables.  Must match the name of a column in 'dataFile'.}
+\item{durationCovariateNames}{A vector with the names of the duration covariates. Must match name(s) of column(s) in 'dataFile'.}
 
-\item{removeDuplicateRows}{If duplicated rows should be removed (TRUE or FALSE).}
+\item{removeDuplicateRows}{If duplicated rows should be removed (default: TRUE).}
 
-\item{removeOutliers}{If outliers should be removed (TRUE or FALSE).}
+\item{removeOutliers}{If outliers should be removed (default: TRUE).}
 
-\item{removeIncomplete}{If rows with missing data should be removed (TRUE or FALSE).}
+\item{removeIncomplete}{If rows with missing data should be removed (default: TRUE).}
 
 \item{dataSummaryDirectory}{Optionally provide the name of a directory where a summary of the data will be saved in a tab-delimited file named dataSummary.\if{html}{\out{<taxonName>}}.txt}
 
-\item{taxonName}{Optionally, the name of the taxon.}
+\item{taxonName}{Optionally, the name of the taxon to be stored in the data summary file.}
 
-\item{origN}{Optionally, the initial number of specimens before any filtering of specimens took place (saved to optional data summary file).}
+\item{origN}{Optionally, the initial number of specimens before any filtering of specimens took place (Use only if creating optional data summary file).}
 }
 \value{
-Returns a list object with the elements necessary to use the "runStanPhenology" function. See 'Example".
+Returns a list object with elements necessary to use the "runStanPhenology" function. Elements include the original data (originalData) and the cleaned response data (responseData), onset covariate data (onsetCovariateData), and duration covariate data (durationCovariateData). The output data remain unscaled. The runStanPhenology function will scale data appropraitely.
 }
 \description{
 This function prepares the phenological data for Bayesian estimation analysis using "runStanPhenology". The main inputs are the path to the data file and variable names. Note that all variable names should match the names of the columns in file.
 }
+\details{
+The file whose name is provided as input must be a text-formatted, tab-delimited spreadsheet. Each row corresponds to a single specimen, and the columns provide the specimen data. Any number of columns is fine, but the input names of the response variable, the onset covariates, and the duration covariates must match the corresponding header names in the spreadsheet.
+}
 \examples{
 \donttest{
 ##get the file name with data for the blood root plant
-file <- system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
 ##define the covariate names - remove up to all but 1
 vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
 ##get the phenology data
-data <- preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
 ##run the Stan sampler
-stanResult <- runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
 ##summarize the Stan run
-stanSummary <- summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
 ##make posterior predictive graph
-pp <- makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
 ##display the posterior predictive graph		
 print(pp)		
 }
