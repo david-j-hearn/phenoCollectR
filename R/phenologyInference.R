@@ -1,16 +1,52 @@
-
-#' Title
+#' Functions that calculate the expected value of the associated phenological random variable:
 #'
-#' @param mu_O 
-#' @param mu_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
+#' O: phenological onset times
+#' D: phenophase durations
+#' C: phenological cessation times
+#' Ok1: first onset (order k = 1)
+#' CkN: last cessation (order k = N, the population size)
+#' T: observed specimen collection times, e.g., day of year for a yearly time period
+#' PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
 #'
-#' @returns
-#' @export
+#' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
 #'
+#' The function name is E.* where * is one of the above random variables.
+#'
+#' @rdname expectation_functions
+#' @param mu_O Mean onset time
+#' @param sigma_O Standard deviation for the onset time distribution
+#' @param mu_D Mean duration time
+#' @param sigma_D Standard deviation for the duration time distribution
+#' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
+#' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
+#' @param N The population size for estimation of extreme events
+#' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
+#'
+#' @return The expected value of the associated random variable and input parameters
 #' @examples
+#'
+#' #Set the mean onset time (day of year)
+#' mu_O = 100
+#' #Set the standard deviation of the distribution of onset times
+#' sigma_O = 7
+#' #set the mean duration of the phenophase (days)
+#' mu_D = 30
+#' #Set the standard deviation of the distribution of durations
+#' sigma_D = 7
+#' #Set the population size
+#' N = 100000
+#'
+#' #Calculate the expected cessation time for the beta onset, beta duration (BB) model
+#' eC = E.C(mu_O=mu_O, mu_D=mu_D, type="BB")
+#'
+#' #Calculate the expected last cessation time under the BB model
+#' eCkN = E.CkN(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, type="BB") 
+#'
+#' @name phenologyExpectationFunctions
+NULL
+
+#' @rdname expectation_functions
+#' @export
 E.C = function(mu_O, mu_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -28,23 +64,8 @@ E.C = function(mu_O, mu_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"))
 	}
 }
 
-
-#' Title
-#'
-#' @param N 
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#' @param threshApprox 
-#'
-#' @returns
+#' @rdname expectation_functions
 #' @export
-#'
-#' @examples
 E.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"), threshApprox=NA) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -64,21 +85,8 @@ E.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=
 	return(vals)
 }
 
-
-#' Title
-#'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#'
-#' @returns
+#' @rdname expectation_functions
 #' @export
-#'
-#' @examples
 E.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -96,18 +104,8 @@ E.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, 
 	}
 }
 
-#' Title
-#'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#'
-#' @returns
+#' @rdname expectation_functions
 #' @export
-#'
-#' @examples
 E.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -121,21 +119,8 @@ E.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"))
 	}
 }
 
-
-#' Title
-#'
-#' @param N 
-#' @param mu_O 
-#' @param sigma_O 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#' @param threshApprox 
-#'
-#' @returns
+#' @rdname expectation_functions
 #' @export
-#'
-#' @examples
 E.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB"), threshApprox=NA) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -151,19 +136,8 @@ E.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","
 	return(vals)
 }
 
-
-#' Title
-#'
-#' @param mu_O 
-#' @param mu_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#'
-#' @returns
+#' @rdname expectation_functions
 #' @export
-#'
-#' @examples
 E.T = function(mu_O, mu_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -178,21 +152,47 @@ E.T = function(mu_O, mu_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 }
 
 
-#' Title
+#' Functions that calculate the frequentist probability interval (PI) for an associated phenological random variable:
 #'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param alpha 
-#' @param type 
+#' O: phenological onset times
+#' D: phenophase durations
+#' C: phenological cessation times
+#' Ok1: first onset (order k = 1)
+#' CkN: last cessation (order k = N, the population size)
+#' T: observed specimen collection times, e.g., day of year for a yearly time period
+#' PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
 #'
-#' @returns
-#' @export
+#' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
 #'
+#' The function name is PI.* where * is one of the above random variables.
+#'
+#' @rdname pi_functions
+#' @param mu_O Mean onset time
+#' @param sigma_O Standard deviation for the onset time distribution
+#' @param mu_D Mean duration time
+#' @param sigma_D Standard deviation for the duration time distribution
+#' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
+#' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
+#' @param N The population size for estimation of extreme events
+#' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
+#' @param alpha The alpha level. For example, alpha = 0.05 calculates the 95% probability interval
+#'
+#' @return A vector with the lower and upper values of the probability interval.
 #' @examples
+#' #Set the mean onset time
+#' mean_onset = 100
+#' #Set the onset time standard deviation, sigma
+#' sigma_onset = 10
+#' #Set the duration of the phenophase
+#' duration = 50
+#' #Calculate the 90% probability interval for the observed times under the Gaussian process model (default)
+#' observed_t_PI = PI.T(mu_O = mean_onset, sigma_O=sigma_onset, mu_D=duration, alpha=0.1)
+#'
+#' @name phenologyProbabilityIntervalFunctions
+NULL
+
+#' @rdname pi_functions
+#' @export
 PI.C = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -210,22 +210,8 @@ PI.C = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
-#' Title
-#'
-#' @param N 
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param alpha 
-#' @param type 
-#'
-#' @returns
+#' @rdname pi_functions
 #' @export
-#'
-#' @examples
 PI.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -243,21 +229,8 @@ PI.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse
 	}
 }
 
-#' Title
-#'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param alpha 
-#' @param type 
-#'
-#' @returns
+#' @rdname pi_functions
 #' @export
-#'
-#' @examples
 PI.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -275,19 +248,8 @@ PI.D = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
-#' Title
-#'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param alpha 
-#' @param type 
-#'
-#' @returns
+#' @rdname pi_functions
 #' @export
-#'
-#' @examples
 PI.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -301,20 +263,8 @@ PI.O = function(mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, type=
 	}
 }
 
-#' Title
-#'
-#' @param N 
-#' @param mu_O 
-#' @param sigma_O 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param alpha 
-#' @param type 
-#'
-#' @returns
+#' @rdname pi_functions
 #' @export
-#'
-#' @examples
 PI.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -328,21 +278,8 @@ PI.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, alpha=0.05, 
 	}
 }
 
-#' Title
-#'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param alpha 
-#' @param type 
-#'
-#' @returns
+#' @rdname pi_functions
 #' @export
-#'
-#' @examples
 PI.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, alpha=0.05, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -360,20 +297,52 @@ PI.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
-#' Title
+#' Functions that calculate the standard deviation (square root of variance) for an associated phenological random variable:
 #'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
+#' O: phenological onset times
+#' D: phenophase durations
+#' C: phenological cessation times
+#' Ok1: first onset (order k = 1)
+#' CkN: last cessation (order k = N, the population size)
+#' T: observed specimen collection times, e.g., day of year for a yearly time period
+#' PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
 #'
-#' @returns
-#' @export
+#' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
 #'
+#' The function name is SD.* where * is one of the above random variables.
+#'
+#' @rdname sd_functions
+#' @param mu_O Mean onset time
+#' @param sigma_O Standard deviation for the onset time distribution
+#' @param mu_D Mean duration time
+#' @param sigma_D Standard deviation for the duration time distribution
+#' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
+#' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
+#' @param N The population size for estimation of extreme events
+#' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
+#' @param intFailLow Lowest acceptable integration value (optional; leave at default for most causes)
+#' @param intFailHigh Highest acceptable integration value (optional; leave at default for most causes)
+#'
+#' @return The standard deviation of the associated random variable for the input parameter values.
 #' @examples
+#' #Set the mean onset time
+#' mean_onset = 100
+#' #Set the onset time standard deviation
+#' sigma_onset = 10
+#' #Set the mean duration of the phenophase
+#' mean_duration = 50
+#' #Set the duration standard deviation
+#' sigma_duration = 7
+#' #Set the population size
+#' N=1000
+#' #Calculate the standard deviation of the distribution of last cessation times under the beta onset, beta duration (BB) model
+#' sdCkN = SD.CkN(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#'
+#' @name phenologyStandardDeviationFunctions
+NULL
+
+#' @rdname sd_functions
+#' @export
 SD.C =  function(mu_O=NA, sigma_O, mu_D=NA, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -390,23 +359,8 @@ SD.C =  function(mu_O=NA, sigma_O, mu_D=NA, sigma_D=NA, minResponse=0, maxRespon
 	}
 }
 
-#' Title
-#'
-#' @param N 
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#' @param intFailLow 
-#' @param intFailHigh 
-#'
-#' @returns
+#' @rdname sd_functions
 #' @export
-#'
-#' @examples
 SD.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"), intFailLow=NA, intFailHigh=NA) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -424,20 +378,8 @@ SD.CkN = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse
 	}
 }
 
-#' Title
-#'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#'
-#' @returns
+#' @rdname sd_functions
 #' @export
-#'
-#' @examples
 SD.D = function(mu_O=NA, sigma_O=NA, mu_D=NA, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -454,15 +396,8 @@ SD.D = function(mu_O=NA, sigma_O=NA, mu_D=NA, sigma_D=NA, minResponse=0, maxResp
 	}
 }
 
-#' Title
-#'
-#' @param sigma_O 
-#' @param type 
-#'
-#' @returns
+#' @rdname sd_functions
 #' @export
-#'
-#' @examples
 SD.O = function(sigma_O, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -476,21 +411,8 @@ SD.O = function(sigma_O, type=c("GP","BB")) {
 	}
 }
 
-#' Title
-#'
-#' @param N 
-#' @param mu_O 
-#' @param sigma_O 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param intFailLow 
-#' @param intFailHigh 
-#' @param type 
-#'
-#' @returns
+#' @rdname sd_functions
 #' @export
-#'
-#' @examples
 SD.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, intFailLow=NA, intFailHigh=NA, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -504,20 +426,8 @@ SD.Ok1 = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365, intFailLow=N
 	}
 }
 
-#' Title
-#'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
-#'
-#' @returns
+#' @rdname sd_functions
 #' @export
-#'
-#' @examples
 SD.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -535,21 +445,38 @@ SD.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 	}
 }
 
-#' Title
+#' Maximum a posteriori (MAP) point estimate
+#' 
+#' Finds the MAP under the beta onset, beta duration model (BB) using numerical optimization rather than MCMC techniques. The method does not include covariates.
 #'
-#' @param responseData 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param minS 
-#' @param maxS 
-#' @param init_params 
-#' @param hyperparameters 
-#' @param type 
+#' @param responseData A vector of the observed collection times (e.g., day of year)
+#' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
+#' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
+#' @param minS Minimum allowable beta shape parameter value; must be positive and less than maxS (default = 1)
+#' @param maxS Maximum allowable beta shape parameter value; must be positive and greater than minS (default = 3000)
+#' @param init_params A vector of four elements that represent the parameter values of the starting state of the numerical optimization procedure. The four elements must be in this order: mean onset, standard deviation of onset, mean duration, standard deviation of duration. (default = c(180,20,60,7); default values appear to work well for most phenophases within a year time period)
+#' @param hyperparameters A vector of 8 elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean_onset, sd_onset, mean_duration, sd_duration parameters.  The eight elements must be in this order: mean mean_onset, sd mean_onset, mean sd_onset, sd sd_onset, mean mean_duration, sd mean_duration, mean sd_duration, sd sd_duration. (default: c(100, 7, 60, 6, 24, 12, 24, 12); these default values are somewhat arbitrarily set and should be set to values that are appropriate for your model)
+#' @param type Currently, there is only one option: "BB". (default: "BB")
 #'
-#' @returns
+#' @return List including the results of the R optim function with results min-max scaled, estimates of the four parameters at the original scale (par_orig_scale), a Boolean error status (error), and an error message when there is an error (error_m)
 #' @export
 #'
 #' @examples
+#' #Set the mean onset time
+#' mean_onset = 100
+#' #Set the onset time standard deviation
+#' sigma_onset = 10
+#' #Set the mean duration of the phenophase
+#' mean_duration = 50
+#' #Set the duration standard deviation
+#' sigma_duration = 7
+#' #Set the sample size
+#' n=500
+#' #Simulate observed collection times under the beta onset, beta duration (BB) model
+#' ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#'
+#' #estimate the MAP based on the simulated data and default initialization and hyperparameter values
+#' map = getMAP(responseData=ts)
 getMAP = function(responseData, minResponse=0, maxResponse=365,minS=1, maxS=3000,  init_params = c(180,20,60,7), hyperparameters = c(100, 7, 60, 6, 24, 12, 24, 12), type="BB") {
 	if(type == "BB") {
 		getMAP.T.BB(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, minS=minS, maxS=maxS,  init_params = init_params, hyperparameters = hyperparameters, dataProvided=TRUE)

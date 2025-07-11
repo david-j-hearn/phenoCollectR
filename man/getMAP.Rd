@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologyInference.R
 \name{getMAP}
 \alias{getMAP}
-\title{Title}
+\title{Maximum a posteriori (MAP) point estimate}
 \usage{
 getMAP(
   responseData,
@@ -16,22 +16,42 @@ getMAP(
 )
 }
 \arguments{
-\item{responseData}{}
+\item{responseData}{A vector of the observed collection times (e.g., day of year)}
 
-\item{minResponse}{}
+\item{minResponse}{Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)}
 
-\item{maxResponse}{}
+\item{maxResponse}{Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)}
 
-\item{minS}{}
+\item{minS}{Minimum allowable beta shape parameter value; must be positive and less than maxS (default = 1)}
 
-\item{maxS}{}
+\item{maxS}{Maximum allowable beta shape parameter value; must be positive and greater than minS (default = 3000)}
 
-\item{init_params}{}
+\item{init_params}{A vector of four elements that represent the parameter values of the starting state of the numerical optimization procedure. The four elements must be in this order: mean onset, standard deviation of onset, mean duration, standard deviation of duration. (default = c(180,20,60,7); default values appear to work well for most phenophases within a year time period)}
 
-\item{hyperparameters}{}
+\item{hyperparameters}{A vector of 8 elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean_onset, sd_onset, mean_duration, sd_duration parameters.  The eight elements must be in this order: mean mean_onset, sd mean_onset, mean sd_onset, sd sd_onset, mean mean_duration, sd mean_duration, mean sd_duration, sd sd_duration. (default: c(100, 7, 60, 6, 24, 12, 24, 12); these default values are somewhat arbitrarily set and should be set to values that are appropriate for your model)}
 
-\item{type}{}
+\item{type}{Currently, there is only one option: "BB". (default: "BB")}
+}
+\value{
+List including the results of the R optim function with results min-max scaled, estimates of the four parameters at the original scale (par_orig_scale), a Boolean error status (error), and an error message when there is an error (error_m)
 }
 \description{
-Title
+Finds the MAP under the beta onset, beta duration model (BB) using numerical optimization rather than MCMC techniques. The method does not include covariates.
+}
+\examples{
+#Set the mean onset time
+mean_onset = 100
+#Set the onset time standard deviation
+sigma_onset = 10
+#Set the mean duration of the phenophase
+mean_duration = 50
+#Set the duration standard deviation
+sigma_duration = 7
+#Set the sample size
+n=500
+#Simulate observed collection times under the beta onset, beta duration (BB) model
+ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+
+#estimate the MAP based on the simulated data and default initialization and hyperparameter values
+map = getMAP(responseData=ts)
 }

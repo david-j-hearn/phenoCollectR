@@ -1,6 +1,17 @@
 #' Functions that model phenological distributions.
 #'
-#' These are distribution functions with 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) options. Most functions share a subset of the same input parameters, but if you use a model that does not require all the parameters, just provided the needed parameters.
+#' The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. After the 'd', 'r', 'q', and 'p' letters, the function name is the phenological variable as follows:
+#'
+#' O: phenological onset times
+#' D: phenophase durations
+#' C: phenological cessation times
+#' Ok1: first onset (order k = 1)
+#' CkN: last cessation (order k = N, the population size)
+#' T: observed specimen collection times, e.g., day of year for a yearly time period
+#' PNt: Proportion of the population of size N in the phenophase at time t; only the unnormalized (for efficiency) 'd' and 'r' functions are currently implemented
+#'
+#' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters. 
+#'
 #' @rdname dist_family
 #' @param x The response data (e.g. day of year values)
 #' @param q The quantile
@@ -14,11 +25,9 @@
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
 #' @param N The population size for estimation of extreme events
-#' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with one standard deviation for onset and a constant duration) (default = "GP")
+#' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
 #'
 #' @return The results as a vector for the specified function, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
-#' @export
-#'
 #' @examples 
 #' #Set the sample size
 #' n=100000
@@ -49,6 +58,11 @@
 #' hist(observed_t, probability=TRUE, xlab="Simulated observed collection times (extreme BB model)")
 #' #Overlay the theoretical curve on the histogram
 #' curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB"),col="red",add=TRUE,from=0, to=365)
+#' @name phenologyDistributionFunctions
+NULL
+
+#' @rdname dist_family
+#' @export
 dO = function(x, mu_O, sigma_O, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="GP") { dO.GP(x, mu_O, sigma_O) }
