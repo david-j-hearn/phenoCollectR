@@ -59,29 +59,31 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 	preds
 }
 
-#' Title
+#' Make a posterior predictive plot focussed on one covariate and marginalized across the other covariates
 #'
-#' @param stanResult 
-#' @param responseData 
-#' @param responseVariableName 
-#' @param targetCovariateName 
-#' @param onsetCovariateData 
-#' @param durationCovariateData 
-#' @param n_samples 
-#' @param n_draws 
-#' @param n_hist 
-#' @param n_bin 
-#' @param resolution 
-#' @param slice 
-#' @param N 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param adjustYLim 
-#' @param smooth 
-#' @param keepSigma 
-#' @param makeHistograms 
+#' @description Make a graphic of the posterior predictive values of the extremes, onset, observed, and cessation values as well as sub-plots indication directions of change for onset, duration, and observed collection times. 
 #'
-#' @returns
+#' @param stanResult  The output from the function 'runStanPhenology' with a 'full' model
+#' @param responseData A vector of the response data
+#' @param responseVariableName A vector of the names of the covariates
+#' @param targetCovariateName A string with the name of the target covariate to be graphed on the x-axis of the output plot
+#' @param onsetCovariateData A data frame with the onset covariate data. Can be obtained from the function 'preparePhenologyData'.
+#' @param durationCovariateData A data frame with the duration covariate data. Can be obtained from the function 'preparePhenologyData'.
+#' @param n_samples The number of covariate values to simulate for each value of the target covariate. Higher values give more accurate and more precise estimates. (default: 100)
+#' @param n_draws The number of draws from the posterior distribution. Higher values give more accurate and more precise estimates. (default: 100)
+#' @param n_hist  The sample size of values to be used to approximate the onset, duration, and observed distributions. (default: 10000)
+#' @param n_bin The number of bins to be used for the histograms. (default: 100)
+#' @param resolution The number of equi-distant values of the target covariate to be used for graphing. Higher values give smoother curves, but take longer to render. (default: 50)
+#' @param slice The relative position where time slices will be made (also at 1 - slice). Plots of phenological distributions are made at the time slices. (default: 0.25)
+#' @param N The population size used to estimate phenological extremes. (default: 1000)
+#' @param minResponse The minimum possible value of the response variable. (default: 0)
+#' @param maxResponse The maximum possible value of the response variable. (default: 365)
+#' @param adjustYLim Boolean flag specifying whether to set the limits of the y-axis adaptively. Use default. (default: TRUE)
+#' @param smooth Define the type of smoothing, if any, to be used in the output plot. Possibilities are GAM, LOESS, SPLINE, and NONE. (default: GAM)
+#' @param keepSigma Boolean flag indicating whether the sigma parameter should be included in the graphical output. (default: FALSE)
+#' @param makeHistograms Boolean flag indicating whether histograms (vs. densities) at the time slices should be made. (default: FALSE)
+#'
+#' @return A ggplot2 graphics object
 #' @export
 #' @importFrom posterior as_draws_df
 #' @importFrom copula pobs normalCopula fitCopula
@@ -90,9 +92,26 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 #' @importFrom stats predict
 #' @importFrom splines bs
 #' @importFrom cowplot plot_grid
+#' @importFrom tibble as_tibble
 #'
 #' @examples
-makePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, onsetCovariateData, durationCovariateData, n_samples=100, n_draws=100, n_hist=10000, n_bin=100, resolution=50, slice = 0.25, N=1000, minResponse=0, maxResponse=365, adjustYLim=T, smooth=c("GAM", "LOESS", "SPLINE", "NONE"), keepSigma=T, makeHistograms=FALSE) {
+#' \donttest{
+#' ##get the file name with data for the blood root plant
+#' file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' ##define the covariate names - remove up to all but 1
+#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+#' ##get the phenology data
+#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+#' ##run the Stan sampler
+#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' ##summarize the Stan run
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+#' ##make posterior predictive graph
+#' pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+#' ##display the posterior predictive graph
+#' print(pp)
+#' }
+makePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, onsetCovariateData, durationCovariateData, n_samples=100, n_draws=100, n_hist=10000, n_bin=100, resolution=50, slice = 0.25, N=1000, minResponse=0, maxResponse=365, adjustYLim=TRUE, smooth=c("GAM", "LOESS", "SPLINE", "NONE"), keepSigma=FALSE, makeHistograms=FALSE) {
 
 	smooth = match.arg(smooth)
 
@@ -389,25 +408,8 @@ makePosteriorPredictivePlot = function(stanResult, responseData, responseVariabl
 	return(figure)
 }
 
-#' Title
-#'
-#' @param observed_data 
-#' @param filtered_results 
-#' @param targetCovariateName 
-#' @param responseVariableName 
-#' @param legend 
-#' @param timeSlice1 
-#' @param timeSlice2 
-#' @param adjustYLim 
-#' @param minResponse 
-#' @param maxResponse 
-#'
-#' @returns
-#' @export
 #' @importFrom ggplot2 ggplot geom_ribbon aes geom_line geom_point scale_color_manual scale_fill_manual geom_vline theme_minimal labs theme element_rect ylim coord_cartesian
-#'
-#' @examples
-posterior_predictive_graphic = function(observed_data, filtered_results,targetCovariateName,responseVariableName,legend=TRUE, timeSlice1, timeSlice2, adjustYLim = T, minResponse=0, maxResponse=365) {
+posterior_predictive_graphic = function(observed_data, filtered_results,targetCovariateName,responseVariableName,legend=TRUE, timeSlice1, timeSlice2, adjustYLim = TRUE, minResponse=0, maxResponse=365) {
 
 	if(adjustYLim) {
 		ylim= c(min(filtered_results$lower), max(filtered_results$upper))

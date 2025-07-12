@@ -39,7 +39,7 @@ Uses numerical optimization (BB model) or symmetry (GP model) to estimate the ti
 #Set the mean onset time
 mean_onset = 180
 #Set the onset time standard deviation
-sigma_onset = 10 
+sigma_onset = 5
 #Set the mean duration of the phenophase
 mean_duration = 60
 #Set the duration standard deviation

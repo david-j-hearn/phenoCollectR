@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologyInference.R
 \name{fitWeibullExtremes}
 \alias{fitWeibullExtremes}
-\title{Title}
+\title{Fit the Weibull distribution to the distributions of phenological extremes}
 \usage{
 fitWeibullExtremes(
   N,
@@ -14,30 +14,70 @@ fitWeibullExtremes(
   maxResponse = 365,
   type = c("GP", "BB"),
   precision = 10000,
-  includePlot = FALSE
+  includePlot = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
-\item{N}{}
+\item{N}{The population size for estimation of extreme events}
 
-\item{mu_O}{}
+\item{mu_O}{Mean onset time}
 
-\item{sigma_O}{}
+\item{sigma_O}{Standard deviation for the onset time distribution}
 
-\item{mu_D}{}
+\item{mu_D}{Mean phenophase duration length}
 
-\item{sigma_D}{}
+\item{sigma_D}{Standard deviation for the phenophase duration distribution}
 
-\item{minResponse}{}
+\item{minResponse}{Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)}
 
-\item{maxResponse}{}
+\item{maxResponse}{Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)}
 
-\item{type}{}
+\item{type}{The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")}
 
-\item{precision}{}
+\item{precision}{Sample size to use to simulate data to which the Weibull is fit.}
 
-\item{includePlot}{}
+\item{includePlot}{Boolean whether to include a plot of the estimated Weibull distribution over simulated first onset and last cessation histograms. (default: FALSE)}
+
+\item{verbose}{When set TRUE, provides detailed information about how to use the output from this function to obtain the Weibull estimates of the extreme value distributions. (default: TRUE)}
+}
+\value{
+A list with two vectors. The first vector provides the shape, scale, and location parameters of the Weibull for the first onset, whereas the second vector provides the corresponding estimates for the last cessation.
 }
 \description{
-Title
+Fits a Weibull distribution to the distribution of the first onset and the distribution of the last cessation. The Fisher–Tippett–Gnedenko theorem (AKA extreme value theorem) suggests that for distributions with bounded support, the distribution of the minimum (or the maximum) of a finite random sample will converge to the Weibull distribution under the appropriate scaling and translation.
+
+This function is a wrapper for the ForestFit package function fitWeibull.
+}
+\details{
+The resulting parameter estimates can be used with R's built-in {r,d,q,p}weibull functions. The x values need to be shifted by the location parameter (the third element of the returned onset or cessation vector). For the first onset, the values are shifted as follows: x = x - onsetLocation. For the last cessation, the values are shifted as follows: x = -(x - cessationLocation). As implemented in R, the Weibull shape parameter is the first element of the returned onset or cessation vector, and the Weibull scale parameter is the second element.
+
+Setting verbose to TRUE provides a print out of the specific call to dweibull using the estimated parameters.
+}
+\examples{
+#Set the mean onset time
+mean_onset = 180
+#Set the onset time standard deviation
+sigma_onset = 5
+#Set the mean duration of the phenophase
+mean_duration = 60
+#Set the duration standard deviation
+sigma_duration = 40
+#Set the sample size
+precision = 10000
+#Set the population size
+N = 500
+#Fit the Weibull distribution to the phenological extremes
+fitWB = fitWeibullExtremes(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB", precision=precision, includePlot=TRUE)
+#Create histograms of random deviates based on the estimated parameter values
+dev.new()
+par(mfrow = c(2,1))
+#Simulate draws from the first onset Weibull estimate, and overlay the theoretical curve onto the histogram
+firstOnset = rweibull(n=precision, shape = fitWB$Ok1Params[1], scale = fitWB$Ok1Params[2]) + fitWB$Ok1Params[3]
+hist(firstOnset, probability=TRUE, xlab="First onset day of year", col="yellow")
+curve(dweibull(x - fitWB$Ok1Params[3], shape = fitWB$Ok1Params[1], scale = fitWB$Ok1Params[2]), add = TRUE)
+#Simulate draws from the last cessation Weibull estimate, and overlay the theoretical curve onto the histogram. Note that the mirror image is needed for the last cessation distribution.
+lastCessation = -rweibull(n=precision, shape = fitWB$CkNParams[1], scale = fitWB$CkNParams[2]) + fitWB$CkNParams[3]
+hist(lastCessation, probability=TRUE, xlab="Last cessation day of year", col="cyan")
+curve(dweibull(-(x - fitWB$CkNParams[3]), shape = fitWB$CkNParams[1], scale = fitWB$CkNParams[2]), add = TRUE)
 }

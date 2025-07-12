@@ -351,7 +351,7 @@ runStan.NoCovariates.T.GP = function(fileOrData, minResponse=0, maxResponse=365,
 	return(result)
 }
 
-runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=365, onsetCovariateData, durationCovariateData, onsetHyperBeta, onsetHyperAnchor, durationHyperBeta, durationHyperAnchor, cessationHyperAnchor, sigmaHyper=c(10,50), dataProvided=FALSE, setStringent=TRUE, maxDiv=0, processExtremes=TRUE, N=500, priorLevel=2, ...) {
+runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=365, onsetCovariateData, durationCovariateData, onsetHyperBeta, onsetHyperAnchor, durationHyperBeta, durationHyperAnchor, sigmaHyper=c(10,50), dataProvided=FALSE, setStringent=TRUE, maxDiv=0, processExtremes=TRUE, N=500, priorLevel=2, ...) {
 	options(mc.cores = 4)
 
 	if(processExtremes && !is.na(N)) {
@@ -381,7 +381,7 @@ runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=
 		onsetHyperAnchor = getHyperparameters(onsetHyperAnchor)
 		durationHyperBeta = getHyperparameters(durationHyperBeta)
 		durationHyperAnchor = getHyperparameters(durationHyperAnchor)
-		cessationHyperAnchor = getHyperparameters(cessationHyperAnchor)
+		#cessationHyperAnchor = getHyperparameters(cessationHyperAnchor)
 	}
 
 	K_O = covariatesOnset$K
@@ -428,8 +428,8 @@ runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=
 	meanAnchorD = ((durationHyperAnchor[1])/range)
 	sdAnchorD = (durationHyperAnchor[2]/range)
 
-	meanAnchorC = ((cessationHyperAnchor[1]-minResponse)/range)
-	sdAnchorC = (cessationHyperAnchor[2]/range)
+	#meanAnchorC = ((cessationHyperAnchor[1]-minResponse)/range)
+	#sdAnchorC = (cessationHyperAnchor[2]/range)
 
 	meanSigma = (sigmaHyper[1]/range)
 	sdSigma = (sigmaHyper[2]/range)
@@ -478,8 +478,8 @@ runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=
 					 anchorDurationMean = meanAnchorD,
 					 anchorDurationSD = sdAnchorD,
 
-					 anchorCessationMean = meanAnchorC,
-					 anchorCessationSD = sdAnchorC,
+					 #anchorCessationMean = meanAnchorC,
+					 #anchorCessationSD = sdAnchorC,
 
 					 sigmaMean = meanSigma,
 					 sigmaSD = sdSigma,
@@ -563,7 +563,7 @@ runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=
 				  onsetHyperAnchor = onsetHyperAnchor,
 				  durationHyperBeta = durationHyperBeta,
 				  durationHyperAnchor = durationHyperAnchor,
-				  cessationHyperAnchor = cessationHyperAnchor,
+				  #cessationHyperAnchor = cessationHyperAnchor,
 				  sigmaHyper = sigmaHyper,
 				  result=res,
 				  model=m,

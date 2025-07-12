@@ -28,6 +28,7 @@ Depends:
 Imports:
 	quantreg,
 	dplyr,
+	tibble,
 	posterior,
 	ForestFit,
 	MASS,

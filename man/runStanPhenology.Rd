@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologyInference.R
 \name{runStanPhenology}
 \alias{runStanPhenology}
-\title{Title}
+\title{Run a Bayesian analysis of phenological events using biocollection data}
 \usage{
 runStanPhenology(
   type = c("intercept-only", "full"),
@@ -14,7 +14,6 @@ runStanPhenology(
   onsetHyperAnchor = NA,
   durationHyperBeta = NA,
   durationHyperAnchor = NA,
-  cessationHyperAnchor = NA,
   sigmaHyper = NA,
   minResponse = 0,
   maxResponse = 365,
@@ -32,52 +31,158 @@ runStanPhenology(
 )
 }
 \arguments{
-\item{type}{}
+\item{type}{The type of model to be implemented. Two options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates, whereas option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates. (default: intercept-only)}
 
-\item{responseData}{}
+\item{responseData}{A vector of the response data. This is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason for preprocessing transformations.}
 
-\item{hyperparams_noCovariates}{}
+\item{hyperparams_noCovariates}{For use with 'intercept-only' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order.}
 
-\item{onsetCovariateData}{}
+\item{onsetCovariateData}{For use with 'full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear onset model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.}
 
-\item{durationCovariateData}{}
+\item{durationCovariateData}{For use with 'full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear duration model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.}
 
-\item{onsetHyperBeta}{}
+\item{onsetHyperBeta}{For use with 'full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the onset model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_O columns in the covariate data frame, there should be K_O rows in this data frame.}
 
-\item{onsetHyperAnchor}{}
+\item{onsetHyperAnchor}{For use with 'full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the marginal mean onset time value).}
 
-\item{durationHyperBeta}{}
+\item{durationHyperBeta}{For use with 'full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the duration model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_D columns in the covariate data frame, there should be K_D rows in this data frame.}
 
-\item{durationHyperAnchor}{}
+\item{durationHyperAnchor}{For use with 'full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the marginal mean phenophase duration value).}
 
-\item{cessationHyperAnchor}{}
+\item{sigmaHyper}{For use with 'full' models. A two-element vector with the mean and standard deviation of the prior distribution for the sigma parameter. Sigma is the standard deviation of the onset distribution and is also the standard deviation of the cessation distribution.}
 
-\item{sigmaHyper}{}
+\item{minResponse}{Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)}
 
-\item{minResponse}{}
+\item{maxResponse}{Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)}
 
-\item{maxResponse}{}
+\item{maxDiv}{The maximum number of divergences to be tolerated during the Stan posterior sampling. This should be 0 unless a biased sample from the posterior is acceptable. (default: 0)}
 
-\item{maxDiv}{}
+\item{setStringent}{Boolean flag to indicate more stringent sampling during Stan runs. Specifically, adapt_delta = 0.99, max_treedepth = 15. Setting to TRUE reduces the chances of divergences, but run time is slower. Usually the different in run time is not of practical concern. (default: TRUE)}
 
-\item{setStringent}{}
+\item{runMAP}{Boolean flag to indicate if Stan should be used to estimate the maximum a posteriori (MAP) values. (default: FALSE)}
 
-\item{runMAP}{}
+\item{processExtremes}{Boolean flag to indicate if parameters for the phenological extreme distributions should be included in the analysis. If set to TRUE, asymptotic estimates of the expected first onset and expected last cessation are sampled. A limitation is that an estimate of the population size is needed for this analysis. (default: TRUE)}
 
-\item{processExtremes}{}
+\item{N}{The population size. For used when processExtremes is set to TRUE. (default: 500)}
 
-\item{N}{}
+\item{partitionDataForPriors}{Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30\% of the data are partitioned into a set to estimate the hyperparameters, and 70\% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored.}
 
-\item{partitionDataForPriors}{}
+\item{maximizeSampleSize}{Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100\% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates will be unacceptably large unless a fuller data set is used. Recommended to keep at default. (default: FALSE)}
 
-\item{maximizeSampleSize}{}
+\item{threshApprox}{An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NA)}
 
-\item{threshApprox}{}
+\item{byPassChecks}{Boolean flag indicating whether to bypass checks for Stan. If Stan is not located, an attempt will be made to install Stan. Recommended to keep at default. (default: FALSE)}
 
-\item{byPassChecks}{}
+\item{priorLevel}{Specifies which sets of parameters will have flat, improper priors. Leave at default. (default: 2)}
 
-\item{...}{}
+\item{...}{Parameters to be input into the stan sample function. Not currently implemented. Do not use.}
+}
+\value{
+Details of what is returned will depend on whether an 'intercept-only' or a 'full' model is used.
+
+In the case of 'full': A list with the following items:
+
+data: the data that were passed to Stan. These include the scaled and translated response and covariate data.
+
+responseData: the original response data
+
+onsetCovariateData: the original covariate data for the onset model
+
+durationCovariateData: the original covariate data for the duration model
+
+onsetHyperBeta: the mean and standard deviation hyperparameter values for the onset model covariate coefficients
+
+onsetHyperAnchor: the mean and standard deviation hyperparameter values for the onset anchor (marginal mean onset)
+
+durationHyperBeta: the mean and standard deviation hyperparameter values for the duration model covariate coefficients
+
+durationHyperAnchor: the mean and standard deviation hyperparameter values for the duration anchor (marginal mean duration)
+
+sigmaHyper: the mean and standard deviation hyperparameter values for sigma
+
+result: the sample from Stan
+
+model: the Stan model
+
+maxDiv: the maximum allowed number of divergences for the run
+
+minResponse: the minimum possible response value
+
+maxResponse: the maximum possible response value
+
+setStringent: whether setStringent was set to TRUE.
+
+error: whether an error was caught during the Stan run.
+
+error_m: an error message, possibly indicating no error occurred.
+
+In the case of 'intercept-only': A list with the following items:
+
+data: the data that were passed to Stan. These include the scaled and translated response and covariate data.
+
+responseData: the original response data
+
+hyperparameters: the hyperparameters used by the Stan model
+
+sample: the sample from Stan
+
+model: the Stan model
+
+runMap: Boolean indicates of MAP estimate was made
+
+MAP: Stan's MAP estimate, if selected. NA if runMap is FALSE
+
+N: input population size
+
+minResponse: the minimum possible response value
+
+maxResponse: the maximum possible response value
+
+setStringent: whether setStringent was set to TRUE.
+
+maxDiv: the maximum allowed number of divergences for the run
+
+error: whether an error was caught during the Stan run.
+
+error_m: an error message, possibly indicating no error occurred.
+
+threshApprox: error threshold value for integration
 }
 \description{
-Title
+This function is the core of the phenoCollectR package. It wraps many other functions to make the Bayesian analysis of phenological events using biocollection data as streamlined as possible, yet flexible if need be.
+
+Models with or without covariates can be used. Covariates can be climate variables, physical environment variables, physiological states, genetic states, and so forth - anything that may contribute to phenological variation. However, as currently implemented, only continuous covariates are supported.
+
+Mean phenophase onset time and mean phenophase duration are modeled as linear functions of the covariates, if supplied. Otherwise, just the mean phenophase onset time and the mean phenophase duration are modeled without covariates. Separate covariates can be used to model the mean onset time and the mean phenophase duration. However, some downstream methods for summaries and plotting expect the covariates to be the same for both models.
+
+The helper function 'preparePhenologyData' can be used to prepare the response data and the covariate data for input to this function.
+
+The theory developed by Hearn et al. (XXXX) unifies the models for onset and duration to derive the theoretical distribution of observed collection times. Bayesian inference is carried out using the probabilistic programming language Stan, which draws samples from the posterior distribution of the model parameters. These samples can be used for downstream analyses. For example, to estimate the marginal posterior probability that a slope coefficient associated with a covariate is negative, one simply counts the number of posterior samples where the coefficient is negative and divides by the total number of samples from the posterior distribution.
+
+As part of a Bayesian analysis, and to reduce model identifiability issues, a prior distribution is needed for the analysis. Flat priors will not work for this analysis. Because the setting of priors can be challenging, this function can optionally implement methods that will automate the specification of priors for you. Advanced users can manually tailor prior hyperparameters and achieve weakly informative priors, if desired. Under the current implementation, the functional form of the priors is pre-set.
+
+Users can also optionally choose to analyze phenological extremes. To do so requires an estimate of the population from with biocollection records were obtained. The concept of "population" in this case can be quite loose and can be the metapopulation consisting of all populations from which samples were selected.
+
+The parameters to be estimated for the 'full' model include the marginal mean onset time (mu_O), the marginal mean duration (mu_D), one parameter (coefficient) for each covariate used to model the mean onset time, one parameter (coefficient) for each covariate used to model the mean duration time, and one sigma parameter which models both the standard deviation of the distribution of onset times and the standard deviation of the distribution of durations. If there are K_O onset covariates, and K_D duration covariates, then there is a total of 3 + K_O + K_D free parameters.
+
+The parameters to be estimated for the 'intercept-only' model include the marginal mean onset time, the marginal mean duration, and the sigma parameter.
+
+Other parameters associated with phenophase cessation events and phenological extremes are deterministic functions of the free parameters based on the implemented Gaussian process model.
+
+A summary of the Stan run is available through the helper function 'summarizePhenologyResults', or advanced users can access the Stan sample directly from the output of this function for customized downstream analyses using other packages designed for the analysis of samples from posterior distributions, such as 'posterior' and 'bayesplot'.
+}
+\examples{
+\donttest{
+##get the file name with data for the blood root plant. Data files for 12 other species are also available
+file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+##define the covariate names - remove up to all but 1
+vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+##get the phenology data
+data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+##run the Stan sampler
+stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+##summarize the Stan run
+stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+stanSummary
+}
 }

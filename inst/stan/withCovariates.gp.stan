@@ -110,8 +110,8 @@ data {
 	real<lower=0> anchorDurationMean;
 	real<lower=0> anchorDurationSD;
 
-	real anchorCessationMean;
-	real<lower=0> anchorCessationSD;
+	//real anchorCessationMean;
+	//real<lower=0> anchorCessationSD;
 
 	//Hyperparameters mean and sd of sigma
 	real<lower=0> sigmaMean;
@@ -138,8 +138,8 @@ transformed data {
 	real<lower=2> alpha_invGammaD;
 	real beta_invGammaD;
 
-	real<lower=2> alpha_invGammaC;
-	real beta_invGammaC;
+	//real<lower=2> alpha_invGammaC;
+	//real beta_invGammaC;
 
 	real<lower=2> alpha_invGammaS;
 	real beta_invGammaS;
@@ -159,8 +159,8 @@ transformed data {
 	print("alphas: ", [alpha_invGammaO, alpha_invGammaD]);
 	print("betas: ", [beta_invGammaO,beta_invGammaD]);
 
-	alpha_invGammaC = get_alpha_inv_gamma(anchorCessationMean , anchorCessationSD) ;
-	beta_invGammaC = get_beta_inv_gamma(anchorCessationMean , anchorCessationSD) ;
+	//alpha_invGammaC = get_alpha_inv_gamma(anchorCessationMean , anchorCessationSD) ;
+	//beta_invGammaC = get_beta_inv_gamma(anchorCessationMean , anchorCessationSD) ;
 
 	alpha_invGammaS = get_alpha_inv_gamma(sigmaMean, sigmaSD) ;
 	beta_invGammaS = get_beta_inv_gamma(sigmaMean, sigmaSD) ;
