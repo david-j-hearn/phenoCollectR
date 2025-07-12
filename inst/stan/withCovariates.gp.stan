@@ -110,9 +110,6 @@ data {
 	real<lower=0> anchorDurationMean;
 	real<lower=0> anchorDurationSD;
 
-	//real anchorCessationMean;
-	//real<lower=0> anchorCessationSD;
-
 	//Hyperparameters mean and sd of sigma
 	real<lower=0> sigmaMean;
 	real<lower=0> sigmaSD;
@@ -138,17 +135,12 @@ transformed data {
 	real<lower=2> alpha_invGammaD;
 	real beta_invGammaD;
 
-	//real<lower=2> alpha_invGammaC;
-	//real beta_invGammaC;
-
 	real<lower=2> alpha_invGammaS;
 	real beta_invGammaS;
 
 	alpha_invGammaO = get_alpha_inv_gamma(anchorOnsetMean , anchorOnsetSD) ;
 	beta_invGammaO = get_beta_inv_gamma(anchorOnsetMean , anchorOnsetSD) ;
 
-	//print("Mus: ", [anchorDurationMean*365.0, anchorOnsetMean*365], ", sigma:", sigma*365);
-	//print("SDs: ", [anchorDurationSD*365.0, anchorOnsetSD*365], ", sigma:", sigma*365);
 	print("Mus: ", [anchorDurationMean*365.0, anchorOnsetMean*365]);
 	print("SDs: ", [anchorDurationSD*365.0, anchorOnsetSD*365]);
 	print("Mus raw: ", [anchorDurationMean, anchorOnsetMean]);
@@ -158,9 +150,6 @@ transformed data {
 	beta_invGammaD = get_beta_inv_gamma(anchorDurationMean , anchorDurationSD) ;
 	print("alphas: ", [alpha_invGammaO, alpha_invGammaD]);
 	print("betas: ", [beta_invGammaO,beta_invGammaD]);
-
-	//alpha_invGammaC = get_alpha_inv_gamma(anchorCessationMean , anchorCessationSD) ;
-	//beta_invGammaC = get_beta_inv_gamma(anchorCessationMean , anchorCessationSD) ;
 
 	alpha_invGammaS = get_alpha_inv_gamma(sigmaMean, sigmaSD) ;
 	beta_invGammaS = get_beta_inv_gamma(sigmaMean, sigmaSD) ;
@@ -239,10 +228,10 @@ transformed parameters {
 
 
 model {
-	//if(debug) {
-	////print("Mus: ", [mu_O, mu_C], ", sigma:", sigma);
-	////print("intercept, elev, date, lat: ", [intercept, betaElev, betaDate, betaLat]);
-	//}
+	if(debug) {
+		print("Mus: ", [mu_O, mu_C], ", sigma:", sigma);
+		print("intercept, elev, date, lat: ", [intercept, betaElev, betaDate, betaLat]);
+	}
 
 	//Calculate the likelihood
 	if(!drop_ll) {
@@ -255,21 +244,9 @@ model {
 	}
 
 	//Define priors
-
-	//Putting priors on the individual mu_C and mu_D reduces divergences rate tremendously!
-	//	inverse gamma assures the prior for these values is positive
-	//mu_C_raw ~ inv_gamma(alpha_invGammaC,beta_invGammaC);
-	//mu_D_raw ~ normal( anchorDurationMean, anchorDurationSD);
-	//mu_D_raw ~ inv_gamma(alpha_invGammaD,beta_invGammaD);
-	//mu_O_raw ~ inv_gamma(alpha_invGammaO,beta_invGammaO);
-
-	//mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw; //DONE ABOVE
-
 	//These hierarchical priors on the individual mean durations and onsets help to regularize, improve HMC diagnostics by reducing divergences, and still maintain accuracy. 
 	if(priors >= 2) {
 		for(i in 1:N) {
-			//target += inv_gamma_lpdf(mu_D_raw[i] | invG_alpha_D_prior[i], invG_beta_D_prior[i]) * 2 / N;
-			//target += inv_gamma_lpdf(mu_O_raw[i] | invG_alpha_O_prior[i], invG_beta_O_prior[i]) * 2 / N;
 			target += inv_gamma_lpdf(mu_D_raw[i] | invG_alpha_D_prior[i], invG_beta_D_prior[i]);
 			target += inv_gamma_lpdf(mu_O_raw[i] | invG_alpha_O_prior[i], invG_beta_O_prior[i]);
 		}
@@ -284,14 +261,6 @@ model {
 
 		sigma_raw ~ normal( sigmaMean, sigmaSD);
 	}
-
-	//anchor_O_raw ~ inv_gamma(alpha_invGammaO, beta_invGammaO);
-	//anchor_D_raw ~ inv_gamma(alpha_invGammaD, beta_invGammaD);
-
-	//beta_O_raw ~ normal(betaOnsetMeans, betaOnsetSDs);
-	//beta_D_raw ~ normal(betaDurationMeans, betaDurationSDs);
-
-	//sigma_raw ~ inv_gamma(alpha_invGammaS, beta_invGammaS);
 }
 
 generated quantities {
@@ -314,8 +283,6 @@ generated quantities {
 	vector[K_union] beta_T;
 	vector[K_O] betaOk1;
 	vector[K_union] betaCkN;
-	//vector[N] mu_Ok1;
-	//vector[N] mu_CkN;
 
 	real<lower=0> sigma;
 
