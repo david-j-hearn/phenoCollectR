@@ -327,21 +327,19 @@ rPNt(
 
 \item{n}{The sample size}
 
-\item{mu_D}{Mean duration time}
+\item{mu_D}{Mean phenophase duration length}
 
-\item{sigma_D}{Standard deviation for the duration time distribution}
+\item{sigma_D}{Standard deviation for the phenophase duration distribution}
 
 \item{N}{The population size}
 
 \item{t}{The time at which the proportion of the population in the phenophase is to be evaluated}
 }
 \value{
-The results as a vector for the specified function, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
+A vector, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
 }
 \description{
-Functions provide methods to model and simulate phenological distributions. The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. After the 'd', 'r', 'q', and 'p' letters, the function name is the phenological variable as described in the details.
-
-Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
+Methods to model and simulate phenological distributions. The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name.
 
 Eight phenological properties are modeled by random variables. These include the following:
 
@@ -361,7 +359,9 @@ PNt: Proportion of the population of size N in the phenophase at time t; only th
 
 R: The total time range that at least one individual in a population is in the phenophase; only the 'd' and 'r' functions are currently implemented
 
-The function name is constructed by combining one of 'd', 'r', 'q', and 'p' as a prefix with one of the above variables. For example, rT refers to the function that generates random samples from the distribution of observed collection times, T.
+The function name is constructed by combining one of 'd', 'r', 'q', and 'p' as a prefix with one of the above variable labels. For example, rT refers to the function that generates random samples from the distribution of observed collection times, T.
+
+Most functions share a subset of input parameters. Provide only the needed parameters for the function.
 }
 \examples{
 #Set the sample size

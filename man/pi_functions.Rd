@@ -79,9 +79,9 @@ PI.T(
 
 \item{sigma_O}{Standard deviation for the onset time distribution}
 
-\item{mu_D}{Mean duration time}
+\item{mu_D}{Mean phenophase duration length}
 
-\item{sigma_D}{Standard deviation for the duration time distribution}
+\item{sigma_D}{Standard deviation for the phenophase duration distribution}
 
 \item{minResponse}{Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)}
 

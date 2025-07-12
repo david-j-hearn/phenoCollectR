@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologyInference.R
 \name{getMLE}
 \alias{getMLE}
-\title{Title}
+\title{Maximum likelihood estimate of phenological parameters}
 \usage{
 getMLE(
   responseData,
@@ -15,20 +15,46 @@ getMLE(
 )
 }
 \arguments{
-\item{responseData}{}
+\item{responseData}{A vector of the observed collection times (e.g., day of year)}
 
-\item{minResponse}{}
+\item{minResponse}{The minimum possible observed time. Current implementation requires this to be set to 0. (default: 0)}
 
-\item{maxResponse}{}
+\item{maxResponse}{The maximum possible observed time. For the Gregorian calendar, this is 365 (or 366 during leap years). (default: 365)}
 
-\item{minS}{}
+\item{minS}{The smallest permissible value for a shape parameter for the beta distribution. This should be positive and less than maxS. (default: 1)}
 
-\item{maxS}{}
+\item{maxS}{The largest permissible value for a shape parameter fo the beta distribution. This should be positive and greater than minS. (default: 3000)}
 
-\item{init_params}{}
+\item{init_params}{A vector of four elements that represent the parameter values of the starting state of the numerical optimization procedure. The four elements must be in this order: mean onset, standard deviation of onset, mean duration, standard deviation of duration. Default values appear to work well for most phenophases within a year time period. (default = c(180,20,60,7)}
 
-\item{type}{}
+\item{type}{Currently, there is only one option: "BB". (default: "BB")}
+}
+\value{
+A list that includes the estimate of the beta shape parameters from the R optim function (par), a vector of parameter values in the original scale (par_orig_scale), and a Boolean error flag
 }
 \description{
-Title
+Numerically optimizes the likelihood function to find the combination of parameter values that result in the highest probability of the data, the maximum likelihood estimate (MLE).
+
+This method returns only a point estimate with no estimates of parameter uncertainty, and there is no use of prior knowledge.
+
+MLE can provide a useful check to determine if model identifiability is an issue. When a model is not identifiable, multiple combinations of parameter values result in the same or similar probability of the data.
+
+Currently only implemented for the beta onset, beta duration (BB) model.
+}
+\examples{
+#Set the mean onset time
+mean_onset = 100
+#Set the onset time standard deviation
+sigma_onset = 10
+#Set the mean duration of the phenophase
+mean_duration = 50
+#Set the duration standard deviation
+sigma_duration = 7
+#Set the sample size
+n=500
+#Simulate observed collection times under the beta onset, beta duration (BB) model
+ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+
+#estimate the MLE based on the simulated data and default initialization values
+mle = getMLE(responseData=ts)
 }

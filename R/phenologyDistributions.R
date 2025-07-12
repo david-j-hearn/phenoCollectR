@@ -1,8 +1,6 @@
 #' Functions that model phenological distributions.
 #'
-#' @description Functions provide methods to model and simulate phenological distributions. The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. After the 'd', 'r', 'q', and 'p' letters, the function name is the phenological variable as described in the details.
-#'
-#' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters. 
+#' @description Methods to model and simulate phenological distributions. The R convention of 'd' (density or mass function), 'r' (sampling), 'q' (quantile), and 'p' (cumulative distribution function) prefixes the function name. 
 #'
 #' Eight phenological properties are modeled by random variables. These include the following:
 #'
@@ -22,7 +20,9 @@
 #'
 #' R: The total time range that at least one individual in a population is in the phenophase; only the 'd' and 'r' functions are currently implemented 
 #'
-#' The function name is constructed by combining one of 'd', 'r', 'q', and 'p' as a prefix with one of the above variables. For example, rT refers to the function that generates random samples from the distribution of observed collection times, T. 
+#' The function name is constructed by combining one of 'd', 'r', 'q', and 'p' as a prefix with one of the above variable labels. For example, rT refers to the function that generates random samples from the distribution of observed collection times, T. 
+#'
+#' Most functions share a subset of input parameters. Provide only the needed parameters for the function. 
 #'
 #' @rdname dist_family
 #' @param x A vector of the response data (e.g. day of year values)
@@ -32,14 +32,14 @@
 #' @param t The time at which the proportion of the population in the phenophase is to be evaluated
 #' @param mu_O Mean onset time
 #' @param sigma_O Standard deviation for the onset time distribution
-#' @param mu_D Mean duration time
-#' @param sigma_D Standard deviation for the duration time distribution
+#' @param mu_D Mean phenophase duration length
+#' @param sigma_D Standard deviation for the phenophase duration distribution
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
 #' @param N The population size
 #' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
 #'
-#' @return The results as a vector for the specified function, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
+#' @return A vector, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
 #' @examples 
 #' #Set the sample size
 #' n=100000
@@ -286,9 +286,9 @@ rT = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, t
 	if(type=="GP") {
 		mu_C = mu_O + mu_D
 		sigma = sigma_O
-		rT.GP(n, mu_O, mu_C, sigma, minResponse, maxResponse)
+		rT.GP(n=n, mu_O=mu_O, mu_C=mu_C, sigma=sigma, minResponse=minResponse, maxResponse=maxResponse)
 	}
-	else { rT.BB(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=minResponse, maxResponse=maxResponse) }
+	else { rT.BB(n=n, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse) }
 }
 
 #' @rdname dist_family

@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologyInference.R
 \name{getPeakPhenophase}
 \alias{getPeakPhenophase}
-\title{Title}
+\title{Estimate the time of peak phenophase for a population}
 \usage{
 getPeakPhenophase(
   mu_O,
@@ -15,20 +15,40 @@ getPeakPhenophase(
 )
 }
 \arguments{
-\item{mu_O}{}
+\item{mu_O}{Mean onset time}
 
-\item{sigma_O}{}
+\item{sigma_O}{Standard deviation of the onset time}
 
-\item{mu_D}{}
+\item{mu_D}{Mean duration time}
 
-\item{sigma_D}{}
+\item{sigma_D}{Standard deviation of the duration time}
 
-\item{minResponse}{}
+\item{minResponse}{The minimum possible observed time. Current implementation requires this to be set to 0. (default: 0)}
 
-\item{maxResponse}{}
+\item{maxResponse}{The maximum possible observed time. For the Gregorian calendar, this is 365 (or 366 during leap years). (default: 365)}
 
-\item{type}{}
+\item{type}{The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")}
+}
+\value{
+Estimate of the peak phenophase time.
 }
 \description{
-Title
+Uses numerical optimization (BB model) or symmetry (GP model) to estimate the time when the population will have the highest percentage of individuals in the phenopase.
+}
+\examples{
+#Set the mean onset time
+mean_onset = 180
+#Set the onset time standard deviation
+sigma_onset = 10 
+#Set the mean duration of the phenophase
+mean_duration = 60
+#Set the duration standard deviation
+sigma_duration = 40
+
+#estimate the peak phenophase under the BB model
+peak = getPeakPhenophase(mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB")
+#Create theoretical distribution of the observed times
+curve(dT(x, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"),from=0, to=365, n = 1000)
+#Plot the estimate of the peak phenophase
+points(peak, dT(peak, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"), pch=16, col="yellow")
 }

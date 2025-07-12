@@ -19,8 +19,8 @@
 #' @rdname expectation_functions
 #' @param mu_O Mean onset time
 #' @param sigma_O Standard deviation for the onset time distribution
-#' @param mu_D Mean duration time
-#' @param sigma_D Standard deviation for the duration time distribution
+#' @param mu_D Mean phenophase duration length
+#' @param sigma_D Standard deviation for the phenophase duration distribution
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
 #' @param N The population size for estimation of extreme events
@@ -173,8 +173,8 @@ E.T = function(mu_O, mu_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 #' @rdname pi_functions
 #' @param mu_O Mean onset time
 #' @param sigma_O Standard deviation for the onset time distribution
-#' @param mu_D Mean duration time
-#' @param sigma_D Standard deviation for the duration time distribution
+#' @param mu_D Mean phenophase duration length
+#' @param sigma_D Standard deviation for the phenophase duration distribution
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
 #' @param N The population size for estimation of extreme events
@@ -318,8 +318,8 @@ PI.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 #' @rdname sd_functions
 #' @param mu_O Mean onset time
 #' @param sigma_O Standard deviation for the onset time distribution
-#' @param mu_D Mean duration time
-#' @param sigma_D Standard deviation for the duration time distribution
+#' @param mu_D Mean phenophase duration length
+#' @param sigma_D Standard deviation for the phenophase duration distribution
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
 #' @param N The population size for estimation of extreme events
@@ -492,20 +492,44 @@ getMAP = function(responseData, minResponse=0, maxResponse=365,minS=1, maxS=3000
 	}
 }
 
-#' Title
+#' Maximum likelihood estimate of phenological parameters
 #'
-#' @param responseData 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param minS 
-#' @param maxS 
-#' @param init_params 
-#' @param type 
+#' @description Numerically optimizes the likelihood function to find the combination of parameter values that result in the highest probability of the data, the maximum likelihood estimate (MLE). 
+#' 
+#' This method returns only a point estimate with no estimates of parameter uncertainty, and there is no use of prior knowledge. 
+#' 
+#' MLE can provide a useful check to determine if model identifiability is an issue. When a model is not identifiable, multiple combinations of parameter values result in the same or similar probability of the data. 
+#' 
+#' Currently only implemented for the beta onset, beta duration (BB) model. 
 #'
-#' @returns
+#' @param responseData A vector of the observed collection times (e.g., day of year)
+#' @param minResponse The minimum possible observed time. Current implementation requires this to be set to 0. (default: 0)
+#' @param maxResponse The maximum possible observed time. For the Gregorian calendar, this is 365 (or 366 during leap years). (default: 365)
+#' @param minS The smallest permissible value for a shape parameter for the beta distribution. This should be positive and less than maxS. (default: 1)
+#' @param maxS The largest permissible value for a shape parameter fo the beta distribution. This should be positive and greater than minS. (default: 3000)
+#' @param init_params A vector of four elements that represent the parameter values of the starting state of the numerical optimization procedure. The four elements must be in this order: mean onset, standard deviation of onset, mean duration, standard deviation of duration. Default values appear to work well for most phenophases within a year time period. (default = c(180,20,60,7)
+#' @param type Currently, there is only one option: "BB". (default: "BB")
+#'
+#' @return A list that includes the estimate of the beta shape parameters from the R optim function (par), a vector of parameter values in the original scale (par_orig_scale), and a Boolean error flag
+#' 
 #' @export
 #'
 #' @examples
+#' #Set the mean onset time
+#' mean_onset = 100
+#' #Set the onset time standard deviation
+#' sigma_onset = 10
+#' #Set the mean duration of the phenophase
+#' mean_duration = 50
+#' #Set the duration standard deviation
+#' sigma_duration = 7
+#' #Set the sample size
+#' n=500
+#' #Simulate observed collection times under the beta onset, beta duration (BB) model
+#' ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#'
+#' #estimate the MLE based on the simulated data and default initialization values
+#' mle = getMLE(responseData=ts)
 getMLE = function(responseData, minResponse=0, maxResponse=365, minS=1, maxS=3000, init_params = c(180, 20, 60, 7), type="BB") {
 	if(type == "BB") {
 		getMLE.T.BB(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, minS=minS, maxS=maxS, init_params = init_params, dataProvided=TRUE)
@@ -515,20 +539,37 @@ getMLE = function(responseData, minResponse=0, maxResponse=365, minS=1, maxS=300
 	}
 }
 
-#' Title
+#' Estimate the time of peak phenophase for a population
 #'
-#' @param mu_O 
-#' @param sigma_O 
-#' @param mu_D 
-#' @param sigma_D 
-#' @param minResponse 
-#' @param maxResponse 
-#' @param type 
+#' Uses numerical optimization (BB model) or symmetry (GP model) to estimate the time when the population will have the highest percentage of individuals in the phenopase. 
 #'
-#' @returns
+#' @param mu_O Mean onset time
+#' @param sigma_O Standard deviation of the onset time
+#' @param mu_D Mean duration time
+#' @param sigma_D Standard deviation of the duration time
+#' @param minResponse The minimum possible observed time. Current implementation requires this to be set to 0. (default: 0)
+#' @param maxResponse The maximum possible observed time. For the Gregorian calendar, this is 365 (or 366 during leap years). (default: 365)
+#' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
+#'
+#' @return Estimate of the peak phenophase time. 
 #' @export
 #'
 #' @examples
+#' #Set the mean onset time
+#' mean_onset = 180
+#' #Set the onset time standard deviation
+#' sigma_onset = 10 
+#' #Set the mean duration of the phenophase
+#' mean_duration = 60
+#' #Set the duration standard deviation
+#' sigma_duration = 40
+#'
+#' #estimate the peak phenophase under the BB model
+#' peak = getPeakPhenophase(mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB")
+#' #Create theoretical distribution of the observed times
+#' curve(dT(x, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"),from=0, to=365, n = 1000)
+#' #Plot the estimate of the peak phenophase
+#' points(peak, dT(peak, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"), pch=16, col="yellow")
 getPeakPhenophase = function(mu_O, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {

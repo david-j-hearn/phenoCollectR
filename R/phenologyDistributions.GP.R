@@ -151,7 +151,7 @@ qT.GP = Vectorize(function(p, mu_O, mu_C, sigma, minResponse=0, maxResponse=365,
 					  return(res)
 })
 
-rT.GP = function(n, mu_O, mu_C, sigma, minResponse=0, maxResponse=365,useModulus=T) {
+rT.GP = function(n, mu_O, mu_C, sigma, minResponse=0, maxResponse=365,useModulus=TRUE) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, n=n, minResponse=minResponse, maxResponse=maxResponse)
 	d = mu_C - mu_O
 	if(d<=0) { stop("Mean onset must be less than mean cessation.") }
@@ -161,11 +161,11 @@ rT.GP = function(n, mu_O, mu_C, sigma, minResponse=0, maxResponse=365,useModulus
 	if(prop_above > 0.1) {
 		warning("More than 10% of simulated observed times are larger than the maximum response. This will be problematic if inferences are done on data associated with these parameters. Consider shifting time period so that the phenophase is centered within the time period. Provided values are mod'ed so that they wrap around time period.")
 	}
-	T = runif(n,onset, cessation) 
+	Ts = runif(n,onset, cessation) 
 	if(useModulus) {
-		T = T %% (maxResponse - minResponse)
+		Ts = Ts %% (maxResponse - minResponse)
 	}
-	return(T)
+	return(Ts)
 }
 
 dR.GP = function(x, N, mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
