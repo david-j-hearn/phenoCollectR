@@ -169,12 +169,12 @@ simulatePopulation.BB = function(N, minResponse=0, maxResponse=365, mu_O, sigma_
 		}
 
 		cnt = 1
-		t_start = numeric(N)
-		t_end = numeric(N)
-		Ts = numeric(N)
-		duration_raw = numeric(N)
-		duration = numeric(N)
-		observed = numeric(N)
+		#t_start = numeric(N)
+		#t_end = numeric(N)
+		#duration_raw = numeric(N)
+		#duration = numeric(N)
+		#observed = numeric(N)
+		Ts = rep(NA, N)
 
 		t_start = rbeta(N, alpha_s, beta_s)
 		duration_raw = rbeta(N, alpha_d, beta_d)
@@ -182,7 +182,8 @@ simulatePopulation.BB = function(N, minResponse=0, maxResponse=365, mu_O, sigma_
 		t_end =  t_start + duration
 		observed = runif(N) 
 		#sampled times of individuals in the phenophase is a subset of all the randomly observed times of the individuals (not all individuals are in the phenophase at a randomly observed time)
-		Ts = observed[observed>t_start & observed<t_end]
+		condition = (observed>t_start & observed<t_end)
+		Ts[condition] = observed[condition]
 
 		#There are more efficient ways to do this
 		#while(cnt <= N) {
@@ -325,7 +326,7 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 #'
 #' Data can be simulated under either the beta onset, beta duration model (BB) or under the Gaussian process model (GP). 
 #' 
-#' Note that for the BB model, the number of observed times will be less than the number of individuals in the population because individuals are viewed at random times, and not all individuals are in the phenophase at the randomly observed time. Individuals with longer phenophases are more likely to be recorded. Only simulated specimens in the phenophase are recorded. This is not the case for the GP model, because under the GP model, every individual is equally likely to be recorded, so the observed time of each individual can be randomly sampled between the onset time and the cessation time. 
+#' Note that for the BB model, the number of observed times will be less than the number of individuals in the population because individuals are viewed at random times, and not all individuals are in the phenophase at the randomly observed time. Individuals with longer phenophases are more likely to be recorded. Only simulated specimens in the phenophase are recorded. Individuals that are not recorded occur as an NA value in the returned vector of observed collection times (Ts in the output list). This is not the case for the GP model, because under the GP model, every individual is equally likely to be recorded, so the observed time of each individual can be randomly sampled between the onset time and the cessation time without biasing the resulting distribution of observed collection times. 
 #' 
 #' Additionally, durations are scaled under the BB model so that all events are guaranteed to occur in the time period, whereas durations are not scaled under the GP model, and times that fall outside of the time period are "wrapped" around into the next time period.
 #'
@@ -356,7 +357,7 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 #' xlim = c(min(data$O, data$C), max(data$O, data$C))
 #' breaks = seq(xlim[1],xlim[2], length.out=100)
 #' hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
-#' hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
+#' hist(na.omit(data$Ts), col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
 #' hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
 #' abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
 #' abline(v=data$CkN, col="cyan") #Last cessation for the population as cyan vertical line

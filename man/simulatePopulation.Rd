@@ -46,7 +46,7 @@ Simulate the phenophase onset, duration, and cessation times for individuals of 
 
 Data can be simulated under either the beta onset, beta duration model (BB) or under the Gaussian process model (GP).
 
-Note that for the BB model, the number of observed times will be less than the number of individuals in the population because individuals are viewed at random times, and not all individuals are in the phenophase at the randomly observed time. Individuals with longer phenophases are more likely to be recorded. Only simulated specimens in the phenophase are recorded. This is not the case for the GP model, because under the GP model, every individual is equally likely to be recorded, so the observed time of each individual can be randomly sampled between the onset time and the cessation time.
+Note that for the BB model, the number of observed times will be less than the number of individuals in the population because individuals are viewed at random times, and not all individuals are in the phenophase at the randomly observed time. Individuals with longer phenophases are more likely to be recorded. Only simulated specimens in the phenophase are recorded. Individuals that are not recorded occur as an NA value in the returned vector of observed collection times (Ts in the output list). This is not the case for the GP model, because under the GP model, every individual is equally likely to be recorded, so the observed time of each individual can be randomly sampled between the onset time and the cessation time without biasing the resulting distribution of observed collection times.
 
 Additionally, durations are scaled under the BB model so that all events are guaranteed to occur in the time period, whereas durations are not scaled under the GP model, and times that fall outside of the time period are "wrapped" around into the next time period.
 }
@@ -63,7 +63,7 @@ data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw, si
 xlim = c(min(data$O, data$C), max(data$O, data$C))
 breaks = seq(xlim[1],xlim[2], length.out=100)
 hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
-hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
+hist(na.omit(data$Ts), col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
 hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
 abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
 abline(v=data$CkN, col="cyan") #Last cessation for the population as cyan vertical line
