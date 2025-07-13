@@ -26,7 +26,7 @@
 #' maxCovariate = 30 #set the maximum value of the covariate
 #' data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD, interceptD=interceptD, minCovariate=minCovariate, maxCovariate=maxCovariate)
 #' #plot the simulated observed collection times
-#' plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple")
+#' plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple", main=NULL)
 #' points(data$X, data$O, col="red", pch=16, cex=0.3)
 #' points(data$X, data$C, col="blue", pch=16, cex=0.3)
 #' #Plot the line that passes through the mean observed collection times, onset and cessation
@@ -82,7 +82,7 @@ return(out)
 #' #Simulate the data
 #' simulated_data = simulateCorrelatedCovariateData(n=n, beta=slopes, cov_names=covariance_names, mu = means, Sigma=covariance_matrix, anchor=mean_response, response_name = response_name, noise_sd = noise)
 #' #Make a scatter plot of the simulated data
-#' plot(simulated_data$x1, simulated_data$y)
+#' plot(simulated_data$x1, simulated_data$y, main=NULL, xlab="X1", ylab="Y")
 simulateCorrelatedCovariateData = function(n, beta, cov_names, mu = NULL, response_name = "Y",
 		Sigma = NULL, anchor = 0, noise_sd = 1) {
 # Load required package
@@ -353,7 +353,7 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 #' #Plot histograms of the phenological values
 #' xlim = c(min(data$O, data$C), max(data$O, data$C))
 #' breaks = seq(xlim[1],xlim[2], length.out=100)
-#' hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim) #Onset
+#' hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
 #' hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
 #' hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
 #' abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
@@ -368,7 +368,7 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 #' dev.new()
 #' xlim = c(min(data$O, data$C), max(data$O, data$C))
 #' breaks = seq(xlim[1],xlim[2], length.out=100)
-#' hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim) #Onset
+#' hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
 #' hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
 #' hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
 #' abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line

@@ -47,8 +47,9 @@ response_name = "y"
 covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3, byrow = TRUE)
 mean_response = 100
 noise = 3
+n=1000
 #Simulate the data
 simulated_data = simulateCorrelatedCovariateData(n=n, beta=slopes, cov_names=covariance_names, mu = means, Sigma=covariance_matrix, anchor=mean_response, response_name = response_name, noise_sd = noise)
 #Make a scatter plot of the simulated data
-plot(simulated_data$x1, simulated_data$y)
+plot(simulated_data$x1, simulated_data$y, main=NULL, xlab="X1", ylab="Y")
 }

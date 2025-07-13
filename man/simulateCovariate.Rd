@@ -50,7 +50,7 @@ minCovariate = -2 #set the minimum value of the covariate
 maxCovariate = 30 #set the maximum value of the covariate
 data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD, interceptD=interceptD, minCovariate=minCovariate, maxCovariate=maxCovariate)
 #plot the simulated observed collection times
-plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple")
+plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple", main=NULL)
 points(data$X, data$O, col="red", pch=16, cex=0.3)
 points(data$X, data$C, col="blue", pch=16, cex=0.3)
 #Plot the line that passes through the mean observed collection times, onset and cessation

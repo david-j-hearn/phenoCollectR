@@ -62,7 +62,7 @@ data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw, si
 #Plot histograms of the phenological values
 xlim = c(min(data$O, data$C), max(data$O, data$C))
 breaks = seq(xlim[1],xlim[2], length.out=100)
-hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim) #Onset
+hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
 hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
 hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
 abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
@@ -77,7 +77,7 @@ data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw)
 dev.new()
 xlim = c(min(data$O, data$C), max(data$O, data$C))
 breaks = seq(xlim[1],xlim[2], length.out=100)
-hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim) #Onset
+hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
 hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
 hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
 abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
