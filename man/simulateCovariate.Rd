@@ -36,7 +36,7 @@ simulateCovariate(
 A list with the values of the covariate (X), onset times (O), phenophase durations (D), cessation times (C), and observed times (Ts)
 }
 \description{
-Simulate the response variable for a single linear model of a covariate based on a degenerate Gaussian process with deterministic duration. See Hearn et al. (XXXX) for details.
+Simulate the response variable for a single linear model of a covariate based on a degenerate Gaussian process with deterministic duration (GP). See Hearn et al. (XXXX) for details.
 }
 \examples{
 #Set the parameters
@@ -50,7 +50,11 @@ minCovariate = -2 #set the minimum value of the covariate
 maxCovariate = 30 #set the maximum value of the covariate
 data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD, interceptD=interceptD, minCovariate=minCovariate, maxCovariate=maxCovariate)
 #plot the simulated observed collection times
-plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year")
-#plot the line that passes through the mean observed collection times
-abline(a = interceptO + interceptD/2, b = slopeO + slopeD/2, col = "red", lwd = 2)
+plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple")
+points(data$X, data$O, col="red", pch=16, cex=0.3)
+points(data$X, data$C, col="blue", pch=16, cex=0.3)
+#Plot the line that passes through the mean observed collection times, onset and cessation
+abline(a = interceptO + interceptD/2, b = slopeO + slopeD/2, col = "purple", lwd = 2)
+abline(a = interceptO, b = slopeO, col = "red", lwd = 2)
+abline(a = interceptO + interceptD, b = slopeO + slopeD, col = "blue", lwd = 2)
 }

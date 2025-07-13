@@ -1,6 +1,6 @@
 #' Simulate a response variable based on a linear model with one covariate
 #'
-#' @description Simulate the response variable for a single linear model of a covariate based on a degenerate Gaussian process with deterministic duration. See Hearn et al. (XXXX) for details. 
+#' @description Simulate the response variable for a single linear model of a covariate based on a degenerate Gaussian process with deterministic duration (GP). See Hearn et al. (XXXX) for details. 
 #'
 #' @param n Sample size 
 #' @param slopeO Slope of the onset model
@@ -26,9 +26,13 @@
 #' maxCovariate = 30 #set the maximum value of the covariate
 #' data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD, interceptD=interceptD, minCovariate=minCovariate, maxCovariate=maxCovariate)
 #' #plot the simulated observed collection times
-#' plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year")
-#' #plot the line that passes through the mean observed collection times
-#' abline(a = interceptO + interceptD/2, b = slopeO + slopeD/2, col = "red", lwd = 2)
+#' plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple")
+#' points(data$X, data$O, col="red", pch=16, cex=0.3)
+#' points(data$X, data$C, col="blue", pch=16, cex=0.3)
+#' #Plot the line that passes through the mean observed collection times, onset and cessation
+#' abline(a = interceptO + interceptD/2, b = slopeO + slopeD/2, col = "purple", lwd = 2)
+#' abline(a = interceptO, b = slopeO, col = "red", lwd = 2)
+#' abline(a = interceptO + interceptD, b = slopeO + slopeD, col = "blue", lwd = 2)
 simulateCovariate = function(n, slopeO, interceptO, sigma, slopeD, interceptD, minCovariate, maxCovariate) {
 
 x = runif(n, minCovariate, maxCovariate)
@@ -74,8 +78,9 @@ return(out)
 #' covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3, byrow = TRUE)
 #' mean_response = 100
 #' noise = 3
+#' n=1000
 #' #Simulate the data
-#' simulated_data = simulateCorrelatedCovarianceData(n=n, beta=slopes, cov_names=covariance_names, mu = means, Sigma=covariance_matrix, anchor=mean_response, response_name = response_name, noise_sd = noise)
+#' simulated_data = simulateCorrelatedCovariateData(n=n, beta=slopes, cov_names=covariance_names, mu = means, Sigma=covariance_matrix, anchor=mean_response, response_name = response_name, noise_sd = noise)
 #' #Make a scatter plot of the simulated data
 #' plot(simulated_data$x1, simulated_data$y)
 simulateCorrelatedCovariateData = function(n, beta, cov_names, mu = NULL, response_name = "Y",
