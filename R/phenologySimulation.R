@@ -26,13 +26,15 @@
 #' maxCovariate = 30 #set the maximum value of the covariate
 #' data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD, interceptD=interceptD, minCovariate=minCovariate, maxCovariate=maxCovariate)
 #' #plot the simulated observed collection times
-#' plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple", main=NULL)
+#' plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple", main=NULL, pch=16)
 #' points(data$X, data$O, col="red", pch=16, cex=0.3)
 #' points(data$X, data$C, col="blue", pch=16, cex=0.3)
 #' #Plot the line that passes through the mean observed collection times, onset and cessation
 #' abline(a = interceptO + interceptD/2, b = slopeO + slopeD/2, col = "purple", lwd = 2)
 #' abline(a = interceptO, b = slopeO, col = "red", lwd = 2)
 #' abline(a = interceptO + interceptD, b = slopeO + slopeD, col = "blue", lwd = 2)
+#' #plot phenophases for each individual in gray
+#' segments(x0 = data$X, y0 = data$O, x1 = data$X, y1 = data$C, col = "gray", lwd=0.5)
 simulateCovariate = function(n, slopeO, interceptO, sigma, slopeD, interceptD, minCovariate, maxCovariate) {
 
 x = runif(n, minCovariate, maxCovariate)
