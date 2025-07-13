@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologySimulation.R
 \name{simulatePopulation}
 \alias{simulatePopulation}
-\title{Title}
+\title{Simulate phenological states for individuals of a population}
 \usage{
 simulatePopulation(
   N,
@@ -18,26 +18,71 @@ simulatePopulation(
 )
 }
 \arguments{
-\item{N}{}
+\item{N}{Population size}
 
-\item{mu_O}{}
+\item{mu_O}{Mean of the onset times of individuals in the population}
 
-\item{sigma_O}{}
+\item{sigma_O}{Standard deviation of the onset times of individuals in the population}
 
-\item{mu_D_raw}{}
+\item{mu_D_raw}{Unscaled mean duration. This is scaled under the BB model to assure onset times and cessation times fall between the minimum and maximum response times}
 
-\item{sigma_D}{}
+\item{sigma_D}{Unscaled standard deviation of the durations}
 
-\item{minResponse}{}
+\item{minResponse}{The minimum possible response time (default: 0)}
 
-\item{maxResponse}{}
+\item{maxResponse}{The maximum possible response time (default: 365)}
 
-\item{mins}{}
+\item{mins}{The minimum allowable value for the beta distribution shape parameters. Must be positive and less than maxs. (default: 1.5)}
 
-\item{maxs}{}
+\item{maxs}{The maximum allowable value for the beta distribution shape parameters. Must be positive and greater than mins. (default: 3000)}
 
-\item{type}{}
+\item{type}{The model type: BB or GP (default: GP)}
+}
+\value{
+A list with the input parameter values, the simulated onsets (O), durations (D), cessations (C), observed collection times (Ts). Specifics of the output depend on whether the BB or the GP model was applied.
 }
 \description{
-Title
+Simulate the phenophase onset, duration, and cessation times for individuals of a population. Phenological extremes (first onset, last cessation) are also provided.
+
+Data can be simulated under either the beta onset, beta duration model (BB) or under the Gaussian process model (GP).
+
+Note that for the BB model, the number of observed times will be less than the number of individuals in the population because individuals are viewed at random times, and not all individuals are in the phenophase at the randomly observed time. Individuals with longer phenophases are more likely to be recorded. Only simulated specimens in the phenophase are recorded. This is not the case for the GP model, because under the GP model, every individual is equally likely to be recorded, so the observed time of each individual can be randomly sampled between the onset time and the cessation time.
+
+Additionally, durations are scaled under the BB model so that all events are guaranteed to occur in the time period, whereas durations are not scaled under the GP model, and times that fall outside of the time period are "wrapped" around into the next time period.
+}
+\examples{
+#Set the parameters
+N = 1000000
+mu_O = 30
+sigma_O = 10
+mu_D_raw = 40
+sigma_D = 14
+#Simulate the data under the beta onset, beta duration (BB) model
+data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw, sigma_D=sigma_D, type="BB")
+#Plot histograms of the phenological values
+xlim = c(min(data$O, data$C), max(data$O, data$C))
+breaks = seq(xlim[1],xlim[2], length.out=100)
+hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim) #Onset
+hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
+hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
+abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
+abline(v=data$CkN, col="cyan") #Last cessation for the population as cyan vertical line
+curve(dO(x,mu_O=mu_O, sigma_O=sigma_O, type="BB"), add=TRUE, col="red") #overlay theoretical density curve for onset
+curve(dT(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, type="BB"), add=TRUE, col="purple") #overlay theoretical density curve for observed times
+curve(dC(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, type="BB"), add=TRUE, col="blue") #overlay theoretical density curve for cessation
+#Use the above parameter values, but simulate data under the GP model (default)
+#!!Note the "wrapping around" effect for which values below 0 get wrapped to the end of the "previous" time period 
+data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw)
+#Plot histograms of the phenological values
+dev.new()
+xlim = c(min(data$O, data$C), max(data$O, data$C))
+breaks = seq(xlim[1],xlim[2], length.out=100)
+hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim) #Onset
+hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
+hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
+abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
+abline(v=data$CkN, col="cyan") #Last cessation for the population as cyan vertical line
+curve(dO(x,mu_O=mu_O, sigma_O=sigma_O), add=TRUE, col="red") #overlay theoretical density curve for onset
+curve(dT(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D), add=TRUE, col="purple") #overlay theoretical density curve for observed times
+curve(dC(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D), add=TRUE, col="blue") #overlay theoretical density curve for cessation
 }

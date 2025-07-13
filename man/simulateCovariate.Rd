@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologySimulation.R
 \name{simulateCovariate}
 \alias{simulateCovariate}
-\title{Title}
+\title{Simulate a response variable based on a linear model with one covariate}
 \usage{
 simulateCovariate(
   n,
@@ -16,22 +16,41 @@ simulateCovariate(
 )
 }
 \arguments{
-\item{n}{}
+\item{n}{Sample size}
 
-\item{slopeO}{}
+\item{slopeO}{Slope of the onset model}
 
-\item{interceptO}{}
+\item{interceptO}{Intercept of the onset model}
 
-\item{sigma}{}
+\item{sigma}{Standard deviation of the onset distribution and of the cessation distribution}
 
-\item{slopeD}{}
+\item{slopeD}{Slope of the duration model}
 
-\item{interceptD}{}
+\item{interceptD}{Intercept of the duration model}
 
-\item{minCovariate}{}
+\item{minCovariate}{Minimum possible value of the response}
 
-\item{maxCovariate}{}
+\item{maxCovariate}{Maximum possible value of the response}
+}
+\value{
+A list with the values of the covariate (X), onset times (O), phenophase durations (D), cessation times (C), and observed times (Ts)
 }
 \description{
-Title
+Simulate the response variable for a single linear model of a covariate based on a degenerate Gaussian process with deterministic duration. See Hearn et al. (XXXX) for details.
+}
+\examples{
+#Set the parameters
+n=1000 #sample size
+slopeO = 1 #set the slope of the onset model
+slopeD = 0.5 #set the slope of the duration model
+interceptO = 100 #set the intercept of the onset model
+interceptD = 20 #set the intercept of the duration mdoel
+sigma = 7 #set the standard deviation of the onset distribution and of the cessation distribution
+minCovariate = -2 #set the minimum value of the covariate
+maxCovariate = 30 #set the maximum value of the covariate
+data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD, interceptD=interceptD, minCovariate=minCovariate, maxCovariate=maxCovariate)
+#plot the simulated observed collection times
+plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year")
+#plot the line that passes through the mean observed collection times
+abline(a = interceptO + interceptD/2, b = slopeO + slopeD/2, col = "red", lwd = 2)
 }

@@ -434,9 +434,7 @@ dD.BB.s = Vectorize(function(x, alpha_s, beta_s, alpha_d, beta_d) {
  return(integrate(integrand, lower = 1e-10, upper = 1 - x - 1e-10 , rel.tol=1e-6)$value)
 })
 
-
 pD.BB.s = Vectorize(function(q, alpha_s, beta_s, alpha_d, beta_d) {
-
  integrand = function(d) {
 	dD.BB.s(d, alpha_s, beta_s, alpha_d, beta_d)
  }
@@ -460,7 +458,8 @@ dC.BB.s = function(x, alpha_s, beta_s, alpha_d, beta_d) {
 		    integrand = function(s) {
 			    u = (t - s) / (1 - s)
 			    f_ts = dbeta(s, alpha_s, beta_s)
-			    f_u  = dbeta(u, alpha_d, beta_d)
+			    f_u  = dbeta(u, alpha_d, beta_d) 
+			    #f_u  = dbeta(u, alpha_d, beta_d) * u 
 			    return(f_ts * f_u / (1 - s))
 		    }
 		    out = tryCatch(

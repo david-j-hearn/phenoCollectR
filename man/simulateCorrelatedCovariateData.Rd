@@ -2,12 +2,13 @@
 % Please edit documentation in R/phenologySimulation.R
 \name{simulateCorrelatedCovariateData}
 \alias{simulateCorrelatedCovariateData}
-\title{Title}
+\title{Simulate a response variable based on multiple correlated covariates}
 \usage{
 simulateCorrelatedCovariateData(
   n,
   beta,
   cov_names,
+  mu = NULL,
   response_name = "Y",
   Sigma = NULL,
   anchor = 0,
@@ -15,20 +16,39 @@ simulateCorrelatedCovariateData(
 )
 }
 \arguments{
-\item{n}{}
+\item{n}{Sample size}
 
-\item{beta}{}
+\item{beta}{Vector of slope coefficients of the covariates}
 
-\item{cov_names}{}
+\item{cov_names}{Vector of the names of the covariates}
 
-\item{response_name}{}
+\item{mu}{Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)}
 
-\item{Sigma}{}
+\item{response_name}{The name of the response variable; must be of same length as beta. (default: "Y")}
 
-\item{anchor}{}
+\item{Sigma}{The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix)}
 
-\item{noise_sd}{}
+\item{anchor}{Marginal mean value of the response variable}
+
+\item{noise_sd}{Standard deviation of the noise in the response variable}
+}
+\value{
+A data frame with columns labeled with the variable names and rows representing simulation replicates.
 }
 \description{
-Title
+Simulate the values of a response variable based on simulated values of multiple correlated covariates. Assumes a linear model with normally distributed variation.
+}
+\examples{
+#Set the model parameters
+slopes = c(1,2,3)
+means = c(10,20,30)
+covariance_names = c("x1", "x2", "x3") 
+response_name = "y"
+covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3, byrow = TRUE)
+mean_response = 100
+noise = 3
+#Simulate the data
+simulated_data = simulateCorrelatedCovarianceData(n=n, beta=slopes, cov_names=covariance_names, mu = means, Sigma=covariance_matrix, anchor=mean_response, response_name = response_name, noise_sd = noise)
+#Make a scatter plot of the simulated data
+plot(simulated_data$x1, simulated_data$y)
 }
