@@ -15,7 +15,7 @@ STAN installation (and checks) are performed using the utilities of the `cmdstan
 ## Quick example:
 ```{r,R.options=list(max.print=20)}
 ## Get the file name with data for the blood root plant
-file <- system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+file <- getDatasetPath("Sanguinaria_canadensis")
 ## Define the covariate names - remove up to all but 1
 vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
 ## Get the phenology data
