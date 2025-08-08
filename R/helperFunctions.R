@@ -170,7 +170,12 @@ remove_outliers_lm = function(data, response, predictors,
 							  residual_cutoff = 3,
 							  cooks_cutoff = NULL) {
 	# Extract model frame
-	formula = as.formula(paste(response, "~", paste(predictors, collapse = "+")))
+	# formula = as.formula(paste(response, "~", paste(predictors, collapse = "+")))
+  ## DANIEL: Fix warning with having the response among predictors:
+  if( response %in% predictors ){
+    predictors <- predictors[!predictors == response]
+  }
+  formula = as.formula(paste(response, "~", paste(predictors, collapse = "+")))
 	model_data = model.frame(formula, data)
 
 	y = model_data[[response]]
