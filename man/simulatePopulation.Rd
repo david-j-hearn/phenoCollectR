@@ -51,6 +51,7 @@ Note that for the BB model, the number of observed times will be less than the n
 Additionally, durations are scaled under the BB model so that all events are guaranteed to occur in the time period, whereas durations are not scaled under the GP model, and times that fall outside of the time period are "wrapped" around into the next time period.
 }
 \examples{
+\donttest{
 #Set the parameters
 N = 1000000
 mu_O = 30
@@ -58,31 +59,51 @@ sigma_O = 10
 mu_D_raw = 40
 sigma_D = 14
 #Simulate the data under the beta onset, beta duration (BB) model
-data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw, sigma_D=sigma_D, type="BB")
+data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw
+                          , sigma_D=sigma_D, type="BB")
 #Plot histograms of the phenological values
 xlim = c(min(data$O, data$C), max(data$O, data$C))
 breaks = seq(xlim[1],xlim[2], length.out=100)
-hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
-hist(na.omit(data$Ts), col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
+hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks
+     , xlim=xlim, main=NULL) #Onset
+#Observed collection times
+hist(na.omit(data$Ts), col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE)
 hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
 abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
 abline(v=data$CkN, col="cyan") #Last cessation for the population as cyan vertical line
-curve(dO(x,mu_O=mu_O, sigma_O=sigma_O, type="BB"), add=TRUE, col="red") #overlay theoretical density curve for onset
-curve(dT(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, type="BB"), add=TRUE, col="purple") #overlay theoretical density curve for observed times
-curve(dC(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, type="BB"), add=TRUE, col="blue") #overlay theoretical density curve for cessation
+#overlay theoretical density curve for onset
+curve(dO(x,mu_O=mu_O, sigma_O=sigma_O, type="BB"), add=TRUE, col="red") 
+#overlay theoretical density curve for observed times
+curve(dT(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, type="BB")
+      , add=TRUE, col="purple") 
+#overlay theoretical density curve for cessation
+curve(dC(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, type="BB")
+      , add=TRUE, col="blue") 
 #Use the above parameter values, but simulate data under the GP model (default)
-#!!Note the "wrapping around" effect for which values below 0 get wrapped to the end of the "previous" time period 
+#!!Note the "wrapping around" effect for which values below 0 get wrapped to the end 
+#     of the "previous" time period 
 data = simulatePopulation(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D_raw=mu_D_raw)
 #Plot histograms of the phenological values
 dev.new()
 xlim = c(min(data$O, data$C), max(data$O, data$C))
 breaks = seq(xlim[1],xlim[2], length.out=100)
-hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks, xlim=xlim, main=NULL) #Onset
-hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Observed collection times
-hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) #Cessation
-abline(v=data$Ok1, col="yellow") #First onset for the population as yellow vertical line
-abline(v=data$CkN, col="cyan") #Last cessation for the population as cyan vertical line
-curve(dO(x,mu_O=mu_O, sigma_O=sigma_O), add=TRUE, col="red") #overlay theoretical density curve for onset
-curve(dT(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D), add=TRUE, col="purple") #overlay theoretical density curve for observed times
-curve(dC(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D), add=TRUE, col="blue") #overlay theoretical density curve for cessation
+hist(data$O, col=rgb(1,0,0,0.3), xlab="Day of year", probability=TRUE, breaks=breaks
+     , xlim=xlim, main=NULL) #Onset
+#Observed collection times
+hist(data$Ts, col=rgb(1,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE)
+#Cessation
+hist(data$C, col=rgb(0,0,1,0.3), probability=TRUE, breaks=breaks, add=TRUE) 
+#First onset for the population as yellow vertical line
+abline(v=data$Ok1, col="yellow")
+#Last cessation for the population as cyan vertical line
+abline(v=data$CkN, col="cyan") 
+#overlay theoretical density curve for onset
+curve(dO(x,mu_O=mu_O, sigma_O=sigma_O), add=TRUE, col="red") 
+#overlay theoretical density curve for observed times
+curve(dT(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D)
+      , add=TRUE, col="purple") 
+#overlay theoretical density curve for cessation
+curve(dC(x,mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D)
+      , add=TRUE, col="blue") 
+}
 }

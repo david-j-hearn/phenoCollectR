@@ -1,4 +1,5 @@
 #overlap
+#' @importFrom stats dnorm integrate
 getProportionOverlap.OC.GP = function(mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_D=NA, sigma_D=NA, mu_C=mu_C, sigma_C=NA, N=NA, n=NA, minResponse=minResponse, maxResponse=maxResponse)
 	f <- function(x) dnorm(x, mu_O, sigma)
@@ -77,6 +78,7 @@ E.D.GP = function(mu_O, mu_C) {
 	return(mu_C - mu_O)
 }
 
+#' @importFrom stats integrate
 SD.Ok1.GP = function(N, mu_O, sigma, minResponse=0, maxResponse=365, intFailLow=NA, intFailHigh=NA) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_D=NA, sigma_D=NA, mu_C=NA, sigma_C=NA, N=N, n=NA, minResponse=minResponse, maxResponse=maxResponse)
 	E = E.Ok1.GP(N, mu_O, sigma, minResponse, maxResponse)
@@ -100,6 +102,7 @@ SD.O.GP = function(sigma) {
 	return(sigma)
 }
 
+#' @importFrom stats integrate
 SD.T.GP = function(mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_D=NA, sigma_D=NA, mu_C=mu_C, sigma_C=NA, N=NA, n=NA, minResponse=minResponse, maxResponse=maxResponse)
 	E = E.T.GP(mu_O, mu_C)
@@ -118,6 +121,7 @@ SD.C.GP = function(sigma) {
 	return(sigma)
 }
 
+#' @importFrom stats integrate
 SD.CkN.GP = function(N, mu_C, sigma, minResponse=0, maxResponse=365, intFailLow=NA, intFailHigh=NA) {
 	parameter_checks(mu_O=NA, sigma_O=NA, mu_D=NA, sigma_D=NA, mu_C=mu_C, sigma_C=sigma, N=N, n=NA, minResponse=minResponse, maxResponse=maxResponse)
 	E = E.CkN.GP(N, mu_C, sigma, minResponse, maxResponse)
@@ -192,7 +196,7 @@ PI.CkN.GP = function(N, mu_C, sigma, alpha=0.05) {
 }
 
 PI.D.GP = function(mu_O, mu_C) {
-	parameter_checks(mu_O=mu_O, sigma_O=NA, mu_D=NA, sigma_D=NA, mu_C=mu_C, sigma_C=NA, N=NN, n=NA, minResponse=NA, maxResponse=NA)
+	parameter_checks(mu_O=mu_O, sigma_O=NA, mu_D=NA, sigma_D=NA, mu_C=mu_C, sigma_C=NA, N=NA, n=NA, minResponse=NA, maxResponse=NA)
 	d = mu_C - mu_O
 	warning("Duration has a Dirac delta distribution, so 100% of the samples fall at the duration.")
 	return(c(d,d))

@@ -24,6 +24,7 @@ Uses an asymptotic approximation of order statistics for individuals in a finite
 Input values can be vectors.
 }
 \examples{
+\donttest{
 #Define population sizes
 N = c(1000,10000,100000)
 #Define the mean values of the populations
@@ -34,4 +35,5 @@ sigma = rep(7, length(N))
 k = rep(1, length(N))
 #Calculate the expected value of the individuals at the kth rank
 eV = E.Kth.approx(N=N, mu=mu, sigma=sigma, k=k)
+}
 }

@@ -1,3 +1,4 @@
+#' @importFrom stats pnorm
 obs_gp_nc <- function(mu_O, duration, sigma) {
   mu_C <- mu_O + duration
   mu_C_m1_over_sigma = (mu_C - 1) / sigma;
@@ -47,6 +48,8 @@ robs_gp <- function(n, mu_O, duration, sigma, max_rejection = 10000) {
   res
 }
 
+#' @importFrom brms get_dpar
+#' @noRd
 posterior_predict_obs_gp <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   duration <- brms::get_dpar(prep, "duration", i = i)
@@ -54,12 +57,18 @@ posterior_predict_obs_gp <- function(i, prep, ...) {
   return(robs_gp(prep$ndraws, mu, duration, sigma))
 }
 
+#' @importFrom brms get_dpar
+#' @noRd
 posterior_epred_obs_gp <- function(prep) {
   mu <- brms::get_dpar(prep, "mu")
   duration <- brms::get_dpar(prep, "duration")
   return(mu + 0.5 * duration)
 }
 
+#' @importFrom brms get_dpar
+#' @importFrom dplyr if_else
+#' @importFrom stats pnorm
+#' @noRd
 log_lik_obs_gp <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   duration <- brms::get_dpar(prep, "duration", i = i)
@@ -70,8 +79,8 @@ log_lik_obs_gp <- function(i, prep) {
   mu_C <- mu + duration
   base_ll <- 
     dplyr::if_else(t > mu_O, 
-      brms:::log_diff_exp(pnorm(mu_C, t, sigma, log = TRUE), pnorm(mu_O, t, sigma, log = TRUE)),
-      brms:::log_diff_exp(pnorm(2 * t - mu_O, t, sigma, log = TRUE), pnorm(2 * t - mu_C, t, sigma, log = TRUE))
+      brms:::log_diff_exp(pnorm(mu_C, t, sigma, log.p = TRUE), pnorm(mu_O, t, sigma, log.p = TRUE)),
+      brms:::log_diff_exp(pnorm(2 * t - mu_O, t, sigma, log.p = TRUE), pnorm(2 * t - mu_C, t, sigma, log.p = TRUE))
     )
   nc <- obs_gp_nc(mu_O, duration, sigma)                            
   ll <- base_ll - log(nc)
@@ -79,6 +88,9 @@ log_lik_obs_gp <- function(i, prep) {
   ll
 }
 
+#' @importFrom brms custom_family stanvar
+#' @importFrom dplyr if_else
+#' @noRd
 obs_gp_brmsfamily <- function(link = "identity", link_duration = "log", link_sigma = "log") {
   family <- brms::custom_family(
     "obs_gp",

@@ -12,13 +12,13 @@ partitionResponseCovariateData(
 )
 }
 \arguments{
+\item{responseData}{A vector of response data (e.g., day of year of collection values)}
+
+\item{onsetCovariateData}{A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.}
+
+\item{durationCovariateData}{A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.}
+
 \item{prop}{The proportion of the data to be used for the first set of the partition. (default: 0.3)}
-
-\item{responseDataForPrior}{A vector of response data (e.g., day of year of collection values)}
-
-\item{onsetCovariateDataForPrior}{A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.}
-
-\item{durationCovariateDataForPrior}{A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.}
 }
 \value{
 A list of six elements. The first three represent the first subset for response data (responseDataForInference), onset covariate data (onsetCovariateDataForInference) and duration covariate data (durationCovariateDataForInference), and the last three correspondingly represent the second subset.

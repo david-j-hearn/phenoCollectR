@@ -105,6 +105,7 @@ Most functions share a subset of the same input parameters, but if you use a fun
 The function name is SD.* where * is one of the above random variables.
 }
 \examples{
+\donttest{
 #Set the mean onset time
 mean_onset = 100
 #Set the onset time standard deviation
@@ -115,7 +116,10 @@ mean_duration = 50
 sigma_duration = 7
 #Set the population size
 N=1000
-#Calculate the standard deviation of the distribution of last cessation times under the beta onset, beta duration (BB) model
-sdCkN = SD.CkN(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#Calculate the standard deviation of the distribution of last cessation times under the beta 
+#    onset, beta duration (BB) model
+sdCkN = SD.CkN(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration
+               , sigma_D=sigma_duration, type="BB")
+}
 
 }

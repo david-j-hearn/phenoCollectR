@@ -25,10 +25,11 @@
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
 #' @param N The population size for estimation of extreme events
 #' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
+#' @param threshApprox The Approximation Threshold.
 #'
 #' @return The expected value of the associated random variable and input parameters
 #' @examples
-#'
+#' \donttest{
 #' #Set the mean onset time (day of year)
 #' mu_O = 100
 #' #Set the standard deviation of the distribution of onset times
@@ -44,7 +45,8 @@
 #' eC = E.C(mu_O=mu_O, mu_D=mu_D, type="BB")
 #'
 #' #Calculate the expected last cessation time under the BB model
-#' eCkN = E.CkN(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, type="BB") 
+#' eCkN = E.CkN(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, type="BB")
+#' }
 #'
 #' @name phenologyExpectationFunctions
 NULL
@@ -183,14 +185,16 @@ E.T = function(mu_O, mu_D, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 #'
 #' @return A vector with the lower and upper values of the probability interval.
 #' @examples
+#' \donttest{
 #' #Set the mean onset time
 #' mean_onset = 100
 #' #Set the onset time standard deviation, sigma
 #' sigma_onset = 10
 #' #Set the duration of the phenophase
 #' duration = 50
-#' #Calculate the 90% probability interval for the observed times under the Gaussian process model (default)
+#' #Calculate the 90% probability interval for the observed times under the GP model (default)
 #' observed_t_PI = PI.T(mu_O = mean_onset, sigma_O=sigma_onset, mu_D=duration, alpha=0.1)
+#' }
 #'
 #' @name phenologyProbabilityIntervalFunctions
 NULL
@@ -329,6 +333,7 @@ PI.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 #'
 #' @return The standard deviation of the associated random variable for the input parameter values.
 #' @examples
+#' \donttest{
 #' #Set the mean onset time
 #' mean_onset = 100
 #' #Set the onset time standard deviation
@@ -339,8 +344,11 @@ PI.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 #' sigma_duration = 7
 #' #Set the population size
 #' N=1000
-#' #Calculate the standard deviation of the distribution of last cessation times under the beta onset, beta duration (BB) model
-#' sdCkN = SD.CkN(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#' #Calculate the standard deviation of the distribution of last cessation times under the beta 
+#' #    onset, beta duration (BB) model
+#' sdCkN = SD.CkN(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration
+#'                , sigma_D=sigma_duration, type="BB")
+#' }
 #'
 #' @name phenologyStandardDeviationFunctions
 NULL
@@ -350,7 +358,8 @@ NULL
 SD.C =  function(mu_O=NA, sigma_O, mu_D=NA, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
-		if(is.na(sigma_D) || is.na(mu_O) || is.na(mu_C)) {
+		# if(is.na(sigma_D) || is.na(mu_O) || is.na(mu_C)) {
+	  if(is.na(sigma_D) || is.na(mu_O)) {
 			stop("The standard deviation for the duration, mean onset, and mean duration must be provided.")
 		}
 		SD.C.BB(mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
@@ -468,6 +477,7 @@ SD.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' #Set the mean onset time
 #' mean_onset = 100
 #' #Set the onset time standard deviation
@@ -479,10 +489,12 @@ SD.T = function(mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365,
 #' #Set the sample size
 #' n=500
 #' #Simulate observed collection times under the beta onset, beta duration (BB) model
-#' ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#' ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration
+#'         , sigma_D=sigma_duration, type="BB")
 #'
-#' #estimate the MAP based on the simulated data and default initialization and hyperparameter values
+#' #estimate the MAP based on the simulated data and default initialization and hyperparameters.
 #' map = getMAP(responseData=ts)
+#' }
 getMAP = function(responseData, minResponse=0, maxResponse=365,minS=1, maxS=3000,  init_params = c(180,20,60,7), hyperparameters = c(100, 7, 60, 6, 24, 12, 24, 12), type="BB") {
 	if(type == "BB") {
 		getMAP.T.BB(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, minS=minS, maxS=maxS,  init_params = init_params, hyperparameters = hyperparameters, dataProvided=TRUE)
@@ -515,6 +527,7 @@ getMAP = function(responseData, minResponse=0, maxResponse=365,minS=1, maxS=3000
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' #Set the mean onset time
 #' mean_onset = 100
 #' #Set the onset time standard deviation
@@ -526,10 +539,12 @@ getMAP = function(responseData, minResponse=0, maxResponse=365,minS=1, maxS=3000
 #' #Set the sample size
 #' n=500
 #' #Simulate observed collection times under the beta onset, beta duration (BB) model
-#' ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#' ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration
+#'         , type="BB")
 #'
 #' #estimate the MLE based on the simulated data and default initialization values
 #' mle = getMLE(responseData=ts)
+#' }
 getMLE = function(responseData, minResponse=0, maxResponse=365, minS=1, maxS=3000, init_params = c(180, 20, 60, 7), type="BB") {
 	if(type == "BB") {
 		getMLE.T.BB(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, minS=minS, maxS=maxS, init_params = init_params, dataProvided=TRUE)
@@ -555,6 +570,7 @@ getMLE = function(responseData, minResponse=0, maxResponse=365, minS=1, maxS=300
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' #Set the mean onset time
 #' mean_onset = 180
 #' #Set the onset time standard deviation
@@ -565,11 +581,15 @@ getMLE = function(responseData, minResponse=0, maxResponse=365, minS=1, maxS=300
 #' sigma_duration = 40
 #'
 #' #estimate the peak phenophase under the BB model
-#' peak = getPeakPhenophase(mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB")
+#' peak = getPeakPhenophase(mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration
+#'                          , sigma_D = sigma_duration, type="BB")
 #' #Create theoretical distribution of the observed times
-#' curve(dT(x, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"),from=0, to=365, n = 1000)
+#' curve(dT(x, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration
+#'          , sigma_D = sigma_duration, type="BB"),from=0, to=365, n = 1000)
 #' #Plot the estimate of the peak phenophase
-#' points(peak, dT(peak, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"), pch=16, col="yellow")
+#' points(peak, dT(peak, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration
+#'       , sigma_D = sigma_duration, type="BB"), pch=16, col="yellow")
+#' }
 getPeakPhenophase = function(mu_O, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {
 	type = match.arg(type)
 	if(type=="BB") {
@@ -594,7 +614,7 @@ getPeakPhenophase = function(mu_O, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, 
 #' This function is a wrapper for the ForestFit package function fitWeibull.
 #'
 #' @details
-#' The resulting parameter estimates can be used with R's built-in {r,d,q,p}weibull functions. The x values need to be shifted by the location parameter (the third element of the returned onset or cessation vector). For the first onset, the values are shifted as follows: x = x - onsetLocation. For the last cessation, the values are shifted as follows: x = -(x - cessationLocation). As implemented in R, the Weibull shape parameter is the first element of the returned onset or cessation vector, and the Weibull scale parameter is the second element. 
+#' The resulting parameter estimates can be used with R's built-in \{r,d,q,p\} weibull functions. The x values need to be shifted by the location parameter (the third element of the returned onset or cessation vector). For the first onset, the values are shifted as follows: x = x - onsetLocation. For the last cessation, the values are shifted as follows: x = -(x - cessationLocation). As implemented in R, the Weibull shape parameter is the first element of the returned onset or cessation vector, and the Weibull scale parameter is the second element.
 #'
 #' Setting verbose to TRUE provides a print out of the specific call to dweibull using the estimated parameters. 
 #'
@@ -612,8 +632,12 @@ getPeakPhenophase = function(mu_O, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, 
 #' @return A list with two vectors. The first vector provides the shape, scale, and location parameters of the Weibull for the first onset, whereas the second vector provides the corresponding estimates for the last cessation.
 #' @export
 #' @importFrom ForestFit fitWeibull
+#' @importFrom graphics hist curve
+#' @importFrom grDevices rgb
+#' @importFrom stats dweibull
 #'
 #' @examples
+#' \donttest{
 #' #Set the mean onset time
 #' mean_onset = 180
 #' #Set the onset time standard deviation
@@ -627,18 +651,28 @@ getPeakPhenophase = function(mu_O, sigma_O=NA, mu_D, sigma_D=NA, minResponse=0, 
 #' #Set the population size
 #' N = 500
 #' #Fit the Weibull distribution to the phenological extremes
-#' fitWB = fitWeibullExtremes(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB", precision=precision, includePlot=TRUE)
+#' fitWB = fitWeibullExtremes(N=N, mu_O=mean_onset, sigma_O=sigma_onset
+#'                            , mu_D=mean_duration, sigma_D=sigma_duration, type="BB"
+#'                            , precision=precision, includePlot=TRUE)
 #' #Create histograms of random deviates based on the estimated parameter values
 #' dev.new()
 #' par(mfrow = c(2,1))
-#' #Simulate draws from the first onset Weibull estimate, and overlay the theoretical curve onto the histogram
-#' firstOnset = rweibull(n=precision, shape = fitWB$Ok1Params[1], scale = fitWB$Ok1Params[2]) + fitWB$Ok1Params[3]
+#' #Simulate draws from the first onset Weibull estimate, and overlay the theoretical curve
+#' #      onto the histogram
+#' firstOnset = rweibull(n=precision, shape = fitWB$Ok1Params[1]
+#'                       , scale = fitWB$Ok1Params[2]) + fitWB$Ok1Params[3]
 #' hist(firstOnset, probability=TRUE, xlab="First onset day of year", col="yellow")
-#' curve(dweibull(x - fitWB$Ok1Params[3], shape = fitWB$Ok1Params[1], scale = fitWB$Ok1Params[2]), add = TRUE)
-#' #Simulate draws from the last cessation Weibull estimate, and overlay the theoretical curve onto the histogram. Note that the mirror image is needed for the last cessation distribution.
-#' lastCessation = -rweibull(n=precision, shape = fitWB$CkNParams[1], scale = fitWB$CkNParams[2]) + fitWB$CkNParams[3]
+#' curve(dweibull(x - fitWB$Ok1Params[3], shape = fitWB$Ok1Params[1]
+#'                , scale = fitWB$Ok1Params[2]), add = TRUE)
+#' #Simulate draws from the last cessation Weibull estimate, and overlay the theoretical curve
+#' #       onto the histogram.
+#' #Note that the mirror image is needed for the last cessation distribution.
+#' lastCessation = -rweibull(n=precision, shape = fitWB$CkNParams[1]
+#'                          , scale = fitWB$CkNParams[2]) + fitWB$CkNParams[3]
 #' hist(lastCessation, probability=TRUE, xlab="Last cessation day of year", col="cyan")
-#' curve(dweibull(-(x - fitWB$CkNParams[3]), shape = fitWB$CkNParams[1], scale = fitWB$CkNParams[2]), add = TRUE)
+#' curve(dweibull(-(x - fitWB$CkNParams[3]), shape = fitWB$CkNParams[1]
+#'                , scale = fitWB$CkNParams[2]), add = TRUE)
+#' }
 fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB"), precision=10000, includePlot=FALSE, verbose=TRUE) {
 	type = match.arg(type)
 
@@ -651,8 +685,8 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 		if(is.na(sigma_D)) {
 			stop("Please provide the standard deviation of the phenophase duration distribution.")
 		}
-
-		Ok1 = rOk1.BB(n=precision, N=N, mu_O=mu_O, sigma=sigma_O, minResponse=minResponse, maxResponse=maxResponse)
+	  ## DANIEL: Changed sigma argument to sigma_O on rOk1.BB call.
+		Ok1 = rOk1.BB(n=precision, N=N, mu_O=mu_O, sigma_O=sigma_O, minResponse=minResponse, maxResponse=maxResponse)
 		CkN = rCkN.BB(n=precision, N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
 	}
 	else {
@@ -812,16 +846,27 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'
 #' @examples
 #' \donttest{
-#' ##get the file name with data for the blood root plant. Data files for 12 other species are also available
-#' file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' ##get the file name with data for the blood root plant. Data files for 12 other species 
+#' #      are also available
+#' file  =  getDatasetPath("Sanguinaria_canadensis")
+#' ## See documentation for more species:
+#' help(getDatasetPath)
 #' ##define the covariate names - remove up to all but 1
-#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp"
+#'          , "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
 #' ##get the phenology data
-#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY"
+#'                               , onsetCovariateNames=vars, durationCovariateNames=vars
+#'                               , taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
 #' ##run the Stan sampler
-#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData
+#'                                 , onsetCovariateData = data$onsetCovariateData
+#'                                 , durationCovariateData = data$durationCovariateData
+#'                                 , partitionDataForPriors = TRUE)
 #' ##summarize the Stan run
-#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
+#'                                           , taxonName = "Sanguinaria_canadensis"
+#'                                           ,standardLinearModel = TRUE)
 #' stanSummary
 #' }
 
@@ -925,7 +970,8 @@ runStanPhenology = function(type=c("intercept-only","full"), responseData, hyper
 				#stop("Please provide appropriate inputs")
 			#}
 			cat("Calling specialized runStan functions.\n")
-		runStan.WithCovariates.T.GP(response=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel)
+		  ## DANIEL: Changed argument response to responseData in runStan.WithCovariates.T.GP
+		runStan.WithCovariates.T.GP(responseData=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel)
 		}
 	}
 }

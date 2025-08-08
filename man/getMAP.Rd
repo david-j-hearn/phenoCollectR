@@ -42,6 +42,7 @@ Finds the MAP under the beta onset, beta duration model (BB) using numerical opt
 This function may be useful to obtain estimates when the histogram of observed collection dates is highly skewed. The Gaussian process (GP) model implemented in Stan is limited to the inference of symmetric  distributions.
 }
 \examples{
+\donttest{
 #Set the mean onset time
 mean_onset = 100
 #Set the onset time standard deviation
@@ -53,8 +54,10 @@ sigma_duration = 7
 #Set the sample size
 n=500
 #Simulate observed collection times under the beta onset, beta duration (BB) model
-ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+ts = rT(n=n, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration
+        , sigma_D=sigma_duration, type="BB")
 
-#estimate the MAP based on the simulated data and default initialization and hyperparameter values
+#estimate the MAP based on the simulated data and default initialization and hyperparameters.
 map = getMAP(responseData=ts)
+}
 }

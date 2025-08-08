@@ -8,6 +8,7 @@ getProportionOverlap.OC.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=
 	return(getProportionOverlap.OC.BB.s(alpha_s, beta_s, alpha_d, beta_d))
 }
 
+#' @importFrom stats optimize
 getPeak.T.BB <- function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) {
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
 	dataD = convert_beta_check((maxResponse-minResponse)/2, mu_D, sigma_D, minResponse, maxResponse)
@@ -64,6 +65,8 @@ E.C.BB = function(mu_O, mu_D, minResponse=0, maxResponse=365) {
 	return(minResponse + e * (maxResponse - minResponse))
 }
 
+#' @importFrom stats sd
+#' @noRd
 E.CkN.BB = function(N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365,threshApprox=NA) {
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
 	dataD = convert_beta_check((maxResponse-minResponse)/2, mu_D, sigma_D, minResponse, maxResponse)
@@ -98,6 +101,7 @@ E.D.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) 
 	return(e * (maxResponse - minResponse))
 }
 
+#' @importFrom stats integrate
 SD.Ok1.BB = function(N, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
 	alpha_s = dataO$alpha_s
@@ -117,6 +121,7 @@ SD.O.BB = function(sigma_O) {
 	return(sigma_O)
 }
 
+#' @importFrom stats integrate
 SD.T.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) {
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
 	dataD = convert_beta_check((maxResponse-minResponse)/2, mu_D, sigma_D, minResponse, maxResponse)
@@ -133,6 +138,7 @@ SD.T.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365)
 	return(sqrt(var))
 }
 
+#' @importFrom stats integrate
 SD.C.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) {
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
 	dataD = convert_beta_check((maxResponse-minResponse)/2, mu_D, sigma_D, minResponse, maxResponse)
@@ -151,6 +157,7 @@ SD.C.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365)
 	return(sqrt(var))
 }
 
+#' @importFrom stats integrate
 SD.CkN.BB = function(N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) {
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
 	dataD = convert_beta_check((maxResponse-minResponse)/2, mu_D, sigma_D, minResponse, maxResponse)
@@ -167,6 +174,7 @@ SD.CkN.BB = function(N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse
 	return(sqrt(var))
 }
 
+#' @importFrom stats integrate
 SD.D.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) {
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
 	dataD = convert_beta_check((maxResponse-minResponse)/2, mu_D, sigma_D, minResponse, maxResponse)
@@ -242,7 +250,7 @@ PI.D.BB = function(mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365,
 	return(qD.BB(c(lower,upper), mu_O, sigma_O, mu_D, sigma_D))
 }
 
-
+#' @importFrom stats optim
 getMAP.T.BB = function(fileOrData, minResponse=0, maxResponse=365,minS=1, maxS=3000,  init_params = c(180,20,60,7), hyperparameters = c(100, 7, 60, 6, 24, 12, 24, 12), dataProvided=F) {
 
 	if(length(hyperparameters) != 8) {
@@ -336,6 +344,7 @@ getMAP.T.BB = function(fileOrData, minResponse=0, maxResponse=365,minS=1, maxS=3
 	return(result)
 }
 
+#' @importFrom stats optim
 getMLE.T.BB = function(fileOrData, minResponse=0, maxResponse=365, minS=1, maxS=3000, init_params = c(180, 20, 60, 7), dataProvided=F) {
 
 	#convert raw initial parameter values to beta parameters
@@ -405,6 +414,7 @@ loglik_observed <- function(param, data) {
 	sum(log(dens + 1e-12))  # avoid log(0)
 }
 
+#' @importFrom stats dbeta
 neg_log_posterior <- function(params, t_obs, a_o_m, b_o_m, a_d_m, b_d_m, a_o_sd, b_o_sd, a_d_sd, b_d_sd) {
 	alpha_s <- params[1]
 	beta_s <- params[2]
@@ -436,6 +446,7 @@ neg_log_posterior <- function(params, t_obs, a_o_m, b_o_m, a_d_m, b_d_m, a_o_sd,
 	return(- (log_lik + log_prior))
 }
 
+#' @importFrom stats integrate
 getProportionOverlap.OC.BB.s = function(alpha_s, beta_s, alpha_d, beta_d) {
 
 	f <- function(x) dO.BB.s(x, alpha_s=alpha_s, beta_s=beta_s)

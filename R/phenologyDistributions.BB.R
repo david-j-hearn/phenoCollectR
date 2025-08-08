@@ -80,6 +80,7 @@ pO.BB = function(q, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	return(pO.BB.s(data$scaled_x, data$alpha_s, data$beta_s))
 }
 
+#' @importFrom stats qbeta
 qO.BB = function(p, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, minResponse=minResponse, maxResponse=maxResponse)
 	data = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
@@ -98,6 +99,7 @@ dOk1.BB = function(x, N, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	return(dOk1.BB.s(data$scaled_x, N, data$alpha_s, data$beta_s)/(maxResponse-minResponse) )
 }
 
+#' @importFrom stats qbeta
 qOk1.BB = function(p, N, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, N=N, minResponse=minResponse, maxResponse=maxResponse)
 	data = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
@@ -105,6 +107,7 @@ qOk1.BB = function(p, N, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	return(minResponse + q_fst * (maxResponse - minResponse))
 }
 
+#' @importFrom stats pbeta pnorm
 pOk1.BB = function(q, N, mu_O, sigma_O, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, N=N, minResponse=minResponse, maxResponse=maxResponse)
 	data = convert_beta_check(q, mu_O, sigma_O, minResponse, maxResponse)
@@ -132,6 +135,7 @@ pC.BB = function(q, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365
 	pC.BB.s(dataO$scaled_x, dataO$alpha_s, dataO$beta_s, dataD$alpha_s, dataD$beta_s)
 }
 
+#' @importFrom stats rbeta
 rC.BB = function(n, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, n=n, minResponse=minResponse, maxResponse=maxResponse)
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
@@ -177,6 +181,7 @@ pT.BB = function(q, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365
 	return(pT.BB.s(dataO$scaled_x, dataO$alpha_s, dataO$beta_s, dataD$alpha_s, dataD$beta_s, nc))
 }
 
+#' @importFrom stats uniroot
 qT.BB = function(p, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, nc=NULL) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
 	dataO = convert_beta_check((maxResponse-minResponse)/2, mu_O, sigma_O, minResponse, maxResponse)
@@ -292,6 +297,7 @@ qCkN.BB = function(p, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxRespons
 	return(minResponse + qfunc(p) * (maxResponse - minResponse))
 }
 
+#' @importFrom stats integrate
 dR.BB = function(x, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, N=N, minResponse=minResponse, maxResponse=maxResponse)
 	dataO = convert_beta_check(x, mu_O, sigma_O, minResponse, maxResponse)
@@ -335,6 +341,7 @@ rR.BB = function(n, N, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=
 	return((let - fst) * (maxResponse - minResponse))
 }
 
+#' @importFrom stats dbinom
 dPNt.BB = function(x, t, mu_O, sigma_O, mu_D, sigma_D, minResponse=0, maxResponse=365, res = 1000) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, minResponse=minResponse, maxResponse=maxResponse)
 	if(t <= minResponse || t >= maxResponse ) {
@@ -453,6 +460,7 @@ dOk1.BB.s = function(x, N, alpha_s, beta_s) {
 	return(N * (1 - pO.BB.s(x, alpha_s, beta_s))^(N - 1) * dO.BB.s(x, alpha_s, beta_s))
 }
 
+#' @importFrom stats dbeta integrate 
 dC.BB.s = function(x, alpha_s, beta_s, alpha_d, beta_d) {
 	sapply(x, function(t) {
 		    integrand = function(s) {
@@ -474,6 +482,7 @@ pC.BB.s = Vectorize(function(q, alpha_s, beta_s, alpha_d, beta_d) {
 			  return(integrate(function(u) dC.BB.s(u, alpha_s, beta_s, alpha_d, beta_d), lower = 0, upper = q, rel.tol = 1e-6)$value)
 	})
 
+#' @importFrom stats dbeta pbeta integrate
 Pt.BB.s = function(x, alpha_s, beta_s, alpha_d, beta_d) {
 	sapply(x, function(t) {
 		    integrand = function(s) {
@@ -497,6 +506,7 @@ Pt.nc.BB = function(mu_O, mu_D, minResponse=0, maxResponse=365) {
 	return(nc)
 }
 
+#' @importFrom stats integrate
 pT.BB.s = function(q, alpha_s, beta_s, alpha_d, beta_d, nc) {
 	probs = sapply(q, function(t) {
 			    tryCatch(

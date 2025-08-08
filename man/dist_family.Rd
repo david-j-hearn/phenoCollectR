@@ -364,6 +364,7 @@ The function name is constructed by combining one of 'd', 'r', 'q', and 'p' as a
 Most functions share a subset of input parameters. Provide only the needed parameters for the function.
 }
 \examples{
+\donttest{
 #Set the sample size
 n=100000
 #Set the mean onset time
@@ -388,9 +389,13 @@ sigma_onset = 100
 mean_duration = 50
 sigma_duration = 10
 #Sample the observed collection times
-observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=mean_duration
+                , sigma_D=sigma_duration, type="BB")
 #Make a histogram of the observed collection times
-hist(observed_t, probability=TRUE, xlab="Simulated observed collection times (extreme BB model)")
+hist(observed_t, probability=TRUE
+     , xlab="Simulated observed collection times (extreme BB model)")
 #Overlay the theoretical curve on the histogram
-curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB"),col="red",add=TRUE,from=0, to=365)
+curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=mean_duration
+      , sigma_D=sigma_duration, type="BB"),col="red",add=TRUE,from=0, to=365)
+}
 }

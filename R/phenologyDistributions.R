@@ -41,6 +41,7 @@
 #'
 #' @return A vector, following standard R conventions for the 'd', 'p', 'r', and 'q' functions
 #' @examples 
+#' \donttest{
 #' #Set the sample size
 #' n=100000
 #' #Set the mean onset time
@@ -65,11 +66,15 @@
 #' mean_duration = 50
 #' sigma_duration = 10
 #' #Sample the observed collection times
-#' observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB")
+#' observed_t = rT(n=n, mu_O = mean_onset, sigma_O=sigma_onset, mu_D=mean_duration
+#'                 , sigma_D=sigma_duration, type="BB")
 #' #Make a histogram of the observed collection times
-#' hist(observed_t, probability=TRUE, xlab="Simulated observed collection times (extreme BB model)")
+#' hist(observed_t, probability=TRUE
+#'      , xlab="Simulated observed collection times (extreme BB model)")
 #' #Overlay the theoretical curve on the histogram
-#' curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB"),col="red",add=TRUE,from=0, to=365)
+#' curve(dT(x,mu_O=mean_onset,sigma_O=sigma_onset, mu_D=mean_duration
+#'       , sigma_D=sigma_duration, type="BB"),col="red",add=TRUE,from=0, to=365)
+#' }
 #' @name phenologyDistributionFunctions
 NULL
 

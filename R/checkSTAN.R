@@ -12,7 +12,15 @@ getAnswer <- function(q = "Do you want to continue? (yes/no): "){
   }
 }
 
-## Make interactive checks and fix dependencies if necessary.
+#' Check STAN and fix dependencies
+#'
+#' @description Function will conduct checks to verify if the system has the required dependencies to install and run STAN together with "phenoCollectR". The function will attempt to correct the dependencies and install STAN if necessary. The function is interactive and will prompt the user by printing information to the console.
+#'
+#' @return Return TRUE or FALSE (using the "invisible()" function) when the system is ready (or not) to do analyses using STAN.
+#' 
+#' @importFrom cmdstanr check_cmdstan_toolchain cmdstan_version install_cmdstan
+#' @importFrom utils install.packages
+#' @export
 makeSTANchecks <- function(){
   ## Check if it is Windows
   if( isTRUE(.Platform$OS.type == "windows") ){
@@ -58,6 +66,8 @@ makeSTANchecks <- function(){
 }
 
 ## This is a TRUE or FALSE return function that silently checks for STAN dependencies.
+#' @importFrom cmdstanr check_cmdstan_toolchain cmdstan_version install_cmdstan
+#' @noRd
 makeSTANpassChecks <- function(){
   ## has_* is FALSE if missing
   has_cmdstanr <- requireNamespace("cmdstanr", quietly = TRUE)

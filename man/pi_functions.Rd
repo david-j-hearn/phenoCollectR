@@ -111,13 +111,15 @@ Most functions share a subset of the same input parameters, but if you use a fun
 The function name is PI.* where * is one of the above random variables.
 }
 \examples{
+\donttest{
 #Set the mean onset time
 mean_onset = 100
 #Set the onset time standard deviation, sigma
 sigma_onset = 10
 #Set the duration of the phenophase
 duration = 50
-#Calculate the 90\% probability interval for the observed times under the Gaussian process model (default)
+#Calculate the 90\% probability interval for the observed times under the GP model (default)
 observed_t_PI = PI.T(mu_O = mean_onset, sigma_O=sigma_onset, mu_D=duration, alpha=0.1)
+}
 
 }

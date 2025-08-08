@@ -20,16 +20,19 @@ rD.GP = function(n, mu_D) {
 	return(rep(mu_D,n))
 }
 
+#' @importFrom stats dnorm
 dO.GP = function(x, mu_O, sigma) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma)
 	return(dnorm(x, mu_O, sigma) )
 }
 
+#' @importFrom stats pnorm
 pO.GP = function(q, mu_O, sigma) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma)
 	return(pnorm(q, mu_O, sigma) )
 }
 
+#' @importFrom stats qnorm
 qO.GP = function(p, mu_O, sigma) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma)
 	return(qnorm(p, mu_O, sigma) )
@@ -45,6 +48,7 @@ dOk1.GP = function(x, N, mu_O, sigma) {
 	N * (1 - pO.GP(x, mu_O, sigma))^(N - 1) * dO.GP(x, mu_O, sigma)
 }
 
+#' @importFrom stats qnorm
 qOk1.GP = function(p, N, mu_O, sigma) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, N=N)
 	q_fst = qnorm(1 - (1-p)^(1/N), mu_O, sigma)
@@ -62,16 +66,19 @@ rOk1.GP = function(n, N, mu_O, sigma) {
 	return(replicate(n, min(rnorm(N, mean = mu_O, sd = sigma))))
 }
 
+#' @importFrom stats dnorm
 dC.GP = function(x, mu_C, sigma) {
 	parameter_checks(mu_C=mu_C, sigma_C=sigma)
 	return(dnorm(x, mu_C, sigma))
 }
 
+#' @importFrom stats pnorm
 pC.GP = function(q, mu_C, sigma) {
 	parameter_checks(mu_C=mu_C, sigma_C=sigma)
 	return(pnorm(q, mu_C, sigma))
 }
 
+#' @importFrom stats qnorm
 qC.GP = function(p, mu_C, sigma) {
 	parameter_checks(mu_C=mu_C, sigma_C=sigma)
 	return(qnorm(p, mu_C, sigma))
@@ -87,11 +94,13 @@ dCkN.GP = function(x, N, mu_C, sigma) {
 	return(N * (pC.GP(x,mu_C, sigma))^(N - 1) * dC.GP(x,mu_C, sigma))
 }
 
+#' @importFrom stats qnorm
 qCkN.GP = function(p, N, mu_C, sigma) {
 	parameter_checks(mu_C=mu_C, sigma_C=sigma, N=N)
 	return(qnorm(p^(1 / N), mean = mu_C, sd = sigma))
 }
 
+#' @importFrom stats pnorm
 pCkN.GP = function(q, N, mu_C, sigma) {
 	parameter_checks(mu_C=mu_C, sigma_C=sigma, N=N)
 	Fx <- pnorm(q, mean = mu_C, sd = sigma)
@@ -103,6 +112,7 @@ rCkN.GP = function(n, N, mu_C, sigma) {
 	return(replicate(n, max(rnorm(N, mean = mu_C, sd = sigma))))
 }
 
+#' @importFrom stats pnorm
 Pt.GP = function(x, mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, minResponse=minResponse, maxResponse=maxResponse)
 	if(maxResponse<=minResponse) { stop("The maximum response time must be greater than the minimum response time.") }
@@ -114,6 +124,7 @@ Pt.GP = function(x, mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	return(prob)
 }
 
+#' @importFrom stats integrate
 Pt.nc.GP = function(mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, minResponse=minResponse, maxResponse=maxResponse)
 	return(integrate(function(x) Pt.GP(x, mu_O, mu_C, sigma, minResponse, maxResponse), lower = minResponse, upper = maxResponse, rel.tol = 1e-8)$value)
@@ -151,6 +162,7 @@ qT.GP = Vectorize(function(p, mu_O, mu_C, sigma, minResponse=0, maxResponse=365,
 					  return(res)
 })
 
+#' @importFrom stats runif
 rT.GP = function(n, mu_O, mu_C, sigma, minResponse=0, maxResponse=365,useModulus=TRUE) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, n=n, minResponse=minResponse, maxResponse=maxResponse)
 	d = mu_C - mu_O
@@ -168,6 +180,7 @@ rT.GP = function(n, mu_O, mu_C, sigma, minResponse=0, maxResponse=365,useModulus
 	return(Ts)
 }
 
+#' @importFrom stats integrate
 dR.GP = function(x, N, mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, N=N, minResponse=minResponse, maxResponse=maxResponse)
 	if (any(x < 0 | x > (maxResponse - minResponse))) {
@@ -179,7 +192,8 @@ dR.GP = function(x, N, mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 }
 
 rR.GP = function(n, N, mu_O, mu_C, sigma) {
-	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, n=n, N=N, minResponse=minResponse, maxResponse=maxResponse)
+	#parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, n=n, N=N, minResponse=minResponse, maxResponse=maxResponse)
+  parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, n=n, N=N)
 
 	d <- mu_C - mu_O
 	if(d<=0) { stop("Mean onset must be less than mean cessation.") }
@@ -188,6 +202,7 @@ rR.GP = function(n, N, mu_O, mu_C, sigma) {
 	return(rSim)
 }
 
+#' @importFrom stats dbinom
 dPNt.GP = function(x, t, mu_O, mu_C, sigma, minResponse=0, maxResponse=365, res = 1000) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, minResponse=minResponse, maxResponse=maxResponse)
 	if(res<100 || res>1000000) {

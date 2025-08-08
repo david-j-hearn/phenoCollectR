@@ -39,17 +39,24 @@ A data frame with columns labeled with the variable names and rows representing 
 Simulate the values of a response variable based on simulated values of multiple correlated covariates. Assumes a linear model with normally distributed variation.
 }
 \examples{
+\donttest{
 #Set the model parameters
 slopes = c(1,2,3)
 means = c(10,20,30)
 covariance_names = c("x1", "x2", "x3") 
 response_name = "y"
-covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3, byrow = TRUE)
+covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3
+                           , byrow = TRUE)
 mean_response = 100
 noise = 3
 n=1000
 #Simulate the data
-simulated_data = simulateCorrelatedCovariateData(n=n, beta=slopes, cov_names=covariance_names, mu = means, Sigma=covariance_matrix, anchor=mean_response, response_name = response_name, noise_sd = noise)
+simulated_data = simulateCorrelatedCovariateData(n=n, beta=slopes, cov_names=covariance_names
+                                                 , mu = means, Sigma=covariance_matrix
+                                                 , anchor=mean_response
+                                                 , response_name = response_name
+                                                 , noise_sd = noise)
 #Make a scatter plot of the simulated data
 plot(simulated_data$x1, simulated_data$y, main=NULL, xlab="X1", ylab="Y")
+}
 }

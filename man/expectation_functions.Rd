@@ -64,6 +64,8 @@ E.T(mu_O, mu_D, minResponse = 0, maxResponse = 365, type = c("GP", "BB"))
 \item{sigma_O}{Standard deviation for the onset time distribution}
 
 \item{sigma_D}{Standard deviation for the phenophase duration distribution}
+
+\item{threshApprox}{The Approximation Threshold.}
 }
 \value{
 The expected value of the associated random variable and input parameters
@@ -87,7 +89,7 @@ Most functions share a subset of the same input parameters, but if you use a fun
 The function name is created by prepending "E." in front of one of the above variables names.
 }
 \examples{
-
+\donttest{
 #Set the mean onset time (day of year)
 mu_O = 100
 #Set the standard deviation of the distribution of onset times
@@ -103,6 +105,7 @@ N = 100000
 eC = E.C(mu_O=mu_O, mu_D=mu_D, type="BB")
 
 #Calculate the expected last cessation time under the BB model
-eCkN = E.CkN(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, type="BB") 
+eCkN = E.CkN(N=N, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D, sigma_D=sigma_D, type="BB")
+}
 
 }

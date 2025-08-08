@@ -21,7 +21,7 @@ Description: Tools to model, simulate, and analyze phenological data obtained
   can be modeled as linear functions of covariates in the GP model, enabling
   analysis of factors contributing to variation in onset, cessation, and
   duration.
-License: GPL-3
+License: GPL-3 + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
@@ -39,5 +39,6 @@ Imports:
 	ggplot2,
 	grid,
 	tidyr,
-	brms
+	brms,
+	cmdstanr
 RoxygenNote: 7.3.2

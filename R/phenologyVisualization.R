@@ -93,21 +93,35 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 #' @importFrom splines bs
 #' @importFrom cowplot plot_grid
 #' @importFrom tibble as_tibble
+#' @importFrom stats quantile sd rnorm 
 #'
 #' @examples
 #' \donttest{
 #' ##get the file name with data for the blood root plant
-#' file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' file  =  getDatasetPath("Sanguinaria_canadensis")
+#' ## See documentation for more species:
+#' help(getDatasetPath)
 #' ##define the covariate names - remove up to all but 1
-#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp"
+#'          , "FirstQuarterMonthlyAverageTemp")
 #' ##get the phenology data
-#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY"
+#'                               , onsetCovariateNames=vars, durationCovariateNames=vars
+#'                               , taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
 #' ##run the Stan sampler
-#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData
+#'                                 , onsetCovariateData = data$onsetCovariateData
+#'                                 , durationCovariateData = data$durationCovariateData
+#'                                 , partitionDataForPriors = TRUE)
 #' ##summarize the Stan run
-#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
+#'                                           , taxonName = "Sanguinaria_canadensis"
+#'                                           , standardLinearModel = TRUE)
 #' ##make posterior predictive graph
-#' pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+#' pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData
+#'                                    , targetCovariateName = "SpringMonthlyAverageTemp"
+#'                                    , onsetCovariateData = data$onsetCovariateData
+#'                                    , durationCovariateData = data$durationCovariateData)
 #' ##display the posterior predictive graph
 #' print(pp)
 #' }
@@ -339,6 +353,7 @@ makePosteriorPredictivePlot = function(stanResult, responseData, responseVariabl
 	}
 
 	#The last data point appears to be highly biased (error in sampling from copula?), so graphing all but the last point
+	## DANIEL: Issue with object "series" called below without prior definition:
 	filtered_results  =  results %>%
 		group_by(series) %>%
 		filter(row_number() < n()) %>%  # keep all but last row per group
@@ -487,6 +502,7 @@ posterior_predictive_graphic = function(observed_data, filtered_results,targetCo
 #' @importFrom ggplot2 ggplot aes  geom_vline labs theme_minimal geom_area theme annotate
 #' @importFrom grid arrow unit
 #' @importFrom dplyr tibble group_by bind_rows summarize %>%
+#' @importFrom stats density
 makeShiftPanel = function(sample1, sample2, col, xlab) {
 
 df <- bind_rows(

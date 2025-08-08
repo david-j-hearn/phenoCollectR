@@ -1,0 +1,43 @@
+#' Phenology datasets for 13 plant species.
+#'
+#' @description
+#' Datasets containing the date of collection, location of collection, elevation, and monthly average temperatures. See 'Details' for more information.
+#' 
+#' @details
+#' The variables (columns) of each dataset are as follows:
+#'
+#' \itemize{
+#'   \item iDigBio_uuid. The Integrated Digitized Biocollections (iDigBio) Universal Unique Identifier (UUID).
+#'   \item Image. The file name for the specimen image.
+#'   \item Species. The scientific name of the specimen. In the "Genus_species" format.
+#'   \item Latitude. The Latitude of the specimen collection.
+#'   \item Longitude. The Longitude of the specimen collection.
+#'   \item Year. The year decimal of the specimen collection. This is the year as an integer and the decimal part represents the date of collection if the first day of the year was 0 and the last 1.
+#'   \item DOY. The Day Of Year. This is the day of collection counted from the 1st day of the year.
+#'   \item Elevation. The elevation of the collection locality in meters.
+#'   \item AnnualMonthlyAverageTemp. The Annual Monthly Average Temperature in Celcius.
+#'   \item SpringMonthlyAverageTemp. The Monthly Average Temperature for the Spring months in Celcius.
+#'   \item FirstQuarterMonthlyAverageTemp. The Monthly Average Temperature for the first quarter of the year.
+#' }
+#' 
+#' These datasets can be used with function "preparePhenologyData" to conduct further analyses. See "Examples"
+#'
+#' @param x The name of a plant species. The options are "Anemone_quinquefolia", "Camassia_scilloides", "Cardamine_concatenata", "Claytonia_virginica", "Collinsia_verna", "Dicentra_cucullaria", "Enemion_biternatum", "Erythronium_americanum", "Mertensia_virginica", "Podophyllum_peltatum", "Primula_meadia", "Sanguinaria_canadensis", or "Thalictrum_thalictroides". Names can also be abbreviated.
+#' @return The path for the file with the phenology data for the chosen species.
+#' @keywords datasets
+#' @examples 
+#' file <- getDatasetPath(x = "Anemone_quinquefolia")
+#' vars <- c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp"
+#'           , "FirstQuarterMonthlyAverageTemp")
+#' ## Get the phenology data
+#' data <- preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars
+#'                               , durationCovariateNames=vars, taxonName="Sanguinaria_canadensis"
+#'                               , removeOutliers=TRUE)
+#' ## Please see help(preparePhenologyData) for more information.
+#' @export
+getDatasetPath <- function(x){
+  spp <- c("Anemone_quinquefolia", "Camassia_scilloides", "Cardamine_concatenata", "Claytonia_virginica", "Collinsia_verna", "Dicentra_cucullaria", "Enemion_biternatum", "Erythronium_americanum", "Mertensia_virginica", "Podophyllum_peltatum", "Primula_meadia", "Sanguinaria_canadensis", "Thalictrum_thalictroides")
+  x <- match.arg(arg = x, choices = spp)
+  x <- paste(x, ".txt", sep = "")
+  return( system.file("data_files", x, package = "phenoCollectR") )
+}

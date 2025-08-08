@@ -39,6 +39,7 @@ A list with the values of the covariate (X), onset times (O), phenophase duratio
 Simulate the response variable for a single linear model of a covariate based on a degenerate Gaussian process with deterministic duration (GP). See Hearn et al. (XXXX) for details.
 }
 \examples{
+\donttest{
 #Set the parameters
 n=1000 #sample size
 slopeO = 1 #set the slope of the onset model
@@ -48,9 +49,12 @@ interceptD = 20 #set the intercept of the duration mdoel
 sigma = 7 #set the standard deviation of the onset distribution and of the cessation distribution
 minCovariate = -2 #set the minimum value of the covariate
 maxCovariate = 30 #set the maximum value of the covariate
-data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD, interceptD=interceptD, minCovariate=minCovariate, maxCovariate=maxCovariate)
+data = simulateCovariate(n=n, slopeO=slopeO, interceptO=interceptO, sigma=sigma, slopeD=slopeD
+                         , interceptD=interceptD, minCovariate=minCovariate
+                         , maxCovariate=maxCovariate)
 #plot the simulated observed collection times
-plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple", main=NULL, pch=16)
+plot(data$X, data$Ts, xlab="Mean spring temperature", ylab="Day of year", col="purple"
+     , main=NULL, pch=16)
 points(data$X, data$O, col="red", pch=16, cex=0.3)
 points(data$X, data$C, col="blue", pch=16, cex=0.3)
 #Plot the line that passes through the mean observed collection times, onset and cessation
@@ -59,4 +63,5 @@ abline(a = interceptO, b = slopeO, col = "red", lwd = 2)
 abline(a = interceptO + interceptD, b = slopeO + slopeD, col = "blue", lwd = 2)
 #plot phenophases for each individual in gray
 segments(x0 = data$X, y0 = data$O, x1 = data$X, y1 = data$C, col = "gray", lwd=0.5)
+}
 }

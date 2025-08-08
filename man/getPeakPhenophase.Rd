@@ -36,6 +36,7 @@ Estimate of the peak phenophase time.
 Uses numerical optimization (BB model) or symmetry (GP model) to estimate the time when the population will have the highest percentage of individuals in the phenopase.
 }
 \examples{
+\donttest{
 #Set the mean onset time
 mean_onset = 180
 #Set the onset time standard deviation
@@ -46,9 +47,13 @@ mean_duration = 60
 sigma_duration = 40
 
 #estimate the peak phenophase under the BB model
-peak = getPeakPhenophase(mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB")
+peak = getPeakPhenophase(mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration
+                         , sigma_D = sigma_duration, type="BB")
 #Create theoretical distribution of the observed times
-curve(dT(x, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"),from=0, to=365, n = 1000)
+curve(dT(x, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration
+         , sigma_D = sigma_duration, type="BB"),from=0, to=365, n = 1000)
 #Plot the estimate of the peak phenophase
-points(peak, dT(peak, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration, sigma_D = sigma_duration, type="BB"), pch=16, col="yellow")
+points(peak, dT(peak, mu_O=mean_onset, sigma_O = sigma_onset, mu_D = mean_duration
+      , sigma_D = sigma_duration, type="BB"), pch=16, col="yellow")
+}
 }

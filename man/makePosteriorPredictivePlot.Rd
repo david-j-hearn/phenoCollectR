@@ -74,17 +74,30 @@ Make a graphic of the posterior predictive values of the extremes, onset, observ
 \examples{
 \donttest{
 ##get the file name with data for the blood root plant
-file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+file  =  getDatasetPath("Sanguinaria_canadensis")
+## See documentation for more species:
+help(getDatasetPath)
 ##define the covariate names - remove up to all but 1
-vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp"
+         , "FirstQuarterMonthlyAverageTemp")
 ##get the phenology data
-data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY"
+                              , onsetCovariateNames=vars, durationCovariateNames=vars
+                              , taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
 ##run the Stan sampler
-stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+stanResult  =  runStanPhenology(type="full", responseData = data$responseData
+                                , onsetCovariateData = data$onsetCovariateData
+                                , durationCovariateData = data$durationCovariateData
+                                , partitionDataForPriors = TRUE)
 ##summarize the Stan run
-stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
+                                          , taxonName = "Sanguinaria_canadensis"
+                                          , standardLinearModel = TRUE)
 ##make posterior predictive graph
-pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData
+                                   , targetCovariateName = "SpringMonthlyAverageTemp"
+                                   , onsetCovariateData = data$onsetCovariateData
+                                   , durationCovariateData = data$durationCovariateData)
 ##display the posterior predictive graph
 print(pp)
 }

@@ -88,6 +88,8 @@ merge_df_by_column = function(df1, df2) {
 	return(merged_df)
 }
 
+#' @importFrom utils write.csv
+#' @importFrom stats sd
 generate_summary_table  =  function(data, columns, output_file = "summary_table.csv", taxonName, originalFile, originalN, rawN) {
 	# Check if all specified columns exist in the data frame
 	if (!all(columns %in% colnames(data))) {
@@ -159,6 +161,7 @@ generate_summary_table  =  function(data, columns, output_file = "summary_table.
 	return(summary_stats)
 }
 
+#' @importFrom stats model.frame mahalanobis cov qchisq lm rstudent cooks.distance model.matrix dist
 remove_outliers_lm = function(data, response, predictors,
 #mahalanobis: Outlier Analysis 2017 Aggarwal (section 2.3.4)
 #residuals: Generalized Linear Model Diagnostics Using the Deviance and Single Case Deletions
@@ -240,22 +243,37 @@ scaled_dbeta = function(y, shape1, shape2, minResponse = 0, maxResponse = 1) {
 #' @param origN Optionally, the initial number of specimens before any filtering of specimens took place (Use only if creating optional data summary file). 
 #'
 #' @return Returns a list object with elements necessary to use the "runStanPhenology" function. Elements include the original data (originalData) and the cleaned response data (responseData), onset covariate data (onsetCovariateData), and duration covariate data (durationCovariateData). The output data remain unscaled. The runStanPhenology function will scale data appropraitely. 
+#' @importFrom utils read.table
+#' @importFrom stats complete.cases
 #' @export
 #'
 #' @examples
 #' \donttest{
 #' ##get the file name with data for the blood root plant
-#' file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' file  =  getDatasetPath("Sanguinaria_canadensis")
+#' ## See documentation for more species:
+#' help(getDatasetPath)
 #' ##define the covariate names - remove up to all but 1
-#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp"
+#'           , "FirstQuarterMonthlyAverageTemp")
 #' ##get the phenology data
-#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars
+#'                               , durationCovariateNames=vars, taxonName="Sanguinaria_canadensis"
+#'                               , removeOutliers=TRUE)
 #' ##run the Stan sampler
-#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData
+#'                                 , onsetCovariateData = data$onsetCovariateData
+#'                                 , durationCovariateData = data$durationCovariateData
+#'                                 , partitionDataForPriors = TRUE)
 #' ##summarize the Stan run
-#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
+#'                                           , taxonName = "Sanguinaria_canadensis"
+#'                                           ,standardLinearModel = TRUE)
 #' ##make posterior predictive graph
-#' pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData, targetCovariateName = "SpringMonthlyAverageTemp", onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData)
+#' pp  =  makePosteriorPredictivePlot(stanResult = stanResult, responseData = data$responseData
+#'                                    , targetCovariateName = "SpringMonthlyAverageTemp"
+#'                                    , onsetCovariateData = data$onsetCovariateData
+#'                                    , durationCovariateData = data$durationCovariateData)
 #' ##display the posterior predictive graph		
 #' print(pp)		
 #' }
@@ -334,6 +352,7 @@ preparePhenologyData = function(dataFile, responseVariableName, onsetCovariateNa
 #' @return A list with a two element vector (mean and SD) for the mean onset (onsetHyperAnchor), a data frame for the mean slope coefficient (first column) and SD (second column) for each of the onset coefficients (onsetHyperBeta), a two element vector (mean and SD) for the mean duration (durationHyperAnchor), a data frame for the mean slope coefficient (first column) and SD (second column) for each of the duration coefficients (durationHyperBeta), a two element vector (mean and SD) for the mean cessation (cessationHyperAnchor), and a two element vector (mean and SD) for the sigma phenology parameter (sigmaHyper).
 #' @export
 #' @importFrom quantreg rq
+#' @importFrom stats as.formula coef quantile
 getHyperparametersViaQuantileRegression = function(responseDataForPrior,
 												   onsetCovariateDataForPrior,
 												   durationCovariateDataForPrior,
@@ -460,9 +479,9 @@ getHyperparametersViaQuantiles = function(responseDataForPrior, scale=1, lowerQu
 #' @details
 #' 
 #' This procedure is automatically applied when the runStanPhenology function parameter partitionDataForPriors is set to TRUE at the default proportion of 0.3.
-#' @param responseDataForPrior A vector of response data (e.g., day of year of collection values)
-#' @param onsetCovariateDataForPrior  A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.
-#' @param durationCovariateDataForPrior  A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.
+#' @param responseData A vector of response data (e.g., day of year of collection values)
+#' @param onsetCovariateData  A data frame with the onset covariate data. This can be obtained from the preparePhenologyData function.
+#' @param durationCovariateData  A data frame with the duration covariate data. This can be obtained from the preparePhenologyData function.
 #' @param prop The proportion of the data to be used for the first set of the partition. (default: 0.3)
 #'
 #' @return A list of six elements. The first three represent the first subset for response data (responseDataForInference), onset covariate data (onsetCovariateDataForInference) and duration covariate data (durationCovariateDataForInference), and the last three correspondingly represent the second subset.
@@ -555,8 +574,10 @@ removeDuplicateRows = function(df) {
 #'
 #' @return A vector of estimates of the expected value of the input kth ranked individual in the population.
 #' @export
+#' @importFrom stats qnorm
 #'
 #' @examples
+#' \donttest{
 #' #Define population sizes
 #' N = c(1000,10000,100000)
 #' #Define the mean values of the populations
@@ -567,6 +588,7 @@ removeDuplicateRows = function(df) {
 #' k = rep(1, length(N))
 #' #Calculate the expected value of the individuals at the kth rank
 #' eV = E.Kth.approx(N=N, mu=mu, sigma=sigma, k=k)
+#' }
 E.Kth.approx = function(N, mu, sigma, k) {
 	if(any(k<0 | k>N | N<0)) {
 		stop("k must be between 1 and N inclusive, and N must be a positive integer.")
@@ -577,17 +599,20 @@ E.Kth.approx = function(N, mu, sigma, k) {
 
 
 #Obtains the unscaled hyperparameters from a file associated with a provided file name
+#' @importFrom utils read.table
 getHyperparameters = function(hyperparameterFile) {
 	hyperparameters = read.table(hyperparameterFile, header=TRUE, sep='\t')
 	return(hyperparameters)
 }
 
 #Obtains min max scaled covariate data from a file associated with a provided file name
+#' @importFrom utils read.table
 getCovariates = function(covariatesFile) {
 	covariates = read.table(covariatesFile, header=TRUE, sep='\t')
 	return(processCovariates(covariates))
 }
 
+#' @importFrom stats sd
 processCovariates = function(covariates) {
 	mins = apply(covariates,2,min)
 	maxs = apply(covariates,2,max)
@@ -622,6 +647,7 @@ processCovariates = function(covariates) {
 	return(output)
 }
 
+#' @importFrom stats approxfun
 make_quantile_function_from_pdf = function(ddist, support = c(-10, 10), n = 1000) {
 	# Grid of x values
 	x = seq(support[1], support[2], length.out = n)
@@ -655,6 +681,7 @@ isBetaFeasible = function(alpha, beta, minS=1, maxS=3000) {
 	return(TRUE)
 }
 
+#' @importFrom utils read.table
 getObservations = function(responseFile,minResponse=0,maxResponse=365) {
 	observed = read.table(responseFile, header=TRUE)
 	if(ncol(observed)>1) {
@@ -697,10 +724,12 @@ beta_beta = function(mean, sd) {
 }
 
 # --- 1. Safe beta helpers ---
+#' @importFrom stats dbeta
 dbeta_safe = function(x, shape1, shape2) {
 	ifelse(x <= 0 | x >= 1, 0, dbeta(x, shape1, shape2))
 }
 
+#' @importFrom stats pbeta
 pbeta_safe = function(q, shape1, shape2) {
 	ifelse(q <= 0, 0,
 		   ifelse(q >= 1, 1, pbeta(q, shape1, shape2)))
@@ -791,15 +820,25 @@ runStandardLinearModel = function(responseData, onsetCovariateData, durationCova
 #' @examples
 #' \donttest{
 #' ##get the file name with data for the blood root plant
-#' file  =  system.file("data", "Sanguinaria_canadensis.Full.txt", package = "phenoCollectR")
+#' file  =  getDatasetPath("Sanguinaria_canadensis")
+#' ## See documentation for more species:
+#' help(getDatasetPath)
 #' ##define the covariate names - remove up to all but 1
-#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
+#' vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp", "SpringMonthlyAverageTemp"
+#'          , "FirstQuarterMonthlyAverageTemp")
 #' ##get the phenology data
-#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars, durationCovariateNames=vars, taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
+#' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY", onsetCovariateNames=vars
+#'                              , durationCovariateNames=vars, taxonName="Sanguinaria_canadensis"
+#'                              , removeOutliers=TRUE)
 #' ##run the Stan sampler
-#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData, onsetCovariateData = data$onsetCovariateData, durationCovariateData = data$durationCovariateData, partitionDataForPriors = TRUE)
+#' stanResult  =  runStanPhenology(type="full", responseData = data$responseData
+#'                                 , onsetCovariateData = data$onsetCovariateData
+#'                                 , durationCovariateData = data$durationCovariateData
+#'                                 , partitionDataForPriors = TRUE)
 #' ##summarize the Stan run
-#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult, taxonName = "Sanguinaria_canadensis",standardLinearModel = TRUE)
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
+#'                                           , taxonName = "Sanguinaria_canadensis"
+#'                                           ,standardLinearModel = TRUE)
 #' stanSummary
 #' }
 summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean", "median", "sd", "mad"), quantiles=c(2.5, 97.5), convergence=c("rhat","ess_bulk", "ess_tail"), standardLinearModel=FALSE, processExtremes=TRUE, N=500) {
@@ -843,7 +882,10 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 		standardLinearModel = runStandardLinearModel(stanRunResult$responseData, stanRunResult$onsetCovariateData, stanRunResult$durationCovariateData) 
 	}
 
-	if(class(standardLinearModel)=="lm") {
+	
+	# if(class(standardLinearModel)=="lm") {
+	# DANIEL: Changing to inherits because it is safer:
+	if( inherits(x = standardLinearModel, what = "lm") ) {
 		coefs  =  coef(standardLinearModel)
 	}
 
@@ -889,7 +931,9 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 		summary[summary$variable==varT, "type"] = "observed times (T)"
 		summary[summary$variable==varT, "covariate"] = unionCovariateNames[i]
 		summary[summary$variable == varT, "posterior.prob.neg.slope"] = mean(posterior_df[[varT]] < 0)
-		if(class(standardLinearModel)=="lm") {
+		#if(class(standardLinearModel)=="lm") {
+		# DANIEL: Changing to inherits because it is safer:
+		if( inherits(x = standardLinearModel, what = "lm") ) {
 			summary[summary$variable == varT, "standard.linear.model"] = coefs[[unionCovariateNames[i]]]
 			summary[summary$variable == varT, "in.95CI"] = (summary[summary$variable==varT,]$q2.5<coefs[[unionCovariateNames[i]]] & summary[summary$variable==varT,]$q97.5>coefs[[unionCovariateNames[i]]])
 		}
@@ -927,7 +971,9 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	summary[summary$variable=="alpha_D", "type"] = "duration (D)"
 	summary[summary$variable=="alpha_C", "type"] = "cessation (C)"
 	summary[summary$variable=="alpha_T", "type"] = "observed (T)"
-	if(class(standardLinearModel)=="lm") {
+	# if(class(standardLinearModel)=="lm") {
+	# DANIEL: Changing to inherits because it is safer:
+	if( inherits(x = standardLinearModel, what = "lm") ) {
 		summary[summary$variable == "alpha_T", "standard.linear.model"] = coefs[1]
 			summary[summary$variable == "alpha_T", "in.95CI"] = (summary[summary$variable=="alpha_T",]$q2.5<coefs[1] & summary[summary$variable=="alpha_T",]$q97.5>coefs[1])
 	}

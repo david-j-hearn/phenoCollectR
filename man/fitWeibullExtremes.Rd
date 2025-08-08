@@ -50,11 +50,12 @@ Fits a Weibull distribution to the distribution of the first onset and the distr
 This function is a wrapper for the ForestFit package function fitWeibull.
 }
 \details{
-The resulting parameter estimates can be used with R's built-in {r,d,q,p}weibull functions. The x values need to be shifted by the location parameter (the third element of the returned onset or cessation vector). For the first onset, the values are shifted as follows: x = x - onsetLocation. For the last cessation, the values are shifted as follows: x = -(x - cessationLocation). As implemented in R, the Weibull shape parameter is the first element of the returned onset or cessation vector, and the Weibull scale parameter is the second element.
+The resulting parameter estimates can be used with R's built-in \{r,d,q,p\} weibull functions. The x values need to be shifted by the location parameter (the third element of the returned onset or cessation vector). For the first onset, the values are shifted as follows: x = x - onsetLocation. For the last cessation, the values are shifted as follows: x = -(x - cessationLocation). As implemented in R, the Weibull shape parameter is the first element of the returned onset or cessation vector, and the Weibull scale parameter is the second element.
 
 Setting verbose to TRUE provides a print out of the specific call to dweibull using the estimated parameters.
 }
 \examples{
+\donttest{
 #Set the mean onset time
 mean_onset = 180
 #Set the onset time standard deviation
@@ -68,16 +69,26 @@ precision = 10000
 #Set the population size
 N = 500
 #Fit the Weibull distribution to the phenological extremes
-fitWB = fitWeibullExtremes(N=N, mu_O=mean_onset, sigma_O=sigma_onset, mu_D=mean_duration, sigma_D=sigma_duration, type="BB", precision=precision, includePlot=TRUE)
+fitWB = fitWeibullExtremes(N=N, mu_O=mean_onset, sigma_O=sigma_onset
+                           , mu_D=mean_duration, sigma_D=sigma_duration, type="BB"
+                           , precision=precision, includePlot=TRUE)
 #Create histograms of random deviates based on the estimated parameter values
 dev.new()
 par(mfrow = c(2,1))
-#Simulate draws from the first onset Weibull estimate, and overlay the theoretical curve onto the histogram
-firstOnset = rweibull(n=precision, shape = fitWB$Ok1Params[1], scale = fitWB$Ok1Params[2]) + fitWB$Ok1Params[3]
+#Simulate draws from the first onset Weibull estimate, and overlay the theoretical curve
+#      onto the histogram
+firstOnset = rweibull(n=precision, shape = fitWB$Ok1Params[1]
+                      , scale = fitWB$Ok1Params[2]) + fitWB$Ok1Params[3]
 hist(firstOnset, probability=TRUE, xlab="First onset day of year", col="yellow")
-curve(dweibull(x - fitWB$Ok1Params[3], shape = fitWB$Ok1Params[1], scale = fitWB$Ok1Params[2]), add = TRUE)
-#Simulate draws from the last cessation Weibull estimate, and overlay the theoretical curve onto the histogram. Note that the mirror image is needed for the last cessation distribution.
-lastCessation = -rweibull(n=precision, shape = fitWB$CkNParams[1], scale = fitWB$CkNParams[2]) + fitWB$CkNParams[3]
+curve(dweibull(x - fitWB$Ok1Params[3], shape = fitWB$Ok1Params[1]
+               , scale = fitWB$Ok1Params[2]), add = TRUE)
+#Simulate draws from the last cessation Weibull estimate, and overlay the theoretical curve
+#       onto the histogram.
+#Note that the mirror image is needed for the last cessation distribution.
+lastCessation = -rweibull(n=precision, shape = fitWB$CkNParams[1]
+                         , scale = fitWB$CkNParams[2]) + fitWB$CkNParams[3]
 hist(lastCessation, probability=TRUE, xlab="Last cessation day of year", col="cyan")
-curve(dweibull(-(x - fitWB$CkNParams[3]), shape = fitWB$CkNParams[1], scale = fitWB$CkNParams[2]), add = TRUE)
+curve(dweibull(-(x - fitWB$CkNParams[3]), shape = fitWB$CkNParams[1]
+               , scale = fitWB$CkNParams[2]), add = TRUE)
+}
 }
