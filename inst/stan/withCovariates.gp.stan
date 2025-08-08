@@ -229,8 +229,10 @@ transformed parameters {
 
 model {
 	if(debug) {
-		print("Mus: ", [mu_O, mu_C], ", sigma:", sigma);
-		print("intercept, elev, date, lat: ", [intercept, betaElev, betaDate, betaLat]);
+        //DANIEL: Error in STAN compilation. Identifier 'mu_O' not in scope.
+        //DANIEL: Same error happens with the other identifiers in the two print lines below:
+		//print("Mus: ", [mu_O, mu_C], ", sigma:", sigma);
+		//print("intercept, elev, date, lat: ", [intercept, betaElev, betaDate, betaLat]);
 	}
 
 	//Calculate the likelihood
