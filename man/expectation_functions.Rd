@@ -65,27 +65,20 @@ E.T(mu_O, mu_D, minResponse = 0, maxResponse = 365, type = c("GP", "BB"))
 
 \item{sigma_D}{Standard deviation for the phenophase duration distribution}
 
-\item{threshApprox}{The Approximation Threshold.}
+\item{threshApprox}{An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default, and deprecated. (default: NA)}
 }
 \value{
 The expected value of the associated random variable and input parameters
 }
 \description{
+The random variables include the following:
 O: phenological onset times
-}
-\details{
 D: phenophase durations
-
 C: phenological cessation times
-
 Ok1: first onset (order k = 1)
-
 CkN: last cessation (order k = N, the population size)
-
 T: observed specimen collection times, e.g., day of year for a yearly time period
-
 Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
-
 The function name is created by prepending "E." in front of one of the above variables names.
 }
 \examples{

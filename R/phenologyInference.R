@@ -1,19 +1,13 @@
 #' Functions that calculate the expected value of the associated phenological random variable:
 #'
+#' The random variables include the following:
 #' O: phenological onset times
-#'
 #' D: phenophase durations
-#'
 #' C: phenological cessation times
-#'
 #' Ok1: first onset (order k = 1)
-#'
 #' CkN: last cessation (order k = N, the population size)
-#'
 #' T: observed specimen collection times, e.g., day of year for a yearly time period
-#'
 #' Most functions share a subset of the same input parameters, but if you use a function that does not require all the parameters, provide only the needed parameters.
-#'
 #' The function name is created by prepending "E." in front of one of the above variables names. 
 #'
 #' @rdname expectation_functions
@@ -25,7 +19,7 @@
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
 #' @param N The population size for estimation of extreme events
 #' @param type The model type, either BB (beta onset, beta duration) or GP (Gaussian process with a shared standard deviation for onset and cessation and a constant duration) (default = "GP")
-#' @param threshApprox The Approximation Threshold.
+#' @param threshApprox An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default, and deprecated. (default: NA)
 #'
 #' @return The expected value of the associated random variable and input parameters
 #' @examples
