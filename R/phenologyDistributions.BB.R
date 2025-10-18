@@ -499,6 +499,7 @@ Pt.BB.s = function(x, alpha_s, beta_s, alpha_d, beta_d) {
 }
 
 Pt.nc.BB = function(mu_O, mu_D, minResponse=0, maxResponse=365) {
+	#note that this function returns the normalization constant assuming the TP is scaled to the unit interval. Other functions must rescale according to the actual scale of the TP as needed (this is often accomplished by dividing through by (M-m)), but is not needed by, e.g., pT, which finds the cumulative probabilities at the unit scale.
 	parameter_checks(mu_O=mu_O, mu_D=mu_D, minResponse=minResponse, maxResponse=maxResponse)
 	mu_O = (mu_O-minResponse) / (maxResponse-minResponse)
 	mu_D = (mu_D-minResponse) / (maxResponse-minResponse)

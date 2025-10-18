@@ -127,7 +127,15 @@ Pt.GP = function(x, mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 #' @importFrom stats integrate
 Pt.nc.GP = function(mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	parameter_checks(mu_O=mu_O, sigma_O=sigma, mu_C=mu_C, minResponse=minResponse, maxResponse=maxResponse)
-	return(integrate(function(x) Pt.GP(x, mu_O, mu_C, sigma, minResponse, maxResponse), lower = minResponse, upper = maxResponse, rel.tol = 1e-8)$value)
+	nc = integrate(function(x) Pt.GP(x, mu_O, mu_C, sigma, minResponse, maxResponse), lower = minResponse, upper = maxResponse, rel.tol = 1e-8)$value
+	#assumes no Property 4
+	#nc = integrate(function(x) Pt.GP(x, mu_O, mu_C, sigma, minResponse, maxResponse), lower = -Inf, upper = Inf, rel.tol = 1e-8)$value
+	tnc = mu_C-mu_O
+
+	if(abs(nc-tnc)>1) {
+		warning(paste("Provided parameters for the GP model are likely to produce a substantial part of the denisity outside of the time period. Inferences may therefore be inaccurate: GP nc integrate: ", nc, " theory: ", tnc))
+	}
+	return(nc)
 }
 
 dT.GP = function(x, mu_O, mu_C, sigma, minResponse=0, maxResponse=365, nc=NULL) {

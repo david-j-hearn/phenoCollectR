@@ -28,7 +28,7 @@ preparePhenologyData(
 
 \item{removeDuplicateRows}{If duplicated rows should be removed (default: TRUE).}
 
-\item{removeOutliers}{If outliers should be removed (default: TRUE).}
+\item{removeOutliers}{If outliers should be removed (default: FALSE). Outliers will be removed using three methods: Mahalanobis distance from: Outlier Analysis 2017 Aggarwal (section 2.3.4); residuals beyond a threshold; Cooks distance (Cook, 1977). These will be run at: Mahalanobis p = 0.975, residual cutoff = 3, Cook's cutoff = 4 / number of items in dataset. If you prefer to set different criteria, you can call the internal function that removes outliers: phenoCollectR:::remove_outliers_lm, and set these values manually. This function provides multiple outputs. With the resulting cleaned dataset that is the output, you can call the current function, and set this removeOutliers to FALSE.}
 
 \item{removeIncomplete}{If rows with missing data should be removed (default: TRUE).}
 
