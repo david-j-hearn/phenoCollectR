@@ -78,7 +78,7 @@ return(out)
 #' @param minResponse The minimum time of observations. default: 0, which is the only fully supported value.
 #' @param maxResponse The maximum time of observations. default: 365, representing the number of days in a year. 
 #'
-#' @return Dataframe with columns labeled with the variable names, including all covariates, the simulated onset times, durations, cessations, sampled times, state (before, during, after phenophase) and rows representing simulated individuals
+#' @return Dataframe with columns labeled with the variable names, including all covariates, the simulated onset times, durations, cessations, sampled times, stage (before, during, after phenophase) and rows representing simulated individuals
 #' @export
 #' @importFrom MASS mvrnorm
 #'
@@ -89,7 +89,9 @@ return(out)
 #' meansOnset = c(10,20,30)
 #' covariate_namesOnset = c("o1", "o2", "o3") 
 #' response_nameOnset = "onset"
-#' covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3
+#' covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3, 
+#'			              0.5, 2.0, 0.4, 
+#'				      0.3, 0.4, 1.5), nrow = 3
 #'                            , byrow = TRUE)
 #' mean_responseOnset = 150
 #' noiseOnset = 3
@@ -97,20 +99,21 @@ return(out)
 #' meansDuration = c(50,40)
 #' covariate_namesDuration = c("d1", "d2") 
 #' response_nameDuration = "duration"
-#' covariance_matrixDuration = matrix(c( 0.5, 0.5, 0.3, 0.5), nrow = 2
+#' covariance_matrixDuration = matrix(c( 0.5, 0.3, 
+#'				         0.3, 0.5), nrow = 2
 #'                            , byrow = TRUE)
 #' mean_responseDuration = 30
 #' n=1000
 #' #Simulate the data
 #' simulated_data = simulatePopulationLatentIntervalStates(n=n,
 #' 							betaOnset=slopesOnset, betaDuration=slopesDuration,
-#'							covariateNamesOnset=covariance_namesOnset, covariateNamesDuration=covariance_namesDuration,
-#'							muOnset = meansOnset, muDuration = meansDuration,
-#'							SigmaOnset = covariance_matrixOnset, SigmaDuration = covariance_matrixDuration,
+#'							covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
+#'							muCovariateOnset = meansOnset, muCovariateDuration = meansDuration,
+#'							CovarianceOnset = covariance_matrixOnset, CovarianceDuration = covariance_matrixDuration,
 #'							meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
 #'							sigmaOnset = noiseOnset)
 #' #Make a scatter plot of the simulated data
-#' plot(simulated_data$o1, simulated_data$onset, main=NULL, xlab="O1", ylab="Onset")
+#' plot(simulated_data$o1[simulated_data$stage==2], simulated_data$observedTime[simulated_data$stage==2], main=NULL, xlab="O1", ylab="Onset")
 #' }
 simulatePopulationLatentIntervalStates = function(n, 
 						  betaOnset=0, betaDuration=0, 
@@ -130,11 +133,11 @@ simulatePopulationLatentIntervalStates = function(n,
 	durations = durationData$duration
 	cessations = onsets+durations
 	observedTimes = runif(n,minResponse,maxResponse)
-	states = 1L + (observedTimes >= onsets) + (observedTimes >= cessations) # force long integer format
+	stages = 1L + (observedTimes >= onsets) + (observedTimes >= cessations) # force long integer format
 	data <- cbind(onsetData, durationData)
 	data$cessation = cessations
 	data$observedTime = observedTimes
-	data$state = states
+	data$stage = stages
 	data = data[, names(data) != "noOnsetCovariates", drop = FALSE]
 	data = data[, names(data) != "noDurationCovariates", drop = FALSE]
 	return(data)

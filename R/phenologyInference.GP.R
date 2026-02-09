@@ -355,11 +355,15 @@ runStan.NoCovariates.T.GP = function(fileOrData, minResponse=0, maxResponse=365,
 	return(result)
 }
 
-runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=365, onsetCovariateData, durationCovariateData, onsetHyperBeta, onsetHyperAnchor, durationHyperBeta, durationHyperAnchor, sigmaHyper=c(10,50), dataProvided=FALSE, setStringent=TRUE, maxDiv=0, processExtremes=TRUE, N=500, priorLevel=2, ...) {
+runStan.WithCovariates.Interval.T.GP = function(responseData, stage, minResponse=0, maxResponse=365, onsetCovariateData, durationCovariateData, onsetHyperBeta, onsetHyperAnchor, durationHyperBeta, durationHyperAnchor, sigmaHyper=c(10,50), setStringent=TRUE, dataProvided=FALSE, priorLevel=2, maxDiv=0, processExtremes=TRUE, N=500, ...) {
 	options(mc.cores = 4)
 
+	print("Running runStan.WithCovariates.Interval.T.GP")
+
 	if(processExtremes && !is.na(N)) {
+		if(N>0) {
 		processExtremes = 1
+		}
 	}
 	else {
 		N = 0
@@ -397,7 +401,238 @@ runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=
 	cov_union = union(cov_O, cov_D)
 
 	idx_O = match(cov_O, cov_union)
-	idx_D = match(cov_O, cov_union)
+	idx_D = match(cov_D, cov_union)
+
+	#get the number of covariates for onset and for duration
+	n = N	#switch variable naming
+	N = length(observed)
+	N_O = nrow(covariatesOnset$scaledCovariates)
+	N_D = nrow(covariatesDuration$scaledCovariates)
+	N_S = length(stage)
+
+	cat("Checking data compatibility.\n")
+	#check that stage values match
+	if(N != N_S) {
+		return(list(error=TRUE, error_m="When running the censored interval model, please include a vector of stages of the individuals that were observed. The vector of stages should be the same length as the vector of response data. For each individual sampled, there should be a response time and there should be a stage associated with the time. If the time is before the phenophase, the stage is 1, if during the phenophase, the stage is 2, and if after the phenophase, the stage is 3."))
+	}
+	#check data dimensions
+	if(N != N_O || N != N_D) {
+		return(list(error=TRUE, error_m="Be sure the sample size is the the same for the response (observed) values, for the covariate values for the onset, and for the covariate values for the duration. Rows should be parallel. Row 1 in the response data vector should correspond to the same individual in row 1 of each covariate data frame. If files names are input, corresponding files should be text formatted with tab-separated columns which should have headers. If data frames are input, these should have column names."))
+	}
+
+	#check hyperparameter specifications
+	if(nrow(onsetHyperBeta) != K_O || ncol(onsetHyperBeta) != 2 || nrow(durationHyperBeta) != K_D || ncol(durationHyperBeta) != 2 || length(onsetHyperAnchor) != 2 || length(durationHyperAnchor) != 2 || length(sigmaHyper) != 2) {
+		return(list(error=TRUE, error_m="The input hyperparameter information should be a data frame with one row for each covariate, or provide a file name with corresponding file having the data frame as a text, tab-separated table. Each row should have two columns. The first column provides the mean value of the parameter's prior distribution, and the second column provides the SD of the parameter's prior distribution. The covariates in rows, top to bottom, should match the covariates in columns, left to right, in the input covariate data frames. Values should be in the original scale (e.g., units of days, or for slopes, total days changed over range of the covariate) of the observations. If files names are input, corresponding files should have headers. If data frames are input, these should have column labels of 'mean
+					and 'sd'."))
+
+	}
+	cat("Setting hyperparameters.\n")
+	covariatesOnsetRanges = covariatesOnset$maxs - covariatesOnset$mins
+	covariatesDurationRanges = covariatesDuration$maxs - covariatesDuration$mins
+
+	meanSlopeO = (onsetHyperBeta[[1]]/range) * covariatesOnsetRanges
+	sdSlopeO = (onsetHyperBeta[[2]]/range) * covariatesOnsetRanges
+	meanAnchorO = ((onsetHyperAnchor[1]-minResponse)/range)
+	sdAnchorO = (onsetHyperAnchor[2]/range)
+
+	meanSlopeD = (durationHyperBeta[[1]]/range) * covariatesDurationRanges
+	sdSlopeD = (durationHyperBeta[[2]]/range) * covariatesDurationRanges
+	meanAnchorD = ((durationHyperAnchor[1])/range)
+	sdAnchorD = (durationHyperAnchor[2]/range)
+
+	#meanAnchorC = ((cessationHyperAnchor[1]-minResponse)/range)
+	#sdAnchorC = (cessationHyperAnchor[2]/range)
+
+	meanSigma = (sigmaHyper[1]/range)
+	sdSigma = (sigmaHyper[2]/range)
+
+	cat("Preparing data for Stan.\n")
+	stanData <- list(
+					 N = N,
+					 K_O = K_O,
+					 K_D = K_D,
+					 K_union = length(cov_union),
+
+					 idx_O = idx_O,
+					 idx_D = idx_D,
+
+					 priors = priorLevel,
+
+					 T_raw = observed,
+					 stage = stage,
+					 T_min = minResponse,
+					 T_max = maxResponse,
+
+					 process_extremes = processExtremes,
+					 n = n,
+
+					 min = minResponse,
+					 maxResponse = maxResponse,
+
+					 X_O_raw = as.matrix(covariatesOnset$scaledCovariates, ncol=K_O),
+					 X_D_raw = as.matrix(covariatesDuration$scaledCovariates, ncol=K_D),
+
+					 mean_X_O_raw = covariatesOnset$scaledMeans,
+					 mean_X_D_raw = covariatesDuration$scaledMeans,
+
+					 min_X_O = covariatesOnset$mins,
+					 max_X_O = covariatesOnset$maxs,
+
+					 min_X_D = covariatesDuration$mins,
+					 max_X_D = covariatesDuration$maxs,
+
+					 betaOnsetMeans = meanSlopeO,
+					 betaOnsetSDs = sdSlopeO,
+					 anchorOnsetMean = meanAnchorO,
+					 anchorOnsetSD = sdAnchorO,
+
+					 betaDurationMeans = meanSlopeD,
+					 betaDurationSDs = sdSlopeD,
+					 anchorDurationMean = meanAnchorD,
+					 anchorDurationSD = sdAnchorD,
+
+					 #anchorCessationMean = meanAnchorC,
+					 #anchorCessationSD = sdAnchorC,
+
+					 sigmaMean = meanSigma,
+					 sigmaSD = sdSigma,
+
+					 debug = FALSE,
+					 drop_nc = FALSE,
+					 drop_ll = FALSE
+	)
+
+	cat("Attempting to compile Stan model in file withCovariates.gp.interval.stan.\n")
+	withCovariates.gp_file <- system.file("stan", "withCovariates.gp.interval.stan"
+	                                      , package = "phenoCollectR")
+	m = tryCatch({
+		cmdstanr::cmdstan_model(stan_file = withCovariates.gp_file)
+	}, error = function(e) {
+		message <- conditionMessage(e)
+		cat(paste("Error compiling Stan model: ", message, ".\n"))
+		ret = list(
+				   error = TRUE,
+				   errorM = paste(message, ": Could not compile Stan model.")
+		)
+		return(ret)
+	})
+
+	cat("Attempting to run Stan.\n")
+	res = tryCatch({
+		fit = if(setStringent) {
+			mres = m$sample(data = stanData, adapt_delta = 0.99, max_treedepth = 15,...)
+		}
+		else {
+			mres = m$sample(data = stanData,...)
+		}
+
+	}, error = function(e) {
+		cat(paste("ERROR running Stan: ", e$message, ".\n"))
+		ret = list(
+				   error = TRUE,
+				   errorM = paste(e$message, ": Could not sample Stan model"),
+				   data = stanData
+		)
+		return(ret)
+	})
+
+	nDiv = 50000
+	chain_ok <- tryCatch({
+		s = res$diagnostic_summary()
+		print(s)
+		nDiv = sum(s$num_divergent)
+		TRUE
+	}, error = function(e) {
+		FALSE
+	})
+
+	if(!chain_ok) {
+		cat("Stan finished but with no summary available.\n")
+		ret = list(
+				   error = TRUE,
+				   errorM = "Apparently Stan finished but with failed chains."
+		)
+		return(ret)
+	}
+
+	cat("Checking divergences. (with covariates)\n")
+	if(nDiv > maxDiv) {
+		ret = list(
+				   error = TRUE,
+				   errorM = paste("Stan run failed. ", nDiv, " divergences encountered.")
+		)
+		return(ret)
+	}
+
+	output = list(
+				  data = stanData,
+				  responseData = responseData,
+				  onsetCovariateData = onsetCovariateData,
+				  durationCovariateData = durationCovariateData,
+				  onsetHyperBeta = onsetHyperBeta,
+				  onsetHyperAnchor = onsetHyperAnchor,
+				  durationHyperBeta = durationHyperBeta,
+				  durationHyperAnchor = durationHyperAnchor,
+				  #cessationHyperAnchor = cessationHyperAnchor,
+				  sigmaHyper = sigmaHyper,
+				  result=res,
+				  model=m,
+				  maxDiv = maxDiv,
+				  minResponse = minResponse,
+				  maxResponse = maxResponse,
+				  setStringent = setStringent,
+				  error = FALSE,
+				  error_m = "No error was detected during the Stan run"
+	)
+	return(output)
+}
+
+
+runStan.WithCovariates.T.GP = function(responseData, minResponse=0, maxResponse=365, onsetCovariateData, durationCovariateData, onsetHyperBeta, onsetHyperAnchor, durationHyperBeta, durationHyperAnchor, sigmaHyper=c(10,50), dataProvided=FALSE, setStringent=TRUE, maxDiv=0, processExtremes=TRUE, N=500, priorLevel=2, ...) {
+	options(mc.cores = 4)
+
+	if(processExtremes && !is.na(N)) {
+		if(N>0) {
+		processExtremes = 1
+		}
+	}
+	else {
+		N = 0
+		processExtremes = 0
+	}
+
+	range = maxResponse-minResponse
+
+	cat("Processing data.\n")
+	if(dataProvided) {
+		observed = (responseData - minResponse ) / (maxResponse - minResponse)
+		covariatesOnset = processCovariates(onsetCovariateData)
+		covariatesDuration = processCovariates(durationCovariateData)
+	}
+	else {
+		#get scaled data
+		observed = getObservations(responseData,minResponse=minResponse,maxResponse=maxResponse)
+		covariatesOnset = getCovariates(onsetCovariateData) #min max scaled
+		covariatesDuration = getCovariates(durationCovariateData) #min max scaled
+
+		#get unscaled hyperparameters
+		onsetHyperBeta = getHyperparameters(onsetHyperBeta)
+		onsetHyperAnchor = getHyperparameters(onsetHyperAnchor)
+		durationHyperBeta = getHyperparameters(durationHyperBeta)
+		durationHyperAnchor = getHyperparameters(durationHyperAnchor)
+		#cessationHyperAnchor = getHyperparameters(cessationHyperAnchor)
+	}
+
+	K_O = covariatesOnset$K
+	K_D = covariatesDuration$K
+
+	cov_O = colnames(covariatesOnset$covariates)
+	cov_D = colnames(covariatesDuration$covariates)
+
+	cov_union = union(cov_O, cov_D)
+
+	idx_O = match(cov_O, cov_union)
+	idx_D = match(cov_D, cov_union)
 
 	#get the number of covariates for onset and for duration
 	n = N	#switch variable naming

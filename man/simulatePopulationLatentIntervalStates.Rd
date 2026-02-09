@@ -51,7 +51,7 @@ simulatePopulationLatentIntervalStates(
 \item{maxResponse}{The maximum time of observations. default: 365, representing the number of days in a year.}
 }
 \value{
-Dataframe with columns labeled with the variable names, including all covariates, the simulated onset times, durations, cessations, sampled times, state (before, during, after phenophase) and rows representing simulated individuals
+Dataframe with columns labeled with the variable names, including all covariates, the simulated onset times, durations, cessations, sampled times, stage (before, during, after phenophase) and rows representing simulated individuals
 }
 \description{
 Simulate a population of individuals with simulated onset, duration, cessation, and observed times based on multiple correlated covariates for onset and for duration. Assumes a linear model with normally distributed variation. Defaults produced simulated values with no covariates.
@@ -63,7 +63,9 @@ slopesOnset = c(1,2,3)
 meansOnset = c(10,20,30)
 covariate_namesOnset = c("o1", "o2", "o3") 
 response_nameOnset = "onset"
-covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3
+covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3, 
+		              0.5, 2.0, 0.4, 
+			      0.3, 0.4, 1.5), nrow = 3
                            , byrow = TRUE)
 mean_responseOnset = 150
 noiseOnset = 3
@@ -71,19 +73,20 @@ slopesDuration = c(1,3)
 meansDuration = c(50,40)
 covariate_namesDuration = c("d1", "d2") 
 response_nameDuration = "duration"
-covariance_matrixDuration = matrix(c( 0.5, 0.5, 0.3, 0.5), nrow = 2
+covariance_matrixDuration = matrix(c( 0.5, 0.3, 
+			         0.3, 0.5), nrow = 2
                            , byrow = TRUE)
 mean_responseDuration = 30
 n=1000
 #Simulate the data
 simulated_data = simulatePopulationLatentIntervalStates(n=n,
 							betaOnset=slopesOnset, betaDuration=slopesDuration,
-						covariateNamesOnset=covariance_namesOnset, covariateNamesDuration=covariance_namesDuration,
-						muOnset = meansOnset, muDuration = meansDuration,
-						SigmaOnset = covariance_matrixOnset, SigmaDuration = covariance_matrixDuration,
+						covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
+						muCovariateOnset = meansOnset, muCovariateDuration = meansDuration,
+						CovarianceOnset = covariance_matrixOnset, CovarianceDuration = covariance_matrixDuration,
 						meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
 						sigmaOnset = noiseOnset)
 #Make a scatter plot of the simulated data
-plot(simulated_data$o1, simulated_data$onset, main=NULL, xlab="O1", ylab="Onset")
+plot(simulated_data$o1[simulated_data$stage==2], simulated_data$observedTime[simulated_data$stage==2], main=NULL, xlab="O1", ylab="Onset")
 }
 }

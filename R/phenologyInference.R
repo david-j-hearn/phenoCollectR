@@ -743,8 +743,9 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'
 #' A summary of the Stan run is available through the helper function 'summarizePhenologyResults', or advanced users can access the Stan sample directly from the output of this function for customized downstream analyses using other packages designed for the analysis of samples from posterior distributions, such as 'posterior' and 'bayesplot'. 
 #'
-#' @param type The type of model to be implemented. Two options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates, whereas option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates. (default: intercept-only)
+#' @param type The type of model to be implemented. Two options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval' will model mean onset and mean duration and a linear function of covariates for presence-absence data, whereas option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates. (default: intercept-only)
 #' @param responseData A vector of the response data. This is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason for preprocessing transformations. 
+#' @param stage Only for use when type is 'interval'. A vector of integers the same length as the response data vector. For each observation in the response data, the stage will be a 1 if the observation is before the phenophase, a 2 if it is during the phenophase, and a 3 if it is after the phenophase. Any other values will produce errors. default: NA
 #' @param hyperparams_noCovariates For use with 'intercept-only' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order.
 #' @param onsetCovariateData For use with 'full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear onset model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.
 #' @param durationCovariateData For use with 'full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear duration model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.
@@ -840,6 +841,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'
 #' @examples
 #' \donttest{
+#' ##run an example with collection times of individuals in the phenophase (presence only dataset)
 #' ##get the file name with data for the blood root plant. Data files for 12 other species 
 #' #      are also available
 #' file  =  getDatasetPath("Sanguinaria_canadensis")
@@ -852,7 +854,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY"
 #'                               , onsetCovariateNames=vars, durationCovariateNames=vars
 #'                               , taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
-#' ##run the Stan sampler
+#' ##run the Stan sampler with default priors
 #' stanResult  =  runStanPhenology(type="full", responseData = data$responseData
 #'                                 , onsetCovariateData = data$onsetCovariateData
 #'                                 , durationCovariateData = data$durationCovariateData
@@ -861,10 +863,71 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
 #'                                           , taxonName = "Sanguinaria_canadensis"
 #'                                           ,standardLinearModel = TRUE)
-#' stanSummary
+#' head(stanSummary)
+#' ##Run a more complicated example, this time with observed times before, during, and after the phenophse.
+#' ##This will be using simulated data
+#' # Set slopes, means, and covariances of onset covariate data
+#' slopesOnset = c(1,2,3)             
+#' meansOnset = c(10,20,30)
+#' covariate_namesOnset = c("o1", "o2", "o3")
+#' response_nameOnset = "onset"
+#' covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3,
+#' 				      0.5, 2.0, 0.4,
+#' 				      0.3, 0.4, 1.5), nrow = 3, byrow = TRUE)
+#' mean_responseOnset = 150
+#' noiseOnset = 3
+#' # Set slopes, means, and covariances of duration covariate data
+#' slopesDuration = c(1,3)
+#' meansDuration = c(50,40)
+#' covariate_namesDuration = c("d1", "d2")
+#' response_nameDuration = "duration"
+#' covariance_matrixDuration = matrix(c( 0.5, 0.3,
+#' 				         0.3, 0.5), nrow = 2, byrow = TRUE)
+#' mean_responseDuration = 30
+#' n=3000
+#' #Simulate the data
+#' simulated_data = simulatePopulationLatentIntervalStates(n=n,
+#' betaOnset=slopesOnset, betaDuration=slopesDuration,
+#' covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
+#' muCovariateOnset = meansOnset, muCovariateDuration = meansDuration,
+#' CovarianceOnset = covariance_matrixOnset, CovarianceDuration = covariance_matrixDuration,
+#' meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
+#' sigmaOnset = noiseOnset)
+#' #Set up the data objects for stan
+#' responseData = simulated_data$observedTime[simulated_data$stage==2]
+#' stage = simulated_data$stage[simulated_data$stage==2]
+#' onsetCovariateData = data.frame(simulated_data$o1[simulated_data$stage==2],simulated_data$o2[simulated_data$stage==2],simulated_data$o3[simulated_data$stage==2])
+#' durationCovariateData = data.frame(simulated_data$d1[simulated_data$stage==2],simulated_data$d2[simulated_data$stage==2])
+#' names( onsetCovariateData ) = c("o1","o2","o3")
+#' names( durationCovariateData ) = c("d1","d2")
+#' #Set up the hyperparameters for priors
+#' onsetHyperBeta = data.frame(slopesOnset,c(1,1,1))
+#' onsetHyperAnchor = c(150, 10)
+#' durationHyperBeta = data.frame(slopesDuration,c(1,1))
+#' durationHyperAnchor = c(30, 10)
+#' sigmaHyper = c(3,3)
+#' ##Conduct the Stan run
+#' stanResult = runStanPhenology(
+#' type="full",
+#' responseData=responseData,
+#' stage=stage,
+#' onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData,
+#' onsetHyperBeta=onsetHyperBeta,onsetHyperAnchor=onsetHyperAnchor,
+#' durationHyperBeta=durationHyperBeta,durationHyperAnchor=durationHyperAnchor,
+#' sigmaHyper=sigmaHyper,
+#' minResponse=0,maxResponse=365,
+#' runMAP=TRUE,processExtremes=TRUE,N=500,
+#' partitionDataForPriors=FALSE,
+#' maxDiv=0,setStringent=TRUE,
+#' priorLevel=2)
+#' ##summarize the Stan run
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
+#'                                           , taxonName = "Simulated"
+#'                                           ,standardLinearModel = FALSE)
+#' head(stanSummary)
 #' }
 
-runStanPhenology = function(type=c("intercept-only","full"), responseData, hyperparams_noCovariates=NA, onsetCovariateData=NA, durationCovariateData=NA, onsetHyperBeta=NA, onsetHyperAnchor=NA, durationHyperBeta=NA, durationHyperAnchor=NA, sigmaHyper=NA, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=TRUE, N=500, partitionDataForPriors=TRUE, maximizeSampleSize=FALSE, threshApprox=NA, byPassChecks=FALSE,priorLevel=2, ...) {
+runStanPhenology = function(type=c("intercept-only","interval","full"), responseData, stage=NA, hyperparams_noCovariates=NA, onsetCovariateData=NA, durationCovariateData=NA, onsetHyperBeta=NA, onsetHyperAnchor=NA, durationHyperBeta=NA, durationHyperAnchor=NA, sigmaHyper=NA, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=TRUE, N=500, partitionDataForPriors=TRUE, maximizeSampleSize=FALSE, threshApprox=NA, byPassChecks=FALSE,priorLevel=2, ...) {
 
   ## ###########################################################################
 	## CHECK STAN BLOCK
@@ -888,8 +951,8 @@ runStanPhenology = function(type=c("intercept-only","full"), responseData, hyper
 		warning("Ten or fewer data items is a very small sample size and will likely result in inaccurate inferences and a high divergence rate during Bayesian inference. The sample size should be at least 60, especially when covariates are used.")
 	}
 
-	if(!(type=="intercept-only" || type=="full" ) ) {
-		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'full'.\n"))
+	if(!(type=="intercept-only" || type=="full" || type=="interval") ) {
+		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'full' or 'interval'.\n"))
 		stop("Unsupported type error.")
 	}
 
@@ -904,6 +967,11 @@ runStanPhenology = function(type=c("intercept-only","full"), responseData, hyper
 			partition = partitionResponseData(responseData = responseData, prop = prop)
 			responseData = partition$dataForInference
 			hyperparams_noCovariates = getHyperparametersViaQuantiles(responseDataForPrior = partition$dataForPrior, scale = scale)
+			}
+		}
+		else if(type=="interval") {
+			if(partitionDataForPriors) {
+				stop("Partitioning data for priors is not supported for interval estimation.")
 			}
 		}
 		else if(type=="full") {
@@ -939,9 +1007,9 @@ runStanPhenology = function(type=c("intercept-only","full"), responseData, hyper
 	if(type == "intercept-only") {
 		cat("No covariates will be included in this analysis.\n")
 		if(sum(is.na(hyperparams_noCovariates)) || length(hyperparams_noCovariates) != 6) stop("Expecting six hyperparameter values (mean and sd for mean onset, mean and sd for mean duration, mean and sd for sigma. Or, if you want hyperparameter values to be estimated for you, set 'partitionDataForPriors' to TRUE.")
-		runStan.NoCovariates.T.GP(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, hyperparameters = hyperparams_noCovariates, dataProvided=TRUE, runMAP=runMAP, setStringent=setStringent, maxDiv=maxDiv, processExtremes=processExtremes, N=N, threshApprox=threshApprox, ...)
+		return(runStan.NoCovariates.T.GP(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, hyperparameters = hyperparams_noCovariates, dataProvided=TRUE, runMAP=runMAP, setStringent=setStringent, maxDiv=maxDiv, processExtremes=processExtremes, N=N, threshApprox=threshApprox, ...))
 	}
-	else if(type == "full" ) {
+	else if(type == "full" || type == "interval") {
 		#cat("Checking conditions to run a Stan analysis with covariates A.\n")
 		if(sum(is.na(onsetCovariateData)) || !is.data.frame(onsetCovariateData) ) {
 			cat("Please remove all NA values, and provide a data frame of the onset model covariate (predictor variable) data. \nThese might be temperature or precipitation data at the specimen collection sites, for example.\nEach column of the data frame should be named with the predictor variable name (e.g. 'meanAnnualTemperature').\nThe order of the rows should correspond to the order of the elements in the response variable data vector (i.e., the first element in the response vector corresponds with the first row in the onset covariate data frame, the second element with the second row, and so forth).\nPlease see documentation for additional information and examples.")
@@ -963,9 +1031,18 @@ runStanPhenology = function(type=c("intercept-only","full"), responseData, hyper
 				#cat("Cessation anchor mean and standard deviation hyperparameter values are needed for the full model and should be provided as a two-element vector.\n")
 				#stop("Please provide appropriate inputs")
 			#}
-			cat("Calling specialized runStan functions.\n")
+			cat("Calling specialized runStan functions for presence-only data.\n")
 		  ## DANIEL: Changed argument response to responseData in runStan.WithCovariates.T.GP
-		runStan.WithCovariates.T.GP(responseData=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel)
+		return(runStan.WithCovariates.T.GP(responseData=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel))
+		}
+		else if(type == "interval") {
+			cat("Calling specialized runStan functions for presence-absence data.\n")
+			if(length(stage) != length(responseData))
+			{
+				stop("The vector of stages must be the same length as the vector of response data. For each individual sampled, there should be a response time and there should be a stage associated with the time. If the time is before the phenophase started, the stage is 1, if during the phenophase, the stage is 2, and if after the phenophase ended, the stage is 3.")
+			}
+
+			return(runStan.WithCovariates.Interval.T.GP(responseData=responseData,stage=stage, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel))
 		}
 	}
 }

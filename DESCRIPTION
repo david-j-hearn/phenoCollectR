@@ -2,9 +2,9 @@ Package: phenoCollectR
 Title: Bayesian Inference of Phenology from Biocollection Data
 Version: 0.0.0.9000
 Authors@R: 
+    person("Caetano", "Daniel", , "dcaetano@towson.edu", role = "aut")
+    person("Modrák", "Martin", , "martin.modrak@lfmotol.cuni.cz", role = "aut")
     person("Hearn", "David", , "dhearn@towson.edu", role = c("aut", "cre"))
-    person("Caetano", "Daniel", , "dcaetano@towson.edu", role = c("aut", "cre"))
-    person("Modrák", "Martin", , "martin.modrak@lfmotol.cuni.cz", role = c("aut", "cre"))
 Description: Tools to model, simulate, and analyze phenological data obtained
   from biocollection records. Provides a unified framework to explore
   phenological extremes (first onset, last cessation, total phenophase duration
