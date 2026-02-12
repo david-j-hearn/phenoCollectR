@@ -12,7 +12,7 @@
 #' @param maxCovariate Maximum possible value of the response
 #'
 #' @return A list with the values of the covariate (X), onset times (O), phenophase durations (D), cessation times (C), and observed times (Ts)
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \donttest{
@@ -59,22 +59,22 @@ out = list(
 return(out)
 }
 
-#' Simulate a population of individuals with simulated onset, duration, cessation, and observed times based on multiple correlated covariates for onset and for duration
+#' Simulate phenological times in a population with unimodal phenophase
 #'
 #' @description Simulate a population of individuals with simulated onset, duration, cessation, and observed times based on multiple correlated covariates for onset and for duration. Assumes a linear model with normally distributed variation. Defaults produced simulated values with no covariates.
 #'
 #' @param n Sample size
-#' @param betaOnset Vector of slope coefficients of the covariates for onset.
-#' @param betaDuration Vector of slope coefficients of the covariates for duration.
-#' @param covariateNamesOnset Vector of the names of the covariates for onset; must be same length as betaOnset (default: "noOnsetCovariates").
-#' @param covariateNamesDuration Vector of the names of the covariates for duration; must be same length as betaDuration (default: "noDurationCovariates").
-#' @param muCovariateOnset Vector of the means of the covariates for onset; must be of same length as betaOnset. Helps to define the intercept. (default: 0)
-#' @param muCovariateDuration Vector of the means of the covariates for duration; must be of same length as betaDuration. Helps to define the intercept. (default: 0)
-#' @param CovarianceOnset The covariance matrix for onset; must be of dimension length(betaOnset) X length(betaOnset) (default: 0)
-#' @param CovarianceDuration The covariance matrix for duration; must be of dimension length(betaDuration) X length(betaDuration) (default: 0)
-#' @param meanOnset Marginal mean value of the onset times.
-#' @param meanDuration Marginal mean value of the duration times.
-#' @param sigmaOnset Standard deviation of the onset times. Duration is assumed fixed in this model.
+#' @param betaOnset Named vector of slope coefficients of the covariates for onset. Names are the names of the covariates. (default: NULL)
+#' @param betaDuration Named vector of slope coefficients of the covariates for duration. Names are the names of the covariates. (default: NULL)
+#' @param covariateNamesOnset Vector of the names of the covariates for onset; must be same length as betaOnset  (default: NULL)
+#' @param covariateNamesDuration Vector of the names of the covariates for duration; must be same length as betaDuration  (default: NULL)
+#' @param covariateMeans Named vector of the means of the covariates for onset. Names are the names of all the covariate variables. (default: NULL)
+#' @param covarianceMatrix The covariance matrix for all covariates with named rows and columns. Must be real, positive semidefinite. Either the covariance matrix or the correlation matrix is needed. Names are the names of all the covariate variables. (default: NULL)
+#' @param correlationMatrix The correlation matrix for all covariates with named rows and columns. Either the covariance matrix or the correlation matrix is needed. If the correlation matrix is used, the standard deviations of the covariates need to be supplied in the named covariateStandardDeviations vector parameter. Names are the names of all the covariate variables.  (default: NULL)
+#' @param covariateStandardDeviations Named vector of the standard deviations of all the covariate variables. Names are the names of all the covariate variables. (default: NULL)
+#' @param meanOnset Marginal mean value of the onset times. (default: 0)
+#' @param meanDuration Marginal mean value of the duration times. (default: 0)
+#' @param sigmaOnset Standard deviation of the onset times. Duration is assumed fixed in this model. (default: 1)
 #' @param minResponse The minimum time of observations. default: 0, which is the only fully supported value.
 #' @param maxResponse The maximum time of observations. default: 365, representing the number of days in a year. 
 #'
@@ -85,73 +85,142 @@ return(out)
 #' @examples
 #' \donttest{
 #' #Set the model parameters
-#' slopesOnset = c(1,2,3)
-#' meansOnset = c(10,20,30)
-#' covariate_namesOnset = c("o1", "o2", "o3") 
-#' response_nameOnset = "onset"
-#' covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3, 
-#'			              0.5, 2.0, 0.4, 
-#'				      0.3, 0.4, 1.5), nrow = 3
+#' #Variable names
+#' covariate_namesOnset = c("o1", "o2", "c1") 
+#' covariate_namesDuration = c("d1", "c1") 
+#' allCovariates = union(covariate_namesOnset, covariate_namesDuration) #onset first, then duration
+#' #Set up parameters to simulate covariate values
+#' correlationMatrix = matrix(c( 1.0, 0.5, 0.3, 0.1, 
+#'			              0.5, 1.0, 0.4, 0.2,
+#'				      0.3, 0.4, 1.0, 0.0,
+#'				      0.1, 0.2, 0.0, 1.0), nrow = 4
 #'                            , byrow = TRUE)
+#' colnames(correlationMatrix) = allCovariates
+#' rownames(correlationMatrix) = allCovariates
+#' covariateStandardDeviations = c(1,2,2,5)
+#' names(covariateStandardDeviations) = allCovariates
+#' covariateMeans = c(10,20,30,10)
+#' names(covariateMeans) = allCovariates
+#' #Set up the onset parameters
+#' slopesOnset = c(1,2,3)
+#' names(slopesOnset) = covariate_namesOnset
 #' mean_responseOnset = 150
 #' noiseOnset = 3
+#' #Set up the duration parameters
 #' slopesDuration = c(1,3)
-#' meansDuration = c(50,40)
-#' covariate_namesDuration = c("d1", "d2") 
-#' response_nameDuration = "duration"
-#' covariance_matrixDuration = matrix(c( 0.5, 0.3, 
-#'				         0.3, 0.5), nrow = 2
-#'                            , byrow = TRUE)
+#' names(slopesDuration) = covariate_namesDuration
 #' mean_responseDuration = 30
+#' #Sample size
 #' n=1000
 #' #Simulate the data
 #' simulated_data = simulatePopulationLatentIntervalStates(n=n,
-#' 							betaOnset=slopesOnset, betaDuration=slopesDuration,
-#'							covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
-#'							muCovariateOnset = meansOnset, muCovariateDuration = meansDuration,
-#'							CovarianceOnset = covariance_matrixOnset, CovarianceDuration = covariance_matrixDuration,
-#'							meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
-#'							sigmaOnset = noiseOnset)
+#' 			betaOnset=slopesOnset, betaDuration=slopesDuration,
+#'			covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
+#'			covariateMeans = covariateMeans,
+#'			correlationMatrix = correlationMatrix,
+#'			covariateStandardDeviations = covariateStandardDeviations,
+#'			meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
+#'			sigmaOnset = noiseOnset)
 #' #Make a scatter plot of the simulated data
 #' plot(simulated_data$o1[simulated_data$stage==2], simulated_data$observedTime[simulated_data$stage==2], main=NULL, xlab="O1", ylab="Onset")
+#' #Check simulated values against actual
+#' #Should be o1: 10, o2: 20, c1: 30, d1: 10, onsets: 150, durations: 30, cessations: 180, observedTimes: 366/2, stages: around 2
+#' colMeans(simulated_data)
+#' attach(simulated_data)
+#' #The correlation matrix should be similar to correlationMatrix defined above
+#' cor(data.frame(o1,o2,c1,d1))
+#' #Coefficients for the onset model should be slopesOnset: 1, 2, 3
+#' summary(lm(onset ~ o1 + o2 + c1))
+#' #Coefficients for the duration model should be slopesDuration: 1, 3
+#' summary(lm(duration ~ d1 + c1))
+#' #The observed time coefficients should be betaOnset + betaDuration/2
+#' #With the above numbers that's o1: 1, o2: 2, c1: (3 + 3/2), d1: 1/2
+#' summary(lm(observedTime[stage==2] ~ o1[stage==2] + o2[stage==2] + c1[stage==2] + d1[stage==2]))
+#' #The cessation coefficients should be betaOnset + betaDuration
+#' #With the above numbers that's o1: 1, o2: 2, c1: (3 + 3), d1: 1
+#' summary(lm(cessation ~ o1 + o2 + c1 + d1))
 #' }
 simulatePopulationLatentIntervalStates = function(n, 
-						  betaOnset=0, betaDuration=0, 
-						  covariateNamesOnset="noOnsetCovariates", covariateNamesDuration="noDurationCovariates", 
-						  muCovariateOnset = 0, muCovariateDuration = 0, 
-						  CovarianceOnset = 0, CovarianceDuration = 0, 
-						  meanOnset = 0, meanDuration = 0, 
-						  sigmaOnset = 1, 
-						  minResponse=0, maxResponse=365) {
+					covariateNamesOnset=NULL, covariateNamesDuration=NULL, 
+					covariateMeans = NULL, 
+					covarianceMatrix = NULL,
+					correlationMatrix = NULL, 
+					covariateStandardDeviations = NULL,
+					betaOnset=NULL, betaDuration=NULL, 
+					meanOnset = 0, meanDuration = 0, 
+					sigmaOnset = 1, 
+					minResponse=0, maxResponse=365,
+					seed = NULL) {
 
-	#simulate onsets
-	onsetData = simulateCorrelatedCovariateData(n=n, beta=betaOnset, cov_names=covariateNamesOnset, mu = muCovariateOnset, response_name = "onset", Sigma = CovarianceOnset, anchor = meanOnset, noise_sd = sigmaOnset) 
-	#simulate durations
-	durationData = simulateCorrelatedCovariateData(n=n, beta=betaDuration, cov_names=covariateNamesDuration, mu = muCovariateDuration, response_name = "duration", Sigma = CovarianceDuration, anchor = meanDuration, noise_sd = 0) 
-	#simulate individuals
-	onsets = onsetData$onset
-	durations = durationData$duration
-	cessations = onsets+durations
-	observedTimes = runif(n,minResponse,maxResponse)
-	stages = 1L + (observedTimes >= onsets) + (observedTimes >= cessations) # force long integer format
-	data <- cbind(onsetData, durationData)
-	data$cessation = cessations
-	data$observedTime = observedTimes
-	data$stage = stages
-	data = data[, names(data) != "noOnsetCovariates", drop = FALSE]
-	data = data[, names(data) != "noDurationCovariates", drop = FALSE]
+	#Basic checks
+	if(n<=0) {
+		stop("n should be a positive integer.")
+	}
+	if(meanOnset <= minResponse || meanDuration <= minResponse ) {
+		stop("Mean onset and mean duration must be greater than 0")
+	}
+	if(meanOnset >= maxResponse) {
+		stop("Mean onset must be before the end of the time period")
+	}
+	if(meanDuration >= maxResponse-meanOnset) {
+		stop("Mean duration must occur within the window between the mean onset time and the end of the time period.")
+	}
+
+	#Simulate covariate data
+	covs_all = union(covariateNamesOnset,covariateNamesDuration)
+	if(!is.null(covs_all)) {
+	X = simulateCorrelatedCovariateData(n=n, cov_names=covs_all, means=covariateMeans, Sigma = covarianceMatrix, R = correlationMatrix, sds = covariateStandardDeviations, seed = seed)  
+	data = X
+	}
+	else {
+		data = data.frame(matrix(nrow = n, ncol = 0))
+	}
+
+	#Simulate onset data
+	if(is.null(covariateNamesOnset)) {
+		onset = rnorm(n,meanOnset,sigmaOnset)
+		onsetData = data.frame(onset=onset)
+	}
+	else {
+		#Pull out data for onset
+		onsetCovariates = X[, covariateNamesOnset, drop=FALSE]; 
+		onsetData = simulateResponseData(X=onsetCovariates, beta=betaOnset, response_name = "onset", anchor = meanOnset, noise_sd = sigmaOnset) 
+	}
+
+	#Simulate duration data
+	if(is.null(covariateNamesDuration)) {
+		duration = rep(meanDuration,n)
+		durationData = data.frame(duration=duration)
+	}
+	else {
+		#Pull out data for duration
+		durationCovariates = X[, covariateNamesDuration, drop=FALSE]; 
+		durationData = simulateResponseData(X=durationCovariates, beta=betaDuration, response_name = "duration", anchor = meanDuration, noise_sd = 0) 
+	}
+
+	#Simulate observed times based on simulated onset and duration times
+	onset = onsetData$onset
+	duration = durationData$duration
+	cessation = onset+duration
+	observedTime = runif(n,minResponse,maxResponse)
+	stage = 1L + (observedTime >= onset) + (observedTime >= cessation)
+
+	#Prepare output data frame
+	data$onset = onset
+	data$duration = duration
+	data$cessation = cessation
+	data$observedTime = observedTime
+	data$stage = stage
 	return(data)
 }
 
-#' Simulate a response variable based on multiple correlated covariates
+#' Simulate a response variable based on a linear model of covariates
 #'
-#' @description Simulate the values of a response variable based on simulated values of multiple correlated covariates. Assumes a linear model with normally distributed variation.
+#' @description Simulate the values of a response variable based on values of multiple covariates. Assumes a linear model with normally distributed variation.
 #'
-#' @param n Sample size
+#' @param X A data frame with labeled columns indicating covariate names and rows with covariate data
 #' @param beta Vector of slope coefficients of the covariates
-#' @param cov_names Vector of the names of the covariates
-#' @param mu Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)
-#' @param response_name The name of the response variable; must be of same length as beta. (default: "Y")
+#' @param response_name The name of the response variable (default: "Y")
 #' @param Sigma The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix)
 #' @param anchor Marginal mean value of the response variable
 #' @param noise_sd Standard deviation of the noise in the response variable
@@ -162,74 +231,309 @@ simulatePopulationLatentIntervalStates = function(n,
 #'
 #' @examples
 #' \donttest{
+#' ##First, simulate covariate data
+#' #Set the model parameters for covariates
+#' covariate_names = c("x1", "x2", "x3") 
+#' means = c(10,20,30)
+#' names(means) = covariate_names
+#' correlation_matrix = matrix(c( 1.0, 0.5, 0.3, 
+#'				 0.5, 1.0, 0.4, 
+#'				 0.3, 0.4, 1), nrow = 3
+#'                            , byrow = TRUE)
+#' rownames(correlation_matrix) = covariate_names
+#' colnames(correlation_matrix) = covariate_names
+#' sds = c(1,2,4)
+#' names(sds) = covariate_names
+#' n=1000
+#' X = simulateCorrelatedCovariateData(n=n, cov_names=covariate_names, means=means, R=correlation_matrix, sds=sds)
+#'
+#' ##Next, simulate response data based on simulated covariate data
 #' #Set the model parameters
 #' slopes = c(1,2,3)
-#' means = c(10,20,30)
-#' covariance_names = c("x1", "x2", "x3") 
+#' names(slopes) = covariate_names
 #' response_name = "y"
-#' covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3
-#'                            , byrow = TRUE)
 #' mean_response = 100
 #' noise = 3
-#' n=1000
 #' #Simulate the data
-#' simulated_data = simulateCorrelatedCovariateData(n=n, beta=slopes, cov_names=covariance_names
-#'                                                  , mu = means, Sigma=covariance_matrix
-#'                                                  , anchor=mean_response
-#'                                                  , response_name = response_name
-#'                                                  , noise_sd = noise)
+#' simulated_data = simulateResponseData(X=X, beta=slopes, 
+#'                                                  response_name = response_name,
+#'                                                  anchor=mean_response,
+#'                                                  noise_sd = noise)
 #' #Make a scatter plot of the simulated data
 #' plot(simulated_data$x1, simulated_data$y, main=NULL, xlab="X1", ylab="Y")
+#' #Present some stats to check match with true parameters
+#' #Coefficients should match slopes for the covariates
+#' summary(lm(simulated_data$y ~ simulated_data$x1 + simulated_data$x2 + simulated_data$x3))
+#' #Correlation matrix should be close to the true correlation matrix
+#' cor(X)
+#' #Means should resemble the provided ones for the response and covariates
+#' colMeans(simulated_data)
 #' }
-simulateCorrelatedCovariateData = function(n, beta, cov_names, mu = NULL, response_name = "Y",
-		Sigma = NULL, anchor = 0, noise_sd = 1) {
+simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_sd = 0) {
+# Basic checks
+	if (!is.data.frame(X) && !is.matrix(X)) {
+	  stop("X must be a data.frame or matrix.")
+	}
+
+	X <- as.data.frame(X)
+
+	n = nrow(X)
+
+	xn <- colnames(X)
+	bn <- names(beta)
+
+	if (is.null(xn)) stop("X must have column names.")
+	if (is.null(bn)) stop("beta must be a named vector.")
+
+  # Check name matching
+	missing <- setdiff(xn, bn)
+	extra   <- setdiff(bn, xn)
+
+	if (length(missing) > 0) {
+	  stop("beta is missing coefficients for: ", paste(missing, collapse = ", "))
+	}
+	if (length(extra) > 0) {
+	  warning("beta has extra coefficients not in X: ", paste(extra, collapse = ", "))
+	}
+
+  # Align beta to X columns
+	beta <- beta[xn]
+
+  # Linear predictor
+	linear_part <- as.vector(as.matrix(X) %*% beta)
+
+  # Adjust intercept for anchor
+	intercept <- anchor - mean(linear_part)
+
+  # Simulate noise
+	epsilon <- rnorm(n, mean = 0, sd = noise_sd)
+
+  # Simulate response
+	Y <- intercept + linear_part + epsilon
+
+  # Combine into dataframe
+	df <- data.frame(Y = Y, X, check.names = FALSE)
+	names(df)[1] <- response_name
+
+	return(df)
+}
+
+#' Simulate linearly correlated covariate data
+#'
+#' @description Simulate linearly correlated covariate data for any positive number of covariates. 
+#'
+#' @param n Sample size
+#' @param cov_names Vector of the names of the covariates
+#' @param means Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)
+#' @param Sigma The covariance matrix. Must be real positive semidefinite and of dimension length(beta) X length(beta) (default: identity matrix if no correlation matrix provided)
+#' @param R The correlation matrix. Diagonal must be all ones, and off diagonal entries must vary between -1 and 1. Needs value of sds parameter to be applied. (default: identity matrix)
+#' @param sds A vector of standard deviations of each covariate. 
+#' @param seed An optional seed for the random number generator.
+#'
+#' @return A data frame with columns labeled with the covariate names and n rows representing simulation replicates.
+#' @export
+#' @importFrom MASS mvrnorm
+#'
+#' @examples
+#' \donttest{
+#' #Set the model parameters
+#' covariate_names = c("x1", "x2", "x3") 
+#' means = c(10,20,30)
+#' names(means) = covariate_names
+#' correlation_matrix = matrix(c( 1.0, 0.5, 0.3, 
+#'				 0.5, 1.0, 0.4, 
+#'				 0.3, 0.4, 1), nrow = 3
+#'                            , byrow = TRUE)
+#' rownames(correlation_matrix) = covariate_names
+#' colnames(correlation_matrix) = covariate_names
+#' sds = c(1,2,4)
+#' names(sds) = covariate_names
+#' n=1000
+#' #Simulate the data
+#' X = simulateCorrelatedCovariateData(n=n, cov_names=covariate_names, means=means, R=correlation_matrix, sds=sds)
+#' #Make a scatter plot of the simulated data
+#' plot(X$x1, X$x2, main=NULL, xlab="X1", ylab="X2")
+#' #Correlation matrix should be close to the true correlation matrix
+#' cor(X)
+#' }
+simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NULL, R = NULL, sds = NULL, seed = NULL)  {
+
+	if(is.null(cov_names)) {
+		return(rep(0,n))
+	}
+
+#Rename n
+	N = n
+
+#Set seed
+	if (!is.null(seed)) set.seed(seed)
+
 # Load required package
 	if (!requireNamespace("MASS", quietly = TRUE)) {
 		stop("Please install the 'MASS' package with install.packages('MASS')")
 	}
 
-# Check input
-		p = length(beta)
-		if (length(cov_names) != p) {
-			stop("Length of cov_names must match length of beta.")
-		}
+  # ---- all covariates (union) ----
+  all_covs = cov_names
+  p <- length(all_covs)
 
-# Default covariance matrix (identity)
-	if (is.null(Sigma)) {
-		Sigma = diag(p)
-	} else {
-		if (!all(dim(Sigma) == c(p, p))) {
-			stop("Sigma must be a square matrix with dimensions matching length of beta.")
-		}
-	}
+  # ---- checks ----
+  if (is.null(Sigma) && (is.null(R) || is.null(sds))) {
+    warn("No covariance or correlation matrix with scales provided. Using identity matrix for covariance matrix.")
+	Sigma = diag(p)
+  	rownames(Sigma) = all_covs
+	colnames(Sigma) = all_covs
+  }
+
+  # ---- build Sigma_full ----
+  if (!is.null(Sigma)) {
+    if (!is.matrix(Sigma)) stop("Sigma must be a matrix.")
+
+    rn <- rownames(Sigma)
+    cn <- colnames(Sigma)
+    if (is.null(rn) || is.null(cn)) {
+      stop("Sigma must have rownames and colnames.")
+    }
+    if (!identical(rn, cn)) {
+      stop("Sigma rownames and colnames must match and be in the same order.")
+    }
+
+    missing <- setdiff(all_covs, rn)
+    if (length(missing) > 0) {
+      stop("Sigma is missing covariates: ", paste(missing, collapse = ", "))
+    }
+
+    Sigma_use <- Sigma[all_covs, all_covs, drop = FALSE]
+
+  } else {
+    # R + sds path
+    if (!is.matrix(R)) stop("R must be a matrix.")
+
+    rn <- rownames(R)
+    cn <- colnames(R)
+    if (is.null(rn) || is.null(cn)) {
+      stop("R must have rownames and colnames.")
+    }
+    if (!identical(rn, cn)) {
+      stop("R rownames and colnames must match and be in the same order.")
+    }
+
+    missing <- setdiff(all_covs, rn)
+    if (length(missing) > 0) {
+      stop("R is missing covariates: ", paste(missing, collapse = ", "))
+    }
+
+    R_use <- R[all_covs, all_covs, drop = FALSE]
+
+    # sds can be named or unnamed
+    if (is.null(names(sds))) {
+      if (length(sds) != nrow(R)) {
+        stop("If sds is unnamed, it must have length equal to nrow(R).")
+      }
+      sds_named <- sds
+      names(sds_named) <- rownames(R)
+    } else {
+      sds_named <- sds
+    }
+
+    missing_sds <- setdiff(all_covs, names(sds_named))
+    if (length(missing_sds) > 0) {
+      stop("sds is missing covariates: ", paste(missing_sds, collapse = ", "))
+    }
+
+    sds_use <- sds_named[all_covs]
+    p <- length(sds_use)
+	D <- diag(as.numeric(sds_use), nrow = p, ncol = p)
+    Sigma_use <- diag(D) %*% R_use %*% diag(D)
+  }
+
+  # ---- means ----
+  if (is.null(means)) {
+    means_use <- rep(0, p)
+    names(means_use) <- all_covs
+  } else {
+    if (is.null(names(means))) {
+      stop("means must be a named vector with names matching covariates.")
+    }
+    missing_means <- setdiff(all_covs, names(means))
+    if (length(missing_means) > 0) {
+      stop("means is missing covariates: ", paste(missing_means, collapse = ", "))
+    }
+    means_use <- means[all_covs]
+  }
+
+  # ---- PD check ----
+  ev <- eigen(Sigma_use, symmetric = TRUE, only.values = TRUE)$values
+  if (min(ev) <= 1e-10) {
+    stop("Sigma is not positive definite (min eigenvalue = ", signif(min(ev), 4), ").")
+  }
+
+  # ---- simulate ----
+  X <- MASS::mvrnorm(n = N, mu = means_use, Sigma = Sigma_use)
+  colnames(X) <- all_covs
+  X <- as.data.frame(X)
+
+return(X)
+}
+
+#' Simulate a response variable based on multiple correlated covariates
+#'
+#' @description Simulate the values of a response variable based on simulated values of multiple correlated covariates. Assumes a linear model with normally distributed variation.
+#'
+#' @param n Sample size
+#' @param beta Vector of slope coefficients of the covariates
+#' @param cov_names Vector of the names of the covariates
+#' @param mu Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)
+#' @param response_name The name of the response variable (default: "Y")
+#' @param Sigma The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix). Either this or the correlation matrix R with covariate standardiviations (sds) should be provided, and if none, the identity matrix is default. Default: identity matrix
+#' @param R The correlation matrix. Either with the standard deviations of each covariate (sds) or the Sigma covariance matrix should be given, and if none, the identity matrix is default. Default: identity matrix
+#' @param anchor Marginal mean value of the response variable
+#' @param noise_sd Standard deviation of the noise in the response variable
+#'
+#' @return A data frame with columns labeled with the variable names and rows representing simulation replicates.
+#' @export
+#' @importFrom MASS mvrnorm
+#'
+#' @examples
+#' \donttest{
+#' #Set the model parameters
+#' covariate_names = c("x1", "x2", "x3") 
+#' slopes = c(1,2,3)
+#' names(slopes) = covariate_names
+#' means = c(10,20,30)
+#' names(means) = covariate_names
+#' response_name = "y"
+#' covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3
+#'                            , byrow = TRUE)
+#' colnames(covariance_matrix) = covariate_names
+#' rownames(covariance_matrix) = covariate_names
+#' mean_response = 100
+#' noise = 3
+#' n=50000
+#' #Simulate the data
+#' simulated_data = simulateCorrelatedCovariateAndResponseData(n=n, beta=slopes, cov_names=covariate_names
+#'                                                  , cov_means = means, Sigma=covariance_matrix
+#'                                                  , anchor=mean_response
+#'                                                  , response_name = response_name
+#'                                                  , noise_sd = noise)
+#' #Make a scatter plot of the simulated data
+#' plot(simulated_data$x1, simulated_data$y, main=NULL, xlab="X1", ylab="Y")
+#' ##Compare inferences to true values
+#' #coefficients should be 1, 2, 3
+#' summary(lm(simulated_data$y ~ simulated_data$x1 + simulated_data$x2 + simulated_data$x3))
+#' #Means should be 100, 10, 20, 30
+#' colMeans(simulated_data)
+#' }
+simulateCorrelatedCovariateAndResponseData = function(n, beta, cov_names, cov_means = NULL, response_name = "Y", Sigma = NULL, R = NULL, sds = NULL, anchor = 0, noise_sd = 1) {
 
 # Simulate covariates
-	if(is.null(mu)) {
-	mu = rep(0, p)
-	}
-	if(length(mu) != p) {
-		stop("The length of the mu vector must match the length of the beta vector.")
-	}
-		X = mvrnorm(n = n, mu = mu, Sigma = Sigma)
-		colnames(X) = cov_names
-
-# Linear predictor
-		linear_part = X %*% beta
-
-# Adjust intercept for anchor
-		intercept = anchor - mean(linear_part)
-
-# Simulate noise
-		epsilon = rnorm(n, mean = 0, sd = noise_sd)
+	X = simulateCorrelatedCovariateData(n=n, cov_names=cov_names, means=cov_means, Sigma = Sigma, R = R, sds = sds)  
 
 # Simulate response
-		Y = as.vector(intercept + linear_part + epsilon)
+	Y = simulateResponseData(X=X, beta=beta, response_name=response_name, anchor=anchor, noise_sd=noise_sd) 
 
-# Combine into dataframe
-		df = data.frame(Y = Y, X)
-		names(df)[1] = response_name
-
-		return(df)
+#Return output
+	return(Y)
 }
 
 simulatePopulation.BB = function(N, minResponse=0, maxResponse=365, mu_O, sigma_O, mu_D, sigma_D, mins=1, maxs=3000, betaDuration=NA) {

@@ -201,64 +201,92 @@ stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
 head(stanSummary)
 ##Run a more complicated example, this time with observed times before, during, and after the phenophse.
 ##This will be using simulated data
-# Set slopes, means, and covariances of onset covariate data
-slopesOnset = c(1,2,3)             
-meansOnset = c(10,20,30)
-covariate_namesOnset = c("o1", "o2", "o3")
-response_nameOnset = "onset"
-covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3,
+# Set parameters for the covariate model
+covariate_namesOnset = c("v1", "v2")
+covariate_namesDuration = c("v1", "v3")
+cov_all = union(covariate_namesOnset, covariate_namesDuration)
+covarianceMatrix = matrix(c( 1.0, 0.5, 0.3,
 				      0.5, 2.0, 0.4,
 				      0.3, 0.4, 1.5), nrow = 3, byrow = TRUE)
+rownames(covarianceMatrix) = cov_all
+colnames(covarianceMatrix) = cov_all
+covariateMeans = c(50,60,80)
+names(covariateMeans) = cov_all
+# Set slopes, means of responses
+slopesOnset = c(0.5,-0.9)
+names(slopesOnset) = covariate_namesOnset
 mean_responseOnset = 150
 noiseOnset = 3
-# Set slopes, means, and covariances of duration covariate data
-slopesDuration = c(1,3)
-meansDuration = c(50,40)
-covariate_namesDuration = c("d1", "d2")
-response_nameDuration = "duration"
-covariance_matrixDuration = matrix(c( 0.5, 0.3,
-				         0.3, 0.5), nrow = 2, byrow = TRUE)
+slopesDuration = c(0.7,1)
+names(slopesDuration) = covariate_namesDuration
 mean_responseDuration = 30
 n=3000
 #Simulate the data
 simulated_data = simulatePopulationLatentIntervalStates(n=n,
-betaOnset=slopesOnset, betaDuration=slopesDuration,
-covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
-muCovariateOnset = meansOnset, muCovariateDuration = meansDuration,
-CovarianceOnset = covariance_matrixOnset, CovarianceDuration = covariance_matrixDuration,
-meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
-sigmaOnset = noiseOnset)
-#Set up the data objects for stan
+                       betaOnset=slopesOnset, betaDuration=slopesDuration,
+               covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
+               covariateMeans = covariateMeans,
+               covarianceMatrix = covarianceMatrix,
+               meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
+               sigmaOnset = noiseOnset)
+##Set up the data objects for stan
+#Presence only
 responseData = simulated_data$observedTime[simulated_data$stage==2]
-stage = simulated_data$stage[simulated_data$stage==2]
-onsetCovariateData = data.frame(simulated_data$o1[simulated_data$stage==2],simulated_data$o2[simulated_data$stage==2],simulated_data$o3[simulated_data$stage==2])
-durationCovariateData = data.frame(simulated_data$d1[simulated_data$stage==2],simulated_data$d2[simulated_data$stage==2])
-names( onsetCovariateData ) = c("o1","o2","o3")
-names( durationCovariateData ) = c("d1","d2")
+onsetCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v2[simulated_data$stage==2])
+durationCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v3[simulated_data$stage==2])
+colnames( onsetCovariateData ) = covariate_namesOnset
+colnames( durationCovariateData ) = covariate_namesDuration
+#Before, during, after data (BDA)
+responseDataBDA = simulated_data$observedTime
+onsetCovariateDataBDA = simulated_data[,covariate_namesOnset, drop=FALSE]
+durationCovariateDataBDA = simulated_data[,covariate_namesDuration, drop=FALSE]
+stageBDA = simulated_data$stage
 #Set up the hyperparameters for priors
-onsetHyperBeta = data.frame(slopesOnset,c(1,1,1))
-onsetHyperAnchor = c(150, 10)
+onsetHyperBeta = data.frame(slopesOnset,c(1,1))
+onsetHyperAnchor = c(150, 5)
 durationHyperBeta = data.frame(slopesDuration,c(1,1))
-durationHyperAnchor = c(30, 10)
-sigmaHyper = c(3,3)
-##Conduct the Stan run
-stanResult = runStanPhenology(
-type="full",
-responseData=responseData,
-stage=stage,
-onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData,
-onsetHyperBeta=onsetHyperBeta,onsetHyperAnchor=onsetHyperAnchor,
-durationHyperBeta=durationHyperBeta,durationHyperAnchor=durationHyperAnchor,
-sigmaHyper=sigmaHyper,
-minResponse=0,maxResponse=365,
-runMAP=TRUE,processExtremes=TRUE,N=500,
-partitionDataForPriors=FALSE,
-maxDiv=0,setStringent=TRUE,
-priorLevel=2)
+durationHyperAnchor = c(30, 3)
+sigmaHyper = c(3,1)
+##Conduct the Stan run: PRESENCE ONLY
+stanResultPO = runStanPhenology(
+			type="full",
+			responseData=responseData,
+			onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData,
+			onsetHyperBeta=onsetHyperBeta,onsetHyperAnchor=onsetHyperAnchor,
+			durationHyperBeta=durationHyperBeta,durationHyperAnchor=durationHyperAnchor,
+			sigmaHyper=sigmaHyper,
+			minResponse=0,maxResponse=365,
+			runMAP=TRUE,processExtremes=TRUE,N=500,
+			partitionDataForPriors=FALSE,
+			maxDiv=0,setStringent=TRUE,
+			priorLevel=2
+			)
 ##summarize the Stan run
-stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
+stanSummaryPO  =  summarizePhenologyResults(stanRunResult = stanResultPO
                                           , taxonName = "Simulated"
                                           ,standardLinearModel = FALSE)
-head(stanSummary)
+##write results to file
+write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
+##Conduct the Stan run: BEFORE, DURING, AFTER
+stanResultBDA = runStanPhenology(
+			type="interval",
+			responseData=responseDataBDA,
+			stage=stageBDA,
+			onsetCovariateData=onsetCovariateDataBDA, durationCovariateData=durationCovariateDataBDA,
+			onsetHyperBeta=onsetHyperBeta,onsetHyperAnchor=onsetHyperAnchor,
+			durationHyperBeta=durationHyperBeta,durationHyperAnchor=durationHyperAnchor,
+			sigmaHyper=sigmaHyper,
+			minResponse=0,maxResponse=365,
+			runMAP=TRUE,processExtremes=TRUE,N=500,
+			partitionDataForPriors=FALSE,
+			maxDiv=0,setStringent=TRUE,
+			priorLevel=2
+			)
+##summarize the Stan run
+stanSummaryBDA  =  summarizePhenologyResults(stanRunResult = stanResultBDA
+                                          , taxonName = "Simulated"
+                                          ,standardLinearModel = FALSE)
+##write results to file
+write.csv(stanSummaryBDA,"Simulated.BeforeDuringAfter.informativePriors.csv")
 }
 }

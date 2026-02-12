@@ -2,61 +2,59 @@
 % Please edit documentation in R/phenologySimulation.R
 \name{simulateCorrelatedCovariateData}
 \alias{simulateCorrelatedCovariateData}
-\title{Simulate a response variable based on multiple correlated covariates}
+\title{Simulate linearly correlated covariate data}
 \usage{
 simulateCorrelatedCovariateData(
   n,
-  beta,
   cov_names,
-  mu = NULL,
-  response_name = "Y",
+  means = NULL,
   Sigma = NULL,
-  anchor = 0,
-  noise_sd = 1
+  R = NULL,
+  sds = NULL,
+  seed = NULL
 )
 }
 \arguments{
 \item{n}{Sample size}
 
-\item{beta}{Vector of slope coefficients of the covariates}
-
 \item{cov_names}{Vector of the names of the covariates}
 
-\item{mu}{Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)}
+\item{means}{Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)}
 
-\item{response_name}{The name of the response variable; must be of same length as beta. (default: "Y")}
+\item{Sigma}{The covariance matrix. Must be real positive semidefinite and of dimension length(beta) X length(beta) (default: identity matrix if no correlation matrix provided)}
 
-\item{Sigma}{The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix)}
+\item{R}{The correlation matrix. Diagonal must be all ones, and off diagonal entries must vary between -1 and 1. Needs value of sds parameter to be applied. (default: identity matrix)}
 
-\item{anchor}{Marginal mean value of the response variable}
+\item{sds}{A vector of standard deviations of each covariate.}
 
-\item{noise_sd}{Standard deviation of the noise in the response variable}
+\item{seed}{An optional seed for the random number generator.}
 }
 \value{
-A data frame with columns labeled with the variable names and rows representing simulation replicates.
+A data frame with columns labeled with the covariate names and n rows representing simulation replicates.
 }
 \description{
-Simulate the values of a response variable based on simulated values of multiple correlated covariates. Assumes a linear model with normally distributed variation.
+Simulate linearly correlated covariate data for any positive number of covariates.
 }
 \examples{
 \donttest{
 #Set the model parameters
-slopes = c(1,2,3)
+covariate_names = c("x1", "x2", "x3") 
 means = c(10,20,30)
-covariance_names = c("x1", "x2", "x3") 
-response_name = "y"
-covariance_matrix = matrix(c( 1.0, 0.5, 0.3, 0.5, 2.0, 0.4, 0.3, 0.4, 1.5), nrow = 3
+names(means) = covariate_names
+correlation_matrix = matrix(c( 1.0, 0.5, 0.3, 
+			 0.5, 1.0, 0.4, 
+			 0.3, 0.4, 1), nrow = 3
                            , byrow = TRUE)
-mean_response = 100
-noise = 3
+rownames(correlation_matrix) = covariate_names
+colnames(correlation_matrix) = covariate_names
+sds = c(1,2,4)
+names(sds) = covariate_names
 n=1000
 #Simulate the data
-simulated_data = simulateCorrelatedCovariateData(n=n, beta=slopes, cov_names=covariance_names
-                                                 , mu = means, Sigma=covariance_matrix
-                                                 , anchor=mean_response
-                                                 , response_name = response_name
-                                                 , noise_sd = noise)
+X = simulateCorrelatedCovariateData(n=n, cov_names=covariate_names, means=means, R=correlation_matrix, sds=sds)
 #Make a scatter plot of the simulated data
-plot(simulated_data$x1, simulated_data$y, main=NULL, xlab="X1", ylab="Y")
+plot(X$x1, X$x2, main=NULL, xlab="X1", ylab="X2")
+#Correlation matrix should be close to the true correlation matrix
+cor(X)
 }
 }

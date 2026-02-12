@@ -2,7 +2,7 @@ functions {
 
 // Log probabilities for y in {before, during, after} at time t
 // given onset ~ Normal(mu, sigma) and duration D > 0
-	vector log_cat_probs(real t, real mu, real sigma, real D) {
+	vector log_cat_probs(real t, real mu, real sigma, real D, int debug) {
 
 		vector[3] lp;
 
@@ -20,6 +20,10 @@ functions {
 		lp[1] = log_p_before;
 		lp[2] = log_p_during;
 		lp[3] = log_p_after;
+
+		//if(debug) {
+			print("time, onset, sigma, duration, log cat probs: ", [t, mu, sigma, D, lp[1], lp[2], lp[3]]);
+		//}
 		
 		return lp;
 	}
@@ -206,7 +210,7 @@ parameters {
 	vector[K_D] beta_D_raw;
 	real<lower=0> anchor_D_raw;
 
-	real<lower=0> sigma_raw;
+	real<lower=1e-6> sigma_raw;
 }
 
 
@@ -218,13 +222,20 @@ transformed parameters {
 	vector[N] mu_O_raw;
 	vector[N] mu_C_raw;
 	vector[N] mu_D_raw;
+	vector[N] eta_D;
 
 	alpha_O_raw = anchor_O_raw - dot_product(mean_X_O_raw , beta_O_raw);
 	alpha_D_raw = anchor_D_raw - dot_product(mean_X_D_raw , beta_D_raw);
 
+	//Calculate mean onset in transformed scale
 	mu_O_raw =  alpha_O_raw + X_O_raw * beta_O_raw;
-	mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw;
 
+	//Calculate mean duration in transformed scale, using softplus to assure positivity
+	eta_D =  alpha_D_raw + X_D_raw * beta_D_raw;
+	//mu_D_raw = log1p_exp(eta_D);
+	mu_D_raw = fmax(1e-6,eta_D);
+
+	//Calculate mean cessation based on onset and duration
 	mu_C_raw = mu_O_raw + mu_D_raw;
 }
 
@@ -237,7 +248,7 @@ model {
 	//Calculate the likelihood
 	if(!drop_ll) {
 		for(i in 1:N) {
-			vector[3] lp = log_cat_probs(T_raw[i], mu_O_raw[i], sigma_raw, mu_D_raw[i]);
+			vector[3] lp = log_cat_probs(T_raw[i], mu_O_raw[i], sigma_raw, mu_D_raw[i],debug);
 			target += categorical_logit_lpmf(stage[i] | lp);
 		}
 	}

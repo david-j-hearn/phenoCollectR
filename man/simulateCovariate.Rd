@@ -65,3 +65,4 @@ abline(a = interceptO + interceptD, b = slopeO + slopeD, col = "blue", lwd = 2)
 segments(x0 = data$X, y0 = data$O, x1 = data$X, y1 = data$C, col = "gray", lwd=0.5)
 }
 }
+\keyword{internal}

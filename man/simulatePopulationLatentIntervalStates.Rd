@@ -2,49 +2,50 @@
 % Please edit documentation in R/phenologySimulation.R
 \name{simulatePopulationLatentIntervalStates}
 \alias{simulatePopulationLatentIntervalStates}
-\title{Simulate a population of individuals with simulated onset, duration, cessation, and observed times based on multiple correlated covariates for onset and for duration}
+\title{Simulate phenological times in a population with unimodal phenophase}
 \usage{
 simulatePopulationLatentIntervalStates(
   n,
-  betaOnset = 0,
-  betaDuration = 0,
-  covariateNamesOnset = "noOnsetCovariates",
-  covariateNamesDuration = "noDurationCovariates",
-  muCovariateOnset = 0,
-  muCovariateDuration = 0,
-  CovarianceOnset = 0,
-  CovarianceDuration = 0,
+  covariateNamesOnset = NULL,
+  covariateNamesDuration = NULL,
+  covariateMeans = NULL,
+  covarianceMatrix = NULL,
+  correlationMatrix = NULL,
+  covariateStandardDeviations = NULL,
+  betaOnset = NULL,
+  betaDuration = NULL,
   meanOnset = 0,
   meanDuration = 0,
   sigmaOnset = 1,
   minResponse = 0,
-  maxResponse = 365
+  maxResponse = 365,
+  seed = NULL
 )
 }
 \arguments{
 \item{n}{Sample size}
 
-\item{betaOnset}{Vector of slope coefficients of the covariates for onset.}
+\item{covariateNamesOnset}{Vector of the names of the covariates for onset; must be same length as betaOnset  (default: NULL)}
 
-\item{betaDuration}{Vector of slope coefficients of the covariates for duration.}
+\item{covariateNamesDuration}{Vector of the names of the covariates for duration; must be same length as betaDuration  (default: NULL)}
 
-\item{covariateNamesOnset}{Vector of the names of the covariates for onset; must be same length as betaOnset (default: "noOnsetCovariates").}
+\item{covariateMeans}{Named vector of the means of the covariates for onset. Names are the names of all the covariate variables. (default: NULL)}
 
-\item{covariateNamesDuration}{Vector of the names of the covariates for duration; must be same length as betaDuration (default: "noDurationCovariates").}
+\item{covarianceMatrix}{The covariance matrix for all covariates with named rows and columns. Must be real, positive semidefinite. Either the covariance matrix or the correlation matrix is needed. Names are the names of all the covariate variables. (default: NULL)}
 
-\item{muCovariateOnset}{Vector of the means of the covariates for onset; must be of same length as betaOnset. Helps to define the intercept. (default: 0)}
+\item{correlationMatrix}{The correlation matrix for all covariates with named rows and columns. Either the covariance matrix or the correlation matrix is needed. If the correlation matrix is used, the standard deviations of the covariates need to be supplied in the named covariateStandardDeviations vector parameter. Names are the names of all the covariate variables.  (default: NULL)}
 
-\item{muCovariateDuration}{Vector of the means of the covariates for duration; must be of same length as betaDuration. Helps to define the intercept. (default: 0)}
+\item{covariateStandardDeviations}{Named vector of the standard deviations of all the covariate variables. Names are the names of all the covariate variables. (default: NULL)}
 
-\item{CovarianceOnset}{The covariance matrix for onset; must be of dimension length(betaOnset) X length(betaOnset) (default: 0)}
+\item{betaOnset}{Named vector of slope coefficients of the covariates for onset. Names are the names of the covariates. (default: NULL)}
 
-\item{CovarianceDuration}{The covariance matrix for duration; must be of dimension length(betaDuration) X length(betaDuration) (default: 0)}
+\item{betaDuration}{Named vector of slope coefficients of the covariates for duration. Names are the names of the covariates. (default: NULL)}
 
-\item{meanOnset}{Marginal mean value of the onset times.}
+\item{meanOnset}{Marginal mean value of the onset times. (default: 0)}
 
-\item{meanDuration}{Marginal mean value of the duration times.}
+\item{meanDuration}{Marginal mean value of the duration times. (default: 0)}
 
-\item{sigmaOnset}{Standard deviation of the onset times. Duration is assumed fixed in this model.}
+\item{sigmaOnset}{Standard deviation of the onset times. Duration is assumed fixed in this model. (default: 1)}
 
 \item{minResponse}{The minimum time of observations. default: 0, which is the only fully supported value.}
 
@@ -59,34 +60,59 @@ Simulate a population of individuals with simulated onset, duration, cessation, 
 \examples{
 \donttest{
 #Set the model parameters
-slopesOnset = c(1,2,3)
-meansOnset = c(10,20,30)
-covariate_namesOnset = c("o1", "o2", "o3") 
-response_nameOnset = "onset"
-covariance_matrixOnset = matrix(c( 1.0, 0.5, 0.3, 
-		              0.5, 2.0, 0.4, 
-			      0.3, 0.4, 1.5), nrow = 3
+#Variable names
+covariate_namesOnset = c("o1", "o2", "c1") 
+covariate_namesDuration = c("d1", "c1") 
+allCovariates = union(covariate_namesOnset, covariate_namesDuration) #onset first, then duration
+#Set up parameters to simulate covariate values
+correlationMatrix = matrix(c( 1.0, 0.5, 0.3, 0.1, 
+		              0.5, 1.0, 0.4, 0.2,
+			      0.3, 0.4, 1.0, 0.0,
+			      0.1, 0.2, 0.0, 1.0), nrow = 4
                            , byrow = TRUE)
+colnames(correlationMatrix) = allCovariates
+rownames(correlationMatrix) = allCovariates
+covariateStandardDeviations = c(1,2,2,5)
+names(covariateStandardDeviations) = allCovariates
+covariateMeans = c(10,20,30,10)
+names(covariateMeans) = allCovariates
+#Set up the onset parameters
+slopesOnset = c(1,2,3)
+names(slopesOnset) = covariate_namesOnset
 mean_responseOnset = 150
 noiseOnset = 3
+#Set up the duration parameters
 slopesDuration = c(1,3)
-meansDuration = c(50,40)
-covariate_namesDuration = c("d1", "d2") 
-response_nameDuration = "duration"
-covariance_matrixDuration = matrix(c( 0.5, 0.3, 
-			         0.3, 0.5), nrow = 2
-                           , byrow = TRUE)
+names(slopesDuration) = covariate_namesDuration
 mean_responseDuration = 30
+#Sample size
 n=1000
 #Simulate the data
 simulated_data = simulatePopulationLatentIntervalStates(n=n,
-							betaOnset=slopesOnset, betaDuration=slopesDuration,
-						covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
-						muCovariateOnset = meansOnset, muCovariateDuration = meansDuration,
-						CovarianceOnset = covariance_matrixOnset, CovarianceDuration = covariance_matrixDuration,
-						meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
-						sigmaOnset = noiseOnset)
+			betaOnset=slopesOnset, betaDuration=slopesDuration,
+		covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
+		covariateMeans = covariateMeans,
+		correlationMatrix = correlationMatrix,
+		covariateStandardDeviations = covariateStandardDeviations,
+		meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
+		sigmaOnset = noiseOnset)
 #Make a scatter plot of the simulated data
 plot(simulated_data$o1[simulated_data$stage==2], simulated_data$observedTime[simulated_data$stage==2], main=NULL, xlab="O1", ylab="Onset")
+#Check simulated values against actual
+#Should be o1: 10, o2: 20, c1: 30, d1: 10, onsets: 150, durations: 30, cessations: 180, observedTimes: 366/2, stages: around 2
+colMeans(simulated_data)
+attach(simulated_data)
+#The correlation matrix should be similar to correlationMatrix defined above
+cor(data.frame(o1,o2,c1,d1))
+#Coefficients for the onset model should be slopesOnset: 1, 2, 3
+summary(lm(onset ~ o1 + o2 + c1))
+#Coefficients for the duration model should be slopesDuration: 1, 3
+summary(lm(duration ~ d1 + c1))
+#The observed time coefficients should be betaOnset + betaDuration/2
+#With the above numbers that's o1: 1, o2: 2, c1: (3 + 3/2), d1: 1/2
+summary(lm(observedTime[stage==2] ~ o1[stage==2] + o2[stage==2] + c1[stage==2] + d1[stage==2]))
+#The cessation coefficients should be betaOnset + betaDuration
+#With the above numbers that's o1: 1, o2: 2, c1: (3 + 3), d1: 1
+summary(lm(cessation ~ o1 + o2 + c1 + d1))
 }
 }
