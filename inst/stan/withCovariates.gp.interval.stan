@@ -6,15 +6,21 @@ functions {
 
 		vector[3] lp;
 
+		real mu1 = fmax(1e-6,mu);
+		real D1 = fmax(1e-6,D);
+
+		//mu = fmax(1e-6,mu);
+		//D = fmax(1e-6,D);
+
 		// log P(before) = log P(S > t)
-		real log_p_before = normal_lccdf(t | mu, sigma);
+		real log_p_before = normal_lccdf(t | mu1, sigma);
 		
 		// log P(after) = log P(S + D < t) = log P(S < t - D)
-		real log_p_after  = normal_lcdf(t - D | mu, sigma);
+		real log_p_after  = normal_lcdf(t - D1 | mu1, sigma);
 		
 		// log P(during) = log( Phi((t-mu)/sigma) - Phi((t-D-mu)/sigma) )
-		real log_cdf1 = normal_lcdf(t | mu, sigma);
-		real log_cdf0 = normal_lcdf(t - D | mu, sigma);
+		real log_cdf1 = normal_lcdf(t | mu1, sigma);
+		real log_cdf0 = normal_lcdf(t - D1 | mu1, sigma);
 		real log_p_during = log_diff_exp(log_cdf1, log_cdf0);
 		
 		lp[1] = log_p_before;
@@ -22,7 +28,7 @@ functions {
 		lp[3] = log_p_after;
 
 		//if(debug) {
-			print("time, onset, sigma, duration, log cat probs: ", [t, mu, sigma, D, lp[1], lp[2], lp[3]]);
+			//print("time, onset, sigma, duration, log cat probs: ", [t, mu, sigma, D, lp[1], lp[2], lp[3]]);
 		//}
 		
 		return lp;
@@ -205,10 +211,10 @@ parameters {
 	//slope parameters, beta, and mean response, (anchor) at mean covariate value, and onset and cessation distribution standard deviation, sigma
 
 	vector[K_O] beta_O_raw;
-	real anchor_O_raw;
+	real<lower=0,upper=1> anchor_O_raw;
 
 	vector[K_D] beta_D_raw;
-	real<lower=0> anchor_D_raw;
+	real<lower=0,upper=1-anchor_O_raw> anchor_D_raw;
 
 	real<lower=1e-6> sigma_raw;
 }
@@ -220,8 +226,8 @@ transformed parameters {
 	real alpha_D_raw; //intercept of the linear model for Duration
 
 	vector[N] mu_O_raw;
-	vector[N] mu_C_raw;
 	vector[N] mu_D_raw;
+	vector[N] mu_C_raw;
 	vector[N] eta_D;
 
 	alpha_O_raw = anchor_O_raw - dot_product(mean_X_O_raw , beta_O_raw);
@@ -231,9 +237,10 @@ transformed parameters {
 	mu_O_raw =  alpha_O_raw + X_O_raw * beta_O_raw;
 
 	//Calculate mean duration in transformed scale, using softplus to assure positivity
-	eta_D =  alpha_D_raw + X_D_raw * beta_D_raw;
+	//eta_D =  alpha_D_raw + X_D_raw * beta_D_raw;
 	//mu_D_raw = log1p_exp(eta_D);
-	mu_D_raw = fmax(1e-6,eta_D);
+	//mu_D_raw = fmax(1e-6,eta_D);
+	mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw;
 
 	//Calculate mean cessation based on onset and duration
 	mu_C_raw = mu_O_raw + mu_D_raw;
@@ -249,7 +256,8 @@ model {
 	if(!drop_ll) {
 		for(i in 1:N) {
 			vector[3] lp = log_cat_probs(T_raw[i], mu_O_raw[i], sigma_raw, mu_D_raw[i],debug);
-			target += categorical_logit_lpmf(stage[i] | lp);
+			//target += categorical_logit_lpmf(stage[i] | lp);
+			target += lp[stage[i]];
 		}
 	}
 
