@@ -6,21 +6,21 @@ functions {
 
 		vector[3] lp;
 
-		real mu1 = fmax(1e-6,mu);
-		real D1 = fmax(1e-6,D);
+		//real mu1 = fmax(1e-6,mu);
+		//real D1 = fmax(1e-6,D);
 
 		//mu = fmax(1e-6,mu);
 		//D = fmax(1e-6,D);
 
 		// log P(before) = log P(S > t)
-		real log_p_before = normal_lccdf(t | mu1, sigma);
+		real log_p_before = normal_lccdf(t | mu, sigma);
 		
 		// log P(after) = log P(S + D < t) = log P(S < t - D)
-		real log_p_after  = normal_lcdf(t - D1 | mu1, sigma);
+		real log_p_after  = normal_lcdf(t - D | mu, sigma);
 		
 		// log P(during) = log( Phi((t-mu)/sigma) - Phi((t-D-mu)/sigma) )
-		real log_cdf1 = normal_lcdf(t | mu1, sigma);
-		real log_cdf0 = normal_lcdf(t - D1 | mu1, sigma);
+		real log_cdf1 = normal_lcdf(t | mu, sigma);
+		real log_cdf0 = normal_lcdf(t - D | mu, sigma);
 		real log_p_during = log_diff_exp(log_cdf1, log_cdf0);
 		
 		lp[1] = log_p_before;
@@ -216,12 +216,14 @@ parameters {
 	vector[K_D] beta_D_raw;
 	real<lower=0,upper=1-anchor_O_raw> anchor_D_raw;
 
-	real<lower=1e-6> sigma_raw;
+	//real<lower=1e-6,upper=0.1> sigma_raw;
+	real<lower=0.001> sigma_raw;
 }
 
 
 
 transformed parameters {
+	//real sigma_raw = 3.0/365.0;
 	real alpha_O_raw; //intercept of the linear model for Onset
 	real alpha_D_raw; //intercept of the linear model for Duration
 
@@ -238,9 +240,10 @@ transformed parameters {
 
 	//Calculate mean duration in transformed scale, using softplus to assure positivity
 	//eta_D =  alpha_D_raw + X_D_raw * beta_D_raw;
+	mu_D_raw = 1e-4 + log1p_exp(eta_D);
 	//mu_D_raw = log1p_exp(eta_D);
 	//mu_D_raw = fmax(1e-6,eta_D);
-	mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw;
+	//mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw;
 
 	//Calculate mean cessation based on onset and duration
 	mu_C_raw = mu_O_raw + mu_D_raw;

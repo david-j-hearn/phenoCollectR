@@ -202,6 +202,193 @@ PI.D.GP = function(mu_O, mu_C) {
 	return(c(d,d))
 }
 
+
+#' @importFrom posterior as_draws_df
+#' @importFrom dplyr filter %>%
+runStan.NoCovariates.Interval.T.GP = function(responseData,stage, minResponse=0, maxResponse=365, hyperparameters = c(100,7,50,7,10,7), keepScale=FALSE, runMAP=TRUE, setStringent=FALSE, maxDiv=0, processExtremes=TRUE, N=500, threshApprox=NA, ...) {
+	options(mc.cores = 4)
+
+	cat("Starting Stan run.\n")
+
+	if(keepScale) {
+		sf = 1
+		shift = 0
+	}
+	else {
+		sf = (maxResponse - minResponse)
+		shift = minResponse
+	}
+
+	#get and scale observed times
+		observed = (responseData - shift ) / sf
+
+	if(processExtremes && !is.na(N)) {
+		processExtremes = 1
+	}
+	else {
+		N = 0
+		processExtremes = 0
+	}
+
+	#set the hyperparameters
+	mean_mean_onset = (hyperparameters[1] - shift) / sf
+	sd_mean_onset = hyperparameters[2] / sf
+	mean_mean_duration = hyperparameters[3] / sf
+	sd_mean_duration = hyperparameters[4] / sf
+	mean_sd = hyperparameters[5] / sf	#taken just from the onset distribution sigma, as, in the GP model, duration is deterministic
+	sd_sd = hyperparameters[6] / sf		#taken just from the onset distribution sigma, as, in the GP model,  duration is deterministic
+
+	#prepare data for Stan
+	data <- list(
+				 N = length(observed),	#sample size
+				 n = N,			#population size
+				 processExtremes = processExtremes,
+				 t = observed,
+				 stage = stage,
+				 minResponse = minResponse,
+				 maxResponse = maxResponse,
+				 debug = 0,
+				 drop_nc = 0,
+				 drop_ll = 0,
+				 mean_mean_onset = mean_mean_onset,
+				 sd_mean_onset = sd_mean_onset,
+				 mean_mean_duration = mean_mean_duration,
+				 sd_mean_duration = sd_mean_duration,
+				 mean_sd = mean_sd,
+				 sd_sd = sd_sd
+	)
+
+	cat("Attempting to compile Stan model.\n")
+	m = tryCatch({
+		if(keepScale) {
+	  		noCovariates.gp_file <- system.file("stan", "noCovariates.gp.interval.origScale.stan" , package = "phenoCollectR")
+		}
+		else {
+	  		noCovariates.gp_file <- system.file("stan", "noCovariates.gp.interval.stan" , package = "phenoCollectR")
+		}
+		cmdstanr::cmdstan_model(stan_file = noCovariates.gp_file)
+	}, error = function(e) {
+		ret = list(
+				   error = TRUE,
+				   errorM = e$message
+		)
+		return(ret)
+	})
+
+	#sample the posterior based on the provided observations and hyperparameter values
+	cat("Attempting to sample Stan model.\n")
+	res = tryCatch({
+		init_fun <- function() list(
+			mu_O = mean_mean_onset,          
+			uc_mu_D = log(exp(mean_mean_duration) - 1),  # softplus^{-1}(X)
+			uc_sigma = log(exp(mean_sd) - 1)  # softplus^{-1}(X)
+			)
+		#print("Setting initial values:")
+		#print("onset")
+		#print(mean_mean_onset)
+		#print("duration")
+		#print(log(exp(mean_mean_duration)-1))
+		#print("sigma")
+		#print(log(exp(mean_sd)-1))
+		#print("data")
+		#print(head(observed))
+		#print("stage")
+		#print(head(stage))
+		if(setStringent) {
+			if(keepScale) {
+				m$sample(data = data, adapt_delta = 0.99, max_treedepth = 15, init = init_fun)
+			}
+			else {
+				m$sample(data = data, adapt_delta = 0.99, max_treedepth = 15)
+			}
+		}
+		else {
+			if(keepScale) {
+				m$sample(data = data, init = init_fun)
+			}
+			else {
+				m$sample(data = data)
+			}
+		}
+	}, error = function(e) {
+		ret = list(
+				   error = TRUE,
+				   errorM = e$message
+		)
+		return(ret)
+	})
+
+	summary_ok <- tryCatch({
+		res$summary()
+		TRUE
+		}, error = function(e) {
+		FALSE
+	})
+
+	print("Starting summary")
+	if(!summary_ok) {
+		ret = list(
+				   error = TRUE,
+				   errorM = "Apparently Stan finished but with failed chains."
+		)
+		return(ret)
+	}
+	print("Finishing summary")
+
+	cat("Checking divergences.\n")
+	nDiv = sum(res$diagnostic_summary()$num_divergent)
+	if(nDiv > maxDiv) {
+		ret = list(
+				   error = TRUE,
+				   errorM = paste("Stan run failed. ", nDiv, " divergences encountered.")
+		)
+		return(ret)
+	}
+
+
+	if(runMAP) {
+		#get GP model MAP
+		cat("Attempting to find MAP parameter values.\n")
+		resMAP = tryCatch({
+			chain <- 1
+			iter <- 999
+			init_f_samp <- function() {
+				init_df <- res$draws() %>% as_draws_df() %>% filter(.chain == chain, .iteration == iter)
+				as.list(init_df)
+			}
+			m$optimize(data, init = init_f_samp)
+		}, error = function(e) {
+			ret = list(
+					   error = TRUE,
+					   errorM = e$message
+			)
+			return(ret)
+		})
+	}
+	else { resMAP = NA }
+
+	result = list(
+				  minResponse = minResponse,
+				  maxResponse = maxResponse,
+				  responseData = responseData,			#prescaled
+				  hyperparameters = hyperparameters,			#prescaled
+				  model = m, 				#Stan model
+				  sample = res,				#HMC sample
+				  processExtremes = processExtremes, 
+				  N = N,				#Population size for extremes
+				  runMAP = runMAP,
+				  MAP = resMAP,				#NA if runMap is false
+				  data = data,				#data provided to Stan that includes the scaled hyperparameters and scaled observations
+				  maxDiv = maxDiv,
+				  setStringent = setStringent,
+				  threshApprox = threshApprox,
+				  error = FALSE,
+				  errorM = "Results were obtained, but check diagnostics of the sample."
+	)
+	return(result)
+}
+
+
 #' @importFrom posterior as_draws_df
 #' @importFrom dplyr filter %>%
 runStan.NoCovariates.T.GP = function(fileOrData, minResponse=0, maxResponse=365, hyperparameters = c(100,7,50,7,10,7), dataProvided=FALSE, runMAP=TRUE, setStringent=FALSE, processExtremes=TRUE, N=500, maxDiv=0, threshApprox=NA, ...) {

@@ -5,7 +5,7 @@
 \title{Run a Bayesian analysis of phenological events using biocollection data}
 \usage{
 runStanPhenology(
-  type = c("intercept-only", "interval", "full"),
+  type = c("intercept-only", "interval", "interval-full", "full"),
   responseData,
   stage = NA,
   hyperparams_noCovariates = NA,
@@ -23,7 +23,8 @@ runStanPhenology(
   runMAP = FALSE,
   processExtremes = TRUE,
   N = 500,
-  partitionDataForPriors = TRUE,
+  keepScale = FALSE,
+  partitionDataForPriors = FALSE,
   maximizeSampleSize = FALSE,
   threshApprox = NA,
   byPassChecks = FALSE,
@@ -32,27 +33,27 @@ runStanPhenology(
 )
 }
 \arguments{
-\item{type}{The type of model to be implemented. Two options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval' will model mean onset and mean duration and a linear function of covariates for presence-absence data, whereas option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates. (default: intercept-only)}
+\item{type}{The type of model to be implemented. Four options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval-full' will model mean onset and mean duration and a linear function of covariates for before-during-after data, option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data, and option 'interval' will model the distribution of onset ties and durations with no consideration of covariates for before-during-after data. (default: intercept-only)}
 
 \item{responseData}{A vector of the response data. This is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason for preprocessing transformations.}
 
-\item{stage}{Only for use when type is 'interval'. A vector of integers the same length as the response data vector. For each observation in the response data, the stage will be a 1 if the observation is before the phenophase, a 2 if it is during the phenophase, and a 3 if it is after the phenophase. Any other values will produce errors. default: NA}
+\item{stage}{Only for use when type is 'interval' or 'interval-full'. A vector of integers the same length as the response data vector. For each observation in the response data, the stage will be a 1 if the observation is before the phenophase, a 2 if it is during the phenophase, and a 3 if it is after the phenophase. Any other values will produce errors. default: NA}
 
-\item{hyperparams_noCovariates}{For use with 'intercept-only' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order.}
+\item{hyperparams_noCovariates}{For use with 'intercept-only' or 'interval' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order.}
 
-\item{onsetCovariateData}{For use with 'full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear onset model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.}
+\item{onsetCovariateData}{For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear onset model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.}
 
-\item{durationCovariateData}{For use with 'full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear duration model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.}
+\item{durationCovariateData}{For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear duration model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.}
 
-\item{onsetHyperBeta}{For use with 'full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the onset model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_O columns in the covariate data frame, there should be K_O rows in this data frame.}
+\item{onsetHyperBeta}{For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the onset model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_O columns in the covariate data frame, there should be K_O rows in this data frame.}
 
-\item{onsetHyperAnchor}{For use with 'full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the marginal mean onset time value).}
+\item{onsetHyperAnchor}{For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the marginal mean onset time value).}
 
-\item{durationHyperBeta}{For use with 'full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the duration model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_D columns in the covariate data frame, there should be K_D rows in this data frame.}
+\item{durationHyperBeta}{For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the duration model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_D columns in the covariate data frame, there should be K_D rows in this data frame.}
 
-\item{durationHyperAnchor}{For use with 'full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the marginal mean phenophase duration value).}
+\item{durationHyperAnchor}{For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the marginal mean phenophase duration value).}
 
-\item{sigmaHyper}{For use with 'full' models. A two-element vector with the mean and standard deviation of the prior distribution for the sigma parameter. Sigma is the standard deviation of the onset distribution and is also the standard deviation of the cessation distribution.}
+\item{sigmaHyper}{For use with '*full' models. A two-element vector with the mean and standard deviation of the prior distribution for the sigma parameter. Sigma is the standard deviation of the onset distribution and is also the standard deviation of the cessation distribution.}
 
 \item{minResponse}{Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)}
 
@@ -68,9 +69,11 @@ runStanPhenology(
 
 \item{N}{The population size. For used when processExtremes is set to TRUE. (default: 500)}
 
-\item{partitionDataForPriors}{Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30\% of the data are partitioned into a set to estimate the hyperparameters, and 70\% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored.}
+\item{keepScale}{Leave the response data at original scale during stan run. Only implemented for type "interval". Default is usually fine. Use keepScale if you need the stan sampler to initialize the sampling at the hyperparameter values and keep the original scale. Best not to when not needed. (default: FALSE, which min-max scales the data)}
 
-\item{maximizeSampleSize}{Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100\% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates will be unacceptably large unless a fuller data set is used. Recommended to keep at default. (default: FALSE)}
+\item{partitionDataForPriors}{Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30\% of the data are partitioned into a set to estimate the hyperparameters, and 70\% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored. (default: FALSE)}
+
+\item{maximizeSampleSize}{Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100\% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates may be unacceptably large unless a fuller data set is used. Recommended to keep at default. (default: FALSE)}
 
 \item{threshApprox}{An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NA)}
 
@@ -176,29 +179,32 @@ A summary of the Stan run is available through the helper function 'summarizePhe
 }
 \examples{
 \donttest{
-##run an example with collection times of individuals in the phenophase (presence only dataset)
-##get the file name with data for the blood root plant. Data files for 12 other species 
-#      are also available
+##Run an example with collection times of individuals in the phenophase (presence only dataset)
+##Priors are set by default and are only reliable for slope coefficient estimations. *Use a prior based on biological data for the duration if accurate duration estimation is a priority.*
+#Get the file name with data for the blood root plant. Data files for 12 other species are also available
 file  =  getDatasetPath("Sanguinaria_canadensis")
 ## See documentation for more species:
 help(getDatasetPath)
-##define the covariate names - remove up to all but 1
+#Define the covariate names - remove up to all but 1
 vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp"
          , "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
-##get the phenology data
+#Get the phenology data
 data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY"
                               , onsetCovariateNames=vars, durationCovariateNames=vars
                               , taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
-##run the Stan sampler with default priors
+#Run the Stan sampler with default priors
 stanResult  =  runStanPhenology(type="full", responseData = data$responseData
                                 , onsetCovariateData = data$onsetCovariateData
                                 , durationCovariateData = data$durationCovariateData
                                 , partitionDataForPriors = TRUE)
-##summarize the Stan run
+#Summarize the Stan run. This can be output to a csv file for reading in a spreadsheet program using write.csv(stanSummary,"SCanadensis.Empirical.wCovariates.csv")
 stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
                                           , taxonName = "Sanguinaria_canadensis"
                                           ,standardLinearModel = TRUE)
 head(stanSummary)
+##
+##
+##
 ##Run a more complicated example, this time with observed times before, during, and after the phenophse.
 ##This will be using simulated data
 # Set parameters for the covariate model
@@ -229,7 +235,9 @@ simulated_data = simulatePopulationLatentIntervalStates(n=n,
                covarianceMatrix = covarianceMatrix,
                meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
                sigmaOnset = noiseOnset)
+##
 ##Set up the data objects for stan
+##
 #Presence only
 responseData = simulated_data$observedTime[simulated_data$stage==2]
 onsetCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v2[simulated_data$stage==2])
@@ -247,6 +255,7 @@ onsetHyperAnchor = c(150, 5)
 durationHyperBeta = data.frame(slopesDuration,c(1,1))
 durationHyperAnchor = c(30, 3)
 sigmaHyper = c(3,1)
+##
 ##Conduct the Stan run: PRESENCE ONLY
 stanResultPO = runStanPhenology(
 			type="full",
@@ -267,9 +276,10 @@ stanSummaryPO  =  summarizePhenologyResults(stanRunResult = stanResultPO
                                           ,standardLinearModel = FALSE)
 ##write results to file
 write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
+##
 ##Conduct the Stan run: BEFORE, DURING, AFTER
 stanResultBDA = runStanPhenology(
-			type="interval",
+			type="interval-full",
 			responseData=responseDataBDA,
 			stage=stageBDA,
 			onsetCovariateData=onsetCovariateDataBDA, durationCovariateData=durationCovariateDataBDA,
@@ -288,5 +298,59 @@ stanSummaryBDA  =  summarizePhenologyResults(stanRunResult = stanResultBDA
                                           ,standardLinearModel = FALSE)
 ##write results to file
 write.csv(stanSummaryBDA,"Simulated.BeforeDuringAfter.informativePriors.csv")
+##
+##
+##
+##Conduct an analysis with no covariates (NC) using simulated data
+# Set parameters for the covariate model
+mean_responseOnset = 150
+sdOnset = 3
+mean_responseDuration = 30
+n=5000
+#Simulate the data
+simulated_data = simulatePopulationLatentIntervalStates(n=n,
+               meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
+               sigmaOnset = sdOnset)
+##
+##Set up the data objects for stan
+#
+#Set up the hyperparameters for priors: mean meanOnset, sd meanOnset, mean meanDuration, sd meanDuration, mean sigma, sd sigma)
+#unbiased, informative:
+hyperparameters = c(150, 5, 30, 3, 3, 1)
+##
+#Presence-only data
+responseData.NC = simulated_data$observedTime[simulated_data$stage==2]
+stanResult.NC = runStanPhenology(
+			type="intercept-only",
+			responseData=responseData.NC,
+		hyperparams_noCovariates=hyperparameters,
+			minResponse=0,maxResponse=365,
+			runMAP=TRUE,processExtremes=TRUE,N=500,
+			partitionDataForPriors=FALSE,
+			maxDiv=0,setStringent=TRUE,
+			priorLevel=2
+			)
+##summarize the Stan run. Compare parameter posterior mean to true values set above. 
+print(stanResult.NC$sample, max_rows = 15)
+##
+#Before, during, after data (BDA)
+#This time, set up weak priors with bias - Still should get accurate values
+hyperparameters = c(120, 30, 35, 5, 5, 2)
+responseDataBDA.NC = simulated_data$observedTime
+stageBDA.NC = simulated_data$stage
+#Run stan
+stanResultBDA.NC = runStanPhenology(
+			type="interval",
+			responseData=responseDataBDA.NC,
+			stage=stageBDA.NC,
+		hyperparams_noCovariates=hyperparameters,
+			minResponse=0,maxResponse=365,
+			runMAP=TRUE,processExtremes=TRUE,N=500,
+			partitionDataForPriors=FALSE,
+			maxDiv=0,setStringent=TRUE,
+			priorLevel=2
+			)
+##summarize the Stan run
+print(stanResultBDA.NC$sample, max_rows = 15)
 }
 }
