@@ -1,7 +1,6 @@
 functions {
-
-// Log probabilities for y in {before, during, after} at time t
-// given onset ~ Normal(mu, sigma) and duration D > 0
+// Log probabilities for stage y in {before=1, during=2, after=3} at time t
+// given onset ~ Normal(mu, sigma) and duration D > 0 parameters
 	real log_p_y_given_t(int stage, real t, real mu, real sigma, real D, int debug) {
 
 		if(debug) {
@@ -43,7 +42,6 @@ functions {
 }
 
 data {
-
 	int<lower=0, upper=10> debug;
 	int<lower=0, upper=1> drop_ll;	//useful if testing prior predictives
 
@@ -104,18 +102,6 @@ data {
 
 transformed data {
 
-	real epsilon = 1e-6;
-	vector[N] mu_D_raw_prior;
-	real alpha_D_raw_prior;
-
-	vector[N] mu_O_raw_prior;
-	real alpha_O_raw_prior;
-
-	print("Mus: ", [anchorDurationMean*365.0, anchorOnsetMean*365]);
-	print("SDs: ", [anchorDurationSD*365.0, anchorOnsetSD*365]);
-	print("Mus raw: ", [anchorDurationMean, anchorOnsetMean]);
-	print("SDs raw: ", [anchorDurationSD, anchorOnsetSD]);
-
 	real<lower=0> T_range = T_max - T_min;
 
 	vector<lower=0>[K_O] range_X_O; //covariate ranges in the original scale
@@ -136,7 +122,7 @@ transformed data {
 }
 
 parameters {
-	//slope parameters, beta, and mean response, (anchor) at mean covariate value, and onset and cessation distribution standard deviation, sigma
+	//slope parameters, beta, and anchor at mean covariate value, and onset and cessation distribution standard deviation, sigma
 
 	vector[K_O] beta_O_raw;
 	real<lower=0,upper=1> anchor_O_raw;
@@ -161,7 +147,7 @@ transformed parameters {
 	//Calculate mean onset in transformed scale
 	mu_O_raw =  alpha_O_raw + X_O_raw * beta_O_raw;
 
-	//Calculate mean duration in transformed scale, using softplus to assure positivity
+	//Calculate mean duration in transformed scale
 	mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw;
 
 	//Calculate mean cessation based on onset and duration
