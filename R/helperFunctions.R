@@ -933,7 +933,7 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 		summary[summary$variable==varC, "type"] = "cessation (C)"
 		summary[summary$variable==varC, "covariate"] = unionCovariateNames[i]
 		summary[summary$variable == varC, "posterior.prob.neg.slope"] = mean(posterior_df[[varC]] < 0)
-		summary[summary$variable==varT, "type"] = "observed times (T)"
+		summary[summary$variable==varT, "type"] = "observed times (T; presence only)"
 		summary[summary$variable==varT, "covariate"] = unionCovariateNames[i]
 		summary[summary$variable == varT, "posterior.prob.neg.slope"] = mean(posterior_df[[varT]] < 0)
 		#if(class(standardLinearModel)=="lm") {
@@ -958,7 +958,7 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	summary[summary$variable=="anchor_O", "type"] = "onset (O)"
 	summary[summary$variable=="anchor_D", "type"] = "duration (D)"
 	summary[summary$variable=="anchor_C", "type"] = "cessation (C)"
-	summary[summary$variable=="anchor_T", "type"] = "observed (T)"
+	summary[summary$variable=="anchor_T", "type"] = "observed (T; presence only)"
 
 	summary[summary$variable=="anchor_O", "variable"] = "anchor"
 	summary[summary$variable=="anchor_D", "variable"] = "anchor"
@@ -975,7 +975,7 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	summary[summary$variable=="alpha_O", "type"] = "onset (O)"
 	summary[summary$variable=="alpha_D", "type"] = "duration (D)"
 	summary[summary$variable=="alpha_C", "type"] = "cessation (C)"
-	summary[summary$variable=="alpha_T", "type"] = "observed (T)"
+	summary[summary$variable=="alpha_T", "type"] = "observed (T; presence only)"
 	# if(class(standardLinearModel)=="lm") {
 	# DANIEL: Changing to inherits because it is safer:
 	if( inherits(x = standardLinearModel, what = "lm") ) {

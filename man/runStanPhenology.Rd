@@ -6,16 +6,16 @@
 \usage{
 runStanPhenology(
   type = c("intercept-only", "interval", "interval-full", "full"),
-  responseData,
-  stage = NA,
-  hyperparams_noCovariates = NA,
-  onsetCovariateData = NA,
-  durationCovariateData = NA,
-  onsetHyperBeta = NA,
-  onsetHyperAnchor = NA,
-  durationHyperBeta = NA,
-  durationHyperAnchor = NA,
-  sigmaHyper = NA,
+  responseData = NULL,
+  stage = NULL,
+  hyperparams_noCovariates = NULL,
+  onsetCovariateData = NULL,
+  durationCovariateData = NULL,
+  onsetHyperBeta = NULL,
+  onsetHyperAnchor = NULL,
+  durationHyperBeta = NULL,
+  durationHyperAnchor = NULL,
+  sigmaHyper = NULL,
   minResponse = 0,
   maxResponse = 365,
   maxDiv = 0,
@@ -26,14 +26,14 @@ runStanPhenology(
   keepScale = FALSE,
   partitionDataForPriors = FALSE,
   maximizeSampleSize = FALSE,
-  threshApprox = NA,
   byPassChecks = FALSE,
   priorLevel = 2,
+  threshApprox = NULL,
   ...
 )
 }
 \arguments{
-\item{type}{The type of model to be implemented. Four options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval-full' will model mean onset and mean duration and a linear function of covariates for before-during-after data, option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data, and option 'interval' will model the distribution of onset ties and durations with no consideration of covariates for before-during-after data. (default: intercept-only)}
+\item{type}{The type of model to be implemented. Four options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval-full' will model mean onset and mean duration and a linear function of covariates for before-during-after data, option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data, and option 'interval' will model the distribution of onset times and durations with no consideration of covariates for before-during-after data. (default: intercept-only)}
 
 \item{responseData}{A vector of the response data. This is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason for preprocessing transformations.}
 
@@ -75,11 +75,11 @@ runStanPhenology(
 
 \item{maximizeSampleSize}{Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100\% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates may be unacceptably large unless a fuller data set is used. Recommended to keep at default. (default: FALSE)}
 
-\item{threshApprox}{An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NA)}
-
 \item{byPassChecks}{Boolean flag indicating whether to bypass checks for Stan. If Stan is not located, an attempt will be made to install Stan. Recommended to keep at default. (default: FALSE)}
 
 \item{priorLevel}{Specifies which sets of parameters will have flat, improper priors. Leave at default. (default: 2)}
+
+\item{threshApprox}{An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NA)}
 
 \item{...}{Parameters to be input into the stan sample function. Not currently implemented. Do not use.}
 }
@@ -179,35 +179,45 @@ A summary of the Stan run is available through the helper function 'summarizePhe
 }
 \examples{
 \donttest{
-##Run an example with collection times of individuals in the phenophase (presence only dataset)
-##Priors are set by default and are only reliable for slope coefficient estimations. *Use a prior based on biological data for the duration if accurate duration estimation is a priority.*
-#Get the file name with data for the blood root plant. Data files for 12 other species are also available
+##########################################################################################################################################################
+##Run an example with EMPIRICAL COLLECTION TIMES of individuals in the phenophase (PRESENCE ONLY - PO)
+
+##DEFAULT PRIORS are used and are only reliable for slope coefficient estimations. 
+#!!*Use a prior based on biological data for the duration if accurate duration estimation is a priority.*!!
+#
+#Get the FILE NAME with data for the blood root plant. Data files for 12 other species are also available
 file  =  getDatasetPath("Sanguinaria_canadensis")
-## See documentation for more species:
+#
+## ACCESS MORE SPECIES
 help(getDatasetPath)
-#Define the covariate names - remove up to all but 1
+#
+#COVARIATE NAMES - remove up to all but 1
 vars = c("Latitude", "Year", "Elevation", "AnnualMonthlyAverageTemp"
          , "SpringMonthlyAverageTemp", "FirstQuarterMonthlyAverageTemp")
-#Get the phenology data
+#
+#EXTRACT PHENOLOGY DATA
 data  =  preparePhenologyData(dataFile=file, responseVariableName="DOY"
                               , onsetCovariateNames=vars, durationCovariateNames=vars
                               , taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
-#Run the Stan sampler with default priors
+
+#EMPIRICAL DATA STAN RUN WITH COVARIATES
 stanResult  =  runStanPhenology(type="full", responseData = data$responseData
                                 , onsetCovariateData = data$onsetCovariateData
                                 , durationCovariateData = data$durationCovariateData
                                 , partitionDataForPriors = TRUE)
-#Summarize the Stan run. This can be output to a csv file for reading in a spreadsheet program using write.csv(stanSummary,"SCanadensis.Empirical.wCovariates.csv")
+#
+#SUMMARIZE 
 stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
                                           , taxonName = "Sanguinaria_canadensis"
                                           ,standardLinearModel = TRUE)
-head(stanSummary)
+#WRITE EMPIRICAL RESULTS
+write.csv(stanSummary,"SCanadensis.Empirical.wCovariates.csv")
 ##
 ##
-##
-##Run a more complicated example, this time with observed times before, during, and after the phenophse.
-##This will be using simulated data
-# Set parameters for the covariate model
+##########################################################################################################################################################
+##Run more complicated examples, this time with SIMULATED PHENOLOGY observed times before, during, and after the phenophase and with SIMULATED COVARIATES.
+#
+#COVARIATE MODEL
 covariate_namesOnset = c("v1", "v2")
 covariate_namesDuration = c("v1", "v3")
 cov_all = union(covariate_namesOnset, covariate_namesDuration)
@@ -218,16 +228,22 @@ rownames(covarianceMatrix) = cov_all
 colnames(covarianceMatrix) = cov_all
 covariateMeans = c(50,60,80)
 names(covariateMeans) = cov_all
-# Set slopes, means of responses
-slopesOnset = c(0.5,-0.9)
+#
+#ONSET PARAMETERS
+slopesOnset = c(1,-2)
 names(slopesOnset) = covariate_namesOnset
 mean_responseOnset = 150
 noiseOnset = 3
-slopesDuration = c(0.7,1)
+#
+#DURATION PARAMETERS
+slopesDuration = c(3,1)
 names(slopesDuration) = covariate_namesDuration
 mean_responseDuration = 30
+#
+#SAMPLE SIZE
 n=3000
-#Simulate the data
+#
+#SIMULATE PHENOLOGY TIMES, OBSERVATION TIMES, AND COVARIATE DATA
 simulated_data = simulatePopulationLatentIntervalStates(n=n,
                        betaOnset=slopesOnset, betaDuration=slopesDuration,
                covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
@@ -235,28 +251,57 @@ simulated_data = simulatePopulationLatentIntervalStates(n=n,
                covarianceMatrix = covarianceMatrix,
                meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
                sigmaOnset = noiseOnset)
-##
-##Set up the data objects for stan
-##
-#Presence only
-responseData = simulated_data$observedTime[simulated_data$stage==2]
-onsetCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v2[simulated_data$stage==2])
-durationCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v3[simulated_data$stage==2])
-colnames( onsetCovariateData ) = covariate_namesOnset
-colnames( durationCovariateData ) = covariate_namesDuration
-#Before, during, after data (BDA)
-responseDataBDA = simulated_data$observedTime
-onsetCovariateDataBDA = simulated_data[,covariate_namesOnset, drop=FALSE]
-durationCovariateDataBDA = simulated_data[,covariate_namesDuration, drop=FALSE]
-stageBDA = simulated_data$stage
-#Set up the hyperparameters for priors
+#
+#_________________________________________________________________________________________________________________________________________________________
+#
+#HYPERPARAMETERS
 onsetHyperBeta = data.frame(slopesOnset,c(1,1))
 onsetHyperAnchor = c(150, 5)
 durationHyperBeta = data.frame(slopesDuration,c(1,1))
 durationHyperAnchor = c(30, 3)
 sigmaHyper = c(3,1)
-##
-##Conduct the Stan run: PRESENCE ONLY
+#
+#_________________________________________________________________________________________________________________________________________________________
+#
+#BDA DATA (Before, during, after)
+responseDataBDA = simulated_data$observedTime
+onsetCovariateDataBDA = simulated_data[,covariate_namesOnset, drop=FALSE]
+durationCovariateDataBDA = simulated_data[,covariate_namesDuration, drop=FALSE]
+stageBDA = simulated_data$stage
+#
+##BDA STAN RUN
+stanResultBDA = runStanPhenology(
+			type="interval-full",
+			responseData=responseDataBDA,
+			stage=stageBDA,
+			onsetCovariateData=onsetCovariateDataBDA, durationCovariateData=durationCovariateDataBDA,
+			onsetHyperBeta=onsetHyperBeta,onsetHyperAnchor=onsetHyperAnchor,
+			durationHyperBeta=durationHyperBeta,durationHyperAnchor=durationHyperAnchor,
+			sigmaHyper=sigmaHyper,
+			minResponse=0,maxResponse=365,
+			runMAP=TRUE,processExtremes=TRUE,N=500,
+			partitionDataForPriors=FALSE,
+			maxDiv=0,setStringent=TRUE,
+			priorLevel=2
+			)
+#
+##SUMMARIZE
+stanSummaryBDA  =  summarizePhenologyResults(stanRunResult = stanResultBDA
+                                          , taxonName = "Simulated"
+                                          ,standardLinearModel = FALSE)
+##WRITE BDA RESULTS 
+write.csv(stanSummaryBDA,"Simulated.BeforeDuringAfter.informativePriors.csv")
+#
+#_________________________________________________________________________________________________________________________________________________________
+#
+#PO DATA 
+responseData = simulated_data$observedTime[simulated_data$stage==2]
+onsetCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v2[simulated_data$stage==2])
+durationCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v3[simulated_data$stage==2])
+colnames( onsetCovariateData ) = covariate_namesOnset
+colnames( durationCovariateData ) = covariate_namesDuration
+#
+#PO STAN RUN
 stanResultPO = runStanPhenology(
 			type="full",
 			responseData=responseData,
@@ -277,68 +322,35 @@ stanSummaryPO  =  summarizePhenologyResults(stanRunResult = stanResultPO
 ##write results to file
 write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
 ##
-##Conduct the Stan run: BEFORE, DURING, AFTER
-stanResultBDA = runStanPhenology(
-			type="interval-full",
-			responseData=responseDataBDA,
-			stage=stageBDA,
-			onsetCovariateData=onsetCovariateDataBDA, durationCovariateData=durationCovariateDataBDA,
-			onsetHyperBeta=onsetHyperBeta,onsetHyperAnchor=onsetHyperAnchor,
-			durationHyperBeta=durationHyperBeta,durationHyperAnchor=durationHyperAnchor,
-			sigmaHyper=sigmaHyper,
-			minResponse=0,maxResponse=365,
-			runMAP=TRUE,processExtremes=TRUE,N=500,
-			partitionDataForPriors=FALSE,
-			maxDiv=0,setStringent=TRUE,
-			priorLevel=2
-			)
-##summarize the Stan run
-stanSummaryBDA  =  summarizePhenologyResults(stanRunResult = stanResultBDA
-                                          , taxonName = "Simulated"
-                                          ,standardLinearModel = FALSE)
-##write results to file
-write.csv(stanSummaryBDA,"Simulated.BeforeDuringAfter.informativePriors.csv")
 ##
 ##
-##
-##Conduct an analysis with no covariates (NC) using simulated data
-# Set parameters for the covariate model
+##########################################################################################################################################################
+##Conduct an analysis with NO COVARIATES (NC) using SIMULATED DATA
+#
+#SIMULATION PARAMETERS 
 mean_responseOnset = 150
 sdOnset = 3
 mean_responseDuration = 30
+#
+#SAMPLE SIZE
 n=5000
-#Simulate the data
+#
+#SIMULATE
 simulated_data = simulatePopulationLatentIntervalStates(n=n,
                meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
                sigmaOnset = sdOnset)
-##
-##Set up the data objects for stan
 #
-#Set up the hyperparameters for priors: mean meanOnset, sd meanOnset, mean meanDuration, sd meanDuration, mean sigma, sd sigma)
-#unbiased, informative:
-hyperparameters = c(150, 5, 30, 3, 3, 1)
-##
-#Presence-only data
-responseData.NC = simulated_data$observedTime[simulated_data$stage==2]
-stanResult.NC = runStanPhenology(
-			type="intercept-only",
-			responseData=responseData.NC,
-		hyperparams_noCovariates=hyperparameters,
-			minResponse=0,maxResponse=365,
-			runMAP=TRUE,processExtremes=TRUE,N=500,
-			partitionDataForPriors=FALSE,
-			maxDiv=0,setStringent=TRUE,
-			priorLevel=2
-			)
-##summarize the Stan run. Compare parameter posterior mean to true values set above. 
-print(stanResult.NC$sample, max_rows = 15)
-##
-#Before, during, after data (BDA)
-#This time, set up weak priors with bias - Still should get accurate values
+#_________________________________________________________________________________________________________________________________________________________
+#
+#HYPERPARAMETERS (biased): mean meanOnset, sd meanOnset, mean meanDuration, sd meanDuration, mean sigma, sd sigma)
 hyperparameters = c(120, 30, 35, 5, 5, 2)
+#
+#_________________________________________________________________________________________________________________________________________________________
+#
+#BDA DATA
 responseDataBDA.NC = simulated_data$observedTime
 stageBDA.NC = simulated_data$stage
-#Run stan
+#STAN RUN BDA
 stanResultBDA.NC = runStanPhenology(
 			type="interval",
 			responseData=responseDataBDA.NC,
@@ -350,7 +362,29 @@ stanResultBDA.NC = runStanPhenology(
 			maxDiv=0,setStringent=TRUE,
 			priorLevel=2
 			)
-##summarize the Stan run
+#
+#SUMMARIZE BDA RUN
 print(stanResultBDA.NC$sample, max_rows = 15)
+#
+#_________________________________________________________________________________________________________________________________________________________
+#
+#PO DATA
+responseData.NC = simulated_data$observedTime[simulated_data$stage==2]
+#
+#STAN RUN PO
+stanResult.NC = runStanPhenology(
+			type="intercept-only",
+			responseData=responseData.NC,
+		hyperparams_noCovariates=hyperparameters,
+			minResponse=0,maxResponse=365,
+			runMAP=TRUE,processExtremes=TRUE,N=500,
+			partitionDataForPriors=FALSE,
+			maxDiv=0,setStringent=TRUE,
+			priorLevel=2
+			)
+#
+#SUMMARIZE PO RUN
+print(stanResult.NC$sample, max_rows = 15)
+##########################################################################################################################################################
 }
 }

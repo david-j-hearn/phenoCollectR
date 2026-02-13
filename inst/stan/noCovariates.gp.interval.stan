@@ -151,7 +151,7 @@ model {
 			//}
 		}
 	}
-//Works with VERY weak, biased priors
+//Works with VERY weak, biased priors or completely flat priors
 	mu_O_raw ~ normal(mean_mean_onset, sd_mean_onset);
 	mu_D_raw ~ normal(mean_mean_duration, sd_mean_duration);
 	sigma_raw ~ normal(mean_sd, sd_sd);

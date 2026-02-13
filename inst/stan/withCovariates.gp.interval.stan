@@ -2,54 +2,27 @@ functions {
 
 // Log probabilities for y in {before, during, after} at time t
 // given onset ~ Normal(mu, sigma) and duration D > 0
-	vector log_cat_probs(real t, real mu, real sigma, real D, int debug) {
+	real log_p_y_given_t(int stage, real t, real mu, real sigma, real D, int debug) {
 
-		vector[3] lp;
+		if(debug) {
+			print("time, onset, sigma, duration: ", [t, mu, sigma, D]);
+		}
 
-		//real mu1 = fmax(1e-6,mu);
-		//real D1 = fmax(1e-6,D);
-
-		//mu = fmax(1e-6,mu);
-		//D = fmax(1e-6,D);
 
 		// log P(before) = log P(S > t)
-		real log_p_before = normal_lccdf(t | mu, sigma);
-		
+		if(stage == 1) {
+			return normal_lccdf(t | mu, sigma);
+		}
+
 		// log P(after) = log P(S + D < t) = log P(S < t - D)
-		real log_p_after  = normal_lcdf(t - D | mu, sigma);
-		
+		if(stage == 3) {
+			return normal_lcdf(t - D | mu, sigma);
+		}
+
 		// log P(during) = log( Phi((t-mu)/sigma) - Phi((t-D-mu)/sigma) )
-		real log_cdf1 = normal_lcdf(t | mu, sigma);
-		real log_cdf0 = normal_lcdf(t - D | mu, sigma);
-		real log_p_during = log_diff_exp(log_cdf1, log_cdf0);
-		
-		lp[1] = log_p_before;
-		lp[2] = log_p_during;
-		lp[3] = log_p_after;
-
-		//if(debug) {
-			//print("time, onset, sigma, duration, log cat probs: ", [t, mu, sigma, D, lp[1], lp[2], lp[3]]);
-		//}
-		
-		return lp;
-	}
-
-	real get_alpha_inv_gamma( real mu_i, real sigma ) {
-		real mu = mu_i;
-		real epsilon = 1e-6;
-		if(mu< sigma) { 
-			mu = sigma + epsilon;
-		}
-		return(2.0 + (mu/sigma)*(mu/sigma));
-	}
-
-	real get_beta_inv_gamma( real mu_i, real sigma ) {
-		real mu = mu_i;
-		real epsilon = 1e-6;
-		if(mu< sigma) { 
-			mu = sigma + epsilon;
-		}
-		return((1 + (mu/sigma)*(mu/sigma))*mu);
+		real log_cdf0 = normal_lcdf(t | mu, sigma);
+		real log_cdf1 = normal_lcdf(t - D | mu, sigma);
+		return log_diff_exp(log_cdf0, log_cdf1);
 	}
 
 	real E_Kth_shift( int n, real sigma, int k) {
@@ -133,45 +106,20 @@ transformed data {
 
 	real epsilon = 1e-6;
 	vector[N] mu_D_raw_prior;
-	vector[N] invG_alpha_D_prior;
-	vector[N] invG_beta_D_prior;
 	real alpha_D_raw_prior;
 
 	vector[N] mu_O_raw_prior;
-	vector[N] invG_alpha_O_prior;
-	vector[N] invG_beta_O_prior;
 	real alpha_O_raw_prior;
-
-	real<lower=2> alpha_invGammaO;
-	real beta_invGammaO;
-
-	real<lower=2> alpha_invGammaD;
-	real beta_invGammaD;
-
-	real<lower=2> alpha_invGammaS;
-	real beta_invGammaS;
-
-	alpha_invGammaO = get_alpha_inv_gamma(anchorOnsetMean , anchorOnsetSD) ;
-	beta_invGammaO = get_beta_inv_gamma(anchorOnsetMean , anchorOnsetSD) ;
 
 	print("Mus: ", [anchorDurationMean*365.0, anchorOnsetMean*365]);
 	print("SDs: ", [anchorDurationSD*365.0, anchorOnsetSD*365]);
 	print("Mus raw: ", [anchorDurationMean, anchorOnsetMean]);
 	print("SDs raw: ", [anchorDurationSD, anchorOnsetSD]);
 
-	alpha_invGammaD = get_alpha_inv_gamma(anchorDurationMean , anchorDurationSD) ;
-	beta_invGammaD = get_beta_inv_gamma(anchorDurationMean , anchorDurationSD) ;
-	print("alphas: ", [alpha_invGammaO, alpha_invGammaD]);
-	print("betas: ", [beta_invGammaO,beta_invGammaD]);
-
-	alpha_invGammaS = get_alpha_inv_gamma(sigmaMean, sigmaSD) ;
-	beta_invGammaS = get_beta_inv_gamma(sigmaMean, sigmaSD) ;
-
 	real<lower=0> T_range = T_max - T_min;
 
 	vector<lower=0>[K_O] range_X_O; //covariate ranges in the original scale
 	vector<lower=0>[K_D] range_X_D; //covariate ranges in the original scale
-
 
 	vector[K_O] mean_X_O; //mean covariate values in the original scale
 	vector[K_D] mean_X_D; //mean covariate values in the original scale
@@ -185,26 +133,6 @@ transformed data {
 		range_X_D[k] = max_X_D[k] - min_X_D[k];
 		mean_X_D[k] = mean_X_D_raw[k] * range_X_D[k] + min_X_D[k];
 	}
-
-	//pre-compute the prior mean, sd, inv. gamma alpha and inv. gamma beta values for each of the covariate values
-	alpha_D_raw_prior = anchorDurationMean - dot_product(mean_X_D_raw , betaDurationMeans);
-	for(i in 1:N) {
-		mu_D_raw_prior[i] = alpha_D_raw_prior + dot_product(X_D_raw[i], betaDurationMeans);
-		if(mu_D_raw_prior[i] < anchorDurationSD) {				//needed for inv. gamma, too many rejects outwise
-			mu_D_raw_prior[i] = anchorDurationSD + epsilon;
-		}
-		invG_alpha_D_prior[i] = get_alpha_inv_gamma(mu_D_raw_prior[i], anchorDurationSD);
-		invG_beta_D_prior[i] = get_beta_inv_gamma(mu_D_raw_prior[i], anchorDurationSD);
-	}
-	alpha_O_raw_prior = anchorOnsetMean - dot_product(mean_X_O_raw , betaOnsetMeans);
-	for(i in 1:N) {
-		mu_O_raw_prior[i] = alpha_O_raw_prior + dot_product(X_O_raw[i], betaOnsetMeans);
-		if(mu_O_raw_prior[i] < anchorOnsetSD) {				//needed for inv. gamma, too many rejects outwise
-			mu_O_raw_prior[i] = anchorOnsetSD + epsilon;
-		}
-		invG_alpha_O_prior[i] = get_alpha_inv_gamma(mu_O_raw_prior[i], anchorOnsetSD);
-		invG_beta_O_prior[i] = get_beta_inv_gamma(mu_O_raw_prior[i], anchorOnsetSD);
-	}
 }
 
 parameters {
@@ -216,21 +144,16 @@ parameters {
 	vector[K_D] beta_D_raw;
 	real<lower=0,upper=1-anchor_O_raw> anchor_D_raw;
 
-	//real<lower=1e-6,upper=0.1> sigma_raw;
 	real<lower=0.001> sigma_raw;
 }
 
-
-
 transformed parameters {
-	//real sigma_raw = 3.0/365.0;
 	real alpha_O_raw; //intercept of the linear model for Onset
 	real alpha_D_raw; //intercept of the linear model for Duration
 
 	vector[N] mu_O_raw;
 	vector[N] mu_D_raw;
 	vector[N] mu_C_raw;
-	vector[N] eta_D;
 
 	alpha_O_raw = anchor_O_raw - dot_product(mean_X_O_raw , beta_O_raw);
 	alpha_D_raw = anchor_D_raw - dot_product(mean_X_D_raw , beta_D_raw);
@@ -239,17 +162,11 @@ transformed parameters {
 	mu_O_raw =  alpha_O_raw + X_O_raw * beta_O_raw;
 
 	//Calculate mean duration in transformed scale, using softplus to assure positivity
-	//eta_D =  alpha_D_raw + X_D_raw * beta_D_raw;
-	mu_D_raw = 1e-4 + log1p_exp(eta_D);
-	//mu_D_raw = log1p_exp(eta_D);
-	//mu_D_raw = fmax(1e-6,eta_D);
-	//mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw;
+	mu_D_raw =  alpha_D_raw + X_D_raw * beta_D_raw;
 
 	//Calculate mean cessation based on onset and duration
 	mu_C_raw = mu_O_raw + mu_D_raw;
 }
-
-
 
 model {
 	if(debug) {
@@ -258,18 +175,7 @@ model {
 	//Calculate the likelihood
 	if(!drop_ll) {
 		for(i in 1:N) {
-			vector[3] lp = log_cat_probs(T_raw[i], mu_O_raw[i], sigma_raw, mu_D_raw[i],debug);
-			//target += categorical_logit_lpmf(stage[i] | lp);
-			target += lp[stage[i]];
-		}
-	}
-
-	//Define priors
-	//These hierarchical priors on the individual mean durations and onsets help to regularize, improve HMC diagnostics by reducing divergences, and still maintain accuracy. 
-	if(priors >= 2) {
-		for(i in 1:N) {
-			target += inv_gamma_lpdf(mu_D_raw[i] | invG_alpha_D_prior[i], invG_beta_D_prior[i]);
-			target += inv_gamma_lpdf(mu_O_raw[i] | invG_alpha_O_prior[i], invG_beta_O_prior[i]);
+			target += log_p_y_given_t(stage[i], T_raw[i], mu_O_raw[i], sigma_raw, mu_D_raw[i], debug);
 		}
 	}
 
