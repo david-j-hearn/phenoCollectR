@@ -721,7 +721,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' Run a Bayesian analysis of phenological events using biocollection data
 #'
 #' @description
-#' This function is the core of the phenoCollectR package. It wraps many other functions to make the Bayesian analysis of phenological events using biocollection data as streamlined as possible, yet flexible if need be. 
+#' This function is the core of the phenoCollectR package. It wraps many other functions to make the Bayesian analysis of phenological events using biocollection data as streamlined as possible, yet flexible if need be. In particular, it aims to connect variation in life history timing to environmental variation. 
 #'
 #' Models with or without covariates can be used. Covariates can be climate variables, physical environment variables, physiological states, genetic states, and so forth - anything that may contribute to phenological variation. However, as currently implemented, only continuous covariates are supported.
 #' 
@@ -729,49 +729,126 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' 
 #' The helper function 'preparePhenologyData' can be used to prepare the response data and the covariate data for input to this function.
 #' 
-#' The theory developed by Hearn et al. (XXXX) unifies the models for onset and duration to derive the theoretical distribution of observed collection times. Bayesian inference is carried out using the probabilistic programming language Stan, which draws samples from the posterior distribution of the model parameters. These samples can be used for downstream analyses. For example, to estimate the marginal posterior probability that a slope coefficient associated with a covariate is negative, one simply counts the number of posterior samples where the coefficient is negative and divides by the total number of samples from the posterior distribution.
+#' The theory developed by Hearn et al. (XXXX) unifies the models for onset and duration to derive the theoretical distribution of observed collection times. Bayesian inference is carried out using the probabilistic programming language Stan, which draws samples from the posterior distribution of the model parameters. These samples can be used for downstream analyses. For example, to estimate the marginal posterior probability that a slope coefficient associated with a covariate is negative, one simply counts the number of posterior draws where the coefficient is negative and divides by the total number of draws from the posterior distribution.
 #'
-#' As part of a Bayesian analysis, and to reduce model identifiability issues, a prior distribution is needed for the analysis. Flat priors will not work for this analysis. Because the setting of priors can be challenging, this function can optionally implement methods that will automate the specification of priors for you. Advanced users can manually tailor prior hyperparameters and achieve weakly informative priors, if desired. Under the current implementation, the functional form of the priors is pre-set. 
+#' As part of a Bayesian analysis, and to reduce model identifiability issues with presence-only data, a prior distribution is needed for the analysis. Flat priors will not work for this analysis. Because the setting of priors can be challenging, this function can optionally implement methods that will automate the specification of priors for you. Advanced users can manually tailor prior hyperparameters and achieve weakly informative priors, if desired. Under the current implementation, the functional form of the priors is pre-set. 
 #' 
-#' Users can also optionally choose to analyze phenological extremes. To do so requires an estimate of the population from with biocollection records were obtained. The concept of "population" in this case can be quite loose and can be the metapopulation consisting of all populations from which samples were selected. 
+#' Users can also optionally choose to analyze phenological extremes. To do so requires an estimate of the population size from with biocollection records were obtained. The concept of "population" in this case can be quite loose and can be the metapopulation consisting of all populations from which samples were selected. 
 #' 
-#' The parameters to be estimated for the 'full' model include the marginal mean onset time (mu_O), the marginal mean duration (mu_D), one parameter (coefficient) for each covariate used to model the mean onset time, one parameter (coefficient) for each covariate used to model the mean duration time, and one sigma parameter which models both the standard deviation of the distribution of onset times and the standard deviation of the distribution of durations. If there are K_O onset covariates, and K_D duration covariates, then there is a total of 3 + K_O + K_D free parameters. 
+#' The parameters to be estimated for the 'full' model include the marginal mean onset time (\eqn{\mu_O}), the marginal mean duration (\eqn{\mu_D}), one parameter (\eqn{\beta_O} coefficient) for each covariate used to model the mean onset time, one parameter (\eqn{\beta_D} coefficient) for each covariate used to model the mean duration time, and one \eqn{\sigma_O} parameter which models both the standard deviation of the distribution of onset times and the standard deviation of the distribution of durations. If there are \eqn{K_O} onset covariates, and \eqn{K_D} duration covariates, then there is a total of 3 + \eqn{K_O} + \eqn{K_D} free parameters (including the two \eqn{\alpha} intercept terms. 
 #'
-#' The parameters to be estimated for the 'intercept-only' model include the marginal mean onset time, the marginal mean duration, and the sigma parameter. 
+#' The parameters to be estimated for the 'intercept-only' model include the marginal mean onset time (\eqn{\mu_O}), the marginal mean duration (\eqn{\mu_D}), and the sigma parameter (\eqn{\sigma_O}). 
 #'
 #' Other parameters associated with phenophase cessation events and phenological extremes are deterministic functions of the free parameters based on the implemented Gaussian process model.
 #'
 #' A summary of the Stan run is available through the helper function 'summarizePhenologyResults', or advanced users can access the Stan sample directly from the output of this function for customized downstream analyses using other packages designed for the analysis of samples from posterior distributions, such as 'posterior' and 'bayesplot'. 
+#' 
+#' \bold{\emph{BACKGROUND FRAMEWORK AND THEORY}}
 #'
-#' @param type The type of model to be implemented. Four options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval-full' will model mean onset and mean duration and a linear function of covariates for before-during-after data, option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data, and option 'interval' will model the distribution of onset times and durations with no consideration of covariates for before-during-after data. (default: intercept-only)
-#' @param responseData A vector of the response data. This is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason for preprocessing transformations. 
-#' @param stage Only for use when type is 'interval' or 'interval-full'. A vector of integers the same length as the response data vector. For each observation in the response data, the stage will be a 1 if the observation is before the phenophase, a 2 if it is during the phenophase, and a 3 if it is after the phenophase. Any other values will produce errors. default: NA
-#' @param hyperparams_noCovariates For use with 'intercept-only' or 'interval' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order.
-#' @param onsetCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear onset model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.
-#' @param durationCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen for the linear duration model. The number of rows must match the number of rows in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate.
-#' @param onsetHyperBeta For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the onset model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_O columns in the covariate data frame, there should be K_O rows in this data frame.
-#' @param onsetHyperAnchor For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the marginal mean onset time value).
-#' @param durationHyperBeta For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the duration model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (onsetCovariateData), the second row with the second covariate, and so forth. If there are K_D columns in the covariate data frame, there should be K_D rows in this data frame.
-#' @param durationHyperAnchor For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the marginal mean phenophase duration value).
-#' @param sigmaHyper For use with '*full' models. A two-element vector with the mean and standard deviation of the prior distribution for the sigma parameter. Sigma is the standard deviation of the onset distribution and is also the standard deviation of the cessation distribution.
-#' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 under current implementation (default = 0)
+#' \bold{DATA TYPES}
+#' 
+#' There are two main types of datasets that can be analyzed. When only observation times of individuals in the stage of interest are available, these are presence-only data (PO). When observation times are available before, during, and after the stage of interest, these are before-during-after data (BDA). Theory for these two types of datasets differs builds on itself.
+#' 
+#' \bold{NOTATION}
+#' 
+#' Both visible and latent events are modeled with random variables (RVs). 
+#' 
+#' RVs are symbolized with the first letter of the state of interest: Onset (O), Duration (D), Cessation (C), observed collection Times (T). 
+#' 
+#' RVs representing extremes are subscripted. For example, first onset is \eqn{O_1}, and last onset is \eqn{O_N} where \eqn{N} is the population size. 
+#' 
+#' Parameters are subscripted by the associated random variable. For example, mean duration is \eqn{\mu_D} and the standard deviation of the last cessation is \eqn{\sigma_{C_N}}. In the linear models, intercept parameters are represented by \eqn{\alpha} and slope coefficients are \eqn{\beta}. So, for the model of mean onset, the intercept is \eqn{\alpha_O} and a slope coefficient for the \eqn{i^{th}} covariate is \eqn{\beta_{O,i}}.
+#' 
+#' The model implemented in Stan is based on the properties of a degenerate Gaussian process that samples lines with intercepts whose values are normally distributed. When a line passes a first threshold at \eqn{\mu_O}, the process begins, and when that line passes a second threshold at \eqn{\mu_D}, the process ends. This process results in normally-distributed onsets: \eqn{O \sim N(\mu_O, \sigma^2_O)}, a constant duration \eqn{D}, and a normally-distribed cessation: \eqn{C \sim N(\mu_O + D, \sigma^2_O)}.
+#' 
+#' The process of interest occurs in a time period (TP), such as a year for cyclical annual processes, or a day for cyclical diel processes, that has a minimum time of \eqn{m} and a maximum time of \eqn{M}. For a year, the day of year time is between \eqn{m=0} and \eqn{M=365}. 
+#' 
+#' The dataset consists of a population of individuals undergoing the process of interest contained within the TP. Onset and duration times can vary for each individual in the population. 
+#' 
+#' Onset times have intrinsic noise due to \eqn{\sigma_O}, whereas durations do not. Both onset times and duration lengths can vary in relation to internal states such as energy store level or organismal size, or to external conditions such as climate variation (temperature summaries for spring, etc.) or environmental variation (soil type, moisture levels, light levels, etc.). Any number of covariates can be used with standard cautions about overly complex models (overfitting, model identifiability, parameter uncertainty, collinearity, etc.).
+#' 
+#' The sample design is as follows. Individuals are randomly sampled from a population at random points in time during the time period.  
+#' 
+#' The only RVs with directly observed states are the observed times (\eqn{T}) and the observed states (\eqn{S}). All the other RVs are latent (hidden) and estimated from the observed times and associated stages.
+#' 
+#' For the theory, we simplify things by examining a time period (TP) starting at time 0 and of length 1 time unit. Data sampled from other length time periods can be translated to start at time 0 by subtracting \eqn{m} from all times and scaled to a length of 1 by dividing all sampled times by \eqn{M-m}. In what follows, we assume such transformations have already been made. These transformations are handled automatically by this runStanPhenology function. If users wish to transform their data in other ways prior to analysis, we leave this up to the user. 
+#' 
+#' \bold{THEORY: BEFORE-DURING-AFTER {BDA}}
+#' 
+#' For \bold{before-during-after (BDA)} data, all observed times are kept and the stage is recorded.
+#' 
+#' For the core theory, we need to determine the probabilities of each stage given the sampled time and model parameters \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. 
+#' 
+#' The probability that a time is before the onset is \deqn{P_{before}(O>t|\theta)=1-\Phi(\frac{t-\mu_O}{\sigma_O})} where \eqn{\Phi(z) \equiv P(Z<z)} is the cumulative distribution function of a standard normal random variable \eqn{Z}. 
+#' 
+#' With a duration \eqn{D}, the probability that a sampled time \eqn{t} occurs after the cessation \eqn{C=O+D} is \deqn{P_{after}(t \ge O+D | \theta) = P_{after}(O \le t-D | \theta) = \Phi(\frac{t-D-\mu_O}{\sigma_O})}
+#' 
+#' The "during event" is the complement of the "after event" unioned with the "before event", since before, after, and during are exhaustive and mutually exclusive events. So, the probability that the sampled time \eqn{t} occurs between onset \eqn{O} and cessation \eqn{O+D} follows from the complement rule of probability: \deqn{P_{during}(O \le t \lt O+D|\theta) = 1 - (P_{after}+P_{before})=\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O})}
+#' 
+#' For stages before, during, and after the process of interest, symbolized as 1, 2, and 3, respectively, the likelihood function for \eqn{n} randomly sampled times \eqn{\vec{t}} with associated stages \eqn{\vec{s}} is then \deqn{P(\vec{s}|\vec{t},\theta)=\prod_{i=1}^{i=n}P_{before}^{I(s_i=1)}P_{during}^{I(s_i=2)}P_{before}^{I(s_i=3)}} where the indicator function \eqn{I(s_i=j)} returns 1 whenever the stage for the \eqn{i^{th}} individual equals \eqn{j}.
+#' 
+#' \bold{THEORY: PRESENCE-ONLY (PO)}
+#' 
+#' For \bold{presence-only (PO)} data, only the observed times \emph{during} the process of interest are recorded and all other times are discarded. 
+#' 
+#' The theory for presence only is a bit more complicated than the theory for before-during-after data. The ultimate goal for PO analysis is to infer the parameters that describe the distribution of observed sampled times. The other distributions of interest, including extremes, onsets, peak, and cessation, are functions of these parameters with a caveat for extremes. 
+#' 
+#' The distribution whose parameters we want to infer is the probability density of the observed times given the individual was sampled during the process of interest (state \eqn{s=1})and given the parameters of the onset distribution and duration: \deqn{p(t|s=1,D,\mu_O,\sigma_O)} For simplicity, let \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. Using Bayes rule, \deqn{p(t|s=1,\theta) = \frac{p(s=1|t,\theta)p(t|\theta)}{p(s=1|\theta)}}
+#' 
+#' The probability that the stage is during the process given the sampled time and parameters was derived above as \eqn{P_{during}}. 
+#'
+#' The sampling strategy defines \eqn{p(t|\theta)}. In the current implementation, the sampling of times is at random and independent of \eqn{\theta}, i.e., \eqn{p(t|\theta)=\frac{1}{M-m}}. Since all observed times are scaled to a TP of length 1 already, \eqn{p(t|\theta)=1}. 
+#' 
+#' Finally, \eqn{p(s=1|\theta)} is the length of the process of interest when the TP is length 1 and the process occurs entirely within the TP. By the total law of probability this is \deqn{\int_0^1 p(s=1,t|\theta)dt=\int_0^1 p(s=1|t,\theta)p(t|\theta)dt=\int_0^1 p(s=1|\theta)dt=\int_0^1p_{present}dt=\int_0^1 (\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O}))dt} Hearn et al. (XXXX) in their Appendix 1 provide a closed form for this integral.
+#' 
+#' \bold{THEORY: MODELING COVARIATES}
+#' 
+#' In the current implementation, the mean onset time and the duration time are modeled as linear functions of covariates. Different covariates can be used for the onset model and for the duration model, but here, for simplicity, they are assumed to be the same for both models. If we let \eqn{\vec{X}} represent the vector of covariates and \eqn{\vec{\beta}} represent the vector of coefficients, then the following are the models for onset and duration: \deqn{O \sim N(\alpha_O + \vec{\beta_O} \cdot \vec{X}, \sigma_O^2)} and \deqn{D \equiv \mu_D = \alpha_D+\vec{\beta_D} \cdot \vec{X}}
+#' 
+#' These models of mean onset and duration make the model hierarchical, so that with the inclusion of covariates, everywhere in the likelihood function where \eqn{\mu_O} or \eqn{D} appear, they are replaced by the above linear functions. If there are \eqn{K_O} covariates for the onset model and \eqn{K_D} covariates for the duration model, along with the two \eqn{\alpha} intercepts and the \eqn{\sigma_O} standard deviation parameter, the fully specified model has \eqn{2 + 1 + K_O + K_D} estimable parameters.
+#' 
+#' \bold{THEORY: BAYESIAN ANALYSIS AND PRIORS}
+#' 
+#' In a Bayesian analysis the probability density of the parameters given the data, which is called the posterior distribution, is proportional to the product of the likelihood, which is the probability of the data given the parameters, and the prior distribution, which is the marginal probability of the parameters: \eqn{Posterior \propto Likehood * Prior}. 
+#' 
+#' The above sections provided derivations of the likelihood functions for both PO datasets and BDA datasets, so the only remaining thing needed to carry out a Bayesian analysis is to specify the prior distributions. The priors are defined for the \eqn{D,\beta_O,\alpha_O, \beta_D, \alpha_D, \sigma_O} parameters. In the current implementation, the priors can be flat, or they can be normally distributed. 
+#' 
+#' Set the \emph{priorLevel} function parameter (described below) to 0 for a flat prior. This is only recommended for use with BDA datasets, as identifiability for PO sets necessitates an informative prior. 
+#' 
+#' Set the \emph{priorLevel} to any value greater than 1 for normally distributed priors. A normally distributed prior requires two hyperparameters for each parameter: the mean of the parameter and the standard deviation of the parameter. Users can manually input these hyperparameter values or can use automated prior specification. 
+#' 
+#' Normal priors are used primarily for convenience and interpretability. Under standard regularity conditions, the Bernstein–von Mises theorem implies that as sample size increases, the posterior distribution becomes approximately multivariate normal, centered near the maximum likelihood estimate, with covariance given by the inverse Fisher information scaled by \eqn{1/n}. In this large-sample regime, posterior uncertainty is therefore well summarized by normal approximations and depends only weakly on the particular prior, provided the prior assigns positive density in a neighborhood of the true parameter value. This asymptotic behavior makes normal priors a natural default choice in many settings. Moreover, in sequential Bayesian analyses where researchers use a previous large-sample posterior as the prior for a subsequent analysis, the inherited prior will itself be approximately normal.
+#' 
+#'
+#' @param type The type of model to be implemented. Four options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval-full' will model mean onset and mean duration as a linear function of covariates for before-during-after data, option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data, and option 'interval' will model the distribution of onset times and durations with no consideration of covariates for before-during-after data. The Examples section below provides example usage of each scenario (default: intercept-only)
+#' @param responseData A vector of the response data. The response data are simply the observed times of collection, often the day of year for biocollection data. This vector is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason to use preprocessing transformations. (default: NULL)
+#' @param stage Only for use when type is 'interval' or 'interval-full'. A vector of integers the same length as the number of observations. For each observation, the stage will be a 1 if the observation is before the phenophase, a 2 if it is during the phenophase, and a 3 if it is after the phenophase. Any other values will produce errors. (default: NULL)
+#' @param hyperparams_noCovariates For use with 'intercept-only' or 'interval' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order. Items in the vector can be named or unnamed. (default: NULL)
+#' @param onsetCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen observation. The number of rows must match the number of items in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate. (default: NULL)
+#' @param durationCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen observation. The number of rows must match the number of items in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate. (default: NULL)
+#' @param onsetHyperBeta For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the onset model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (onsetCovariateData), the second row with the second covariate, and so forth. If there are \eqn{K_O} columns in the covariate data frame, there should be \eqn{K_O} rows in this data frame. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param onsetHyperAnchor For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the marginal mean onset time value). Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param durationHyperBeta For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the duration model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (durationCovariateData), the second row with the second covariate, and so forth. If there are \eqn{K_D} columns in the covariate data frame, there should be \eqn{K_D} rows in this data frame. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param durationHyperAnchor For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the marginal mean phenophase duration value). Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param sigmaHyper For use with '*full' models. A two-element vector with the mean and standard deviation of the prior distribution for the sigma parameter. Sigma is the standard deviation of the onset distribution and is also the standard deviation of the cessation distribution. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 (i.e., at default) under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
-#' @param keepScale Leave the response data at original scale during stan run. Only implemented for type "interval". Default is usually fine. Use keepScale if you need the stan sampler to initialize the sampling at the hyperparameter values and keep the original scale. Best not to when not needed. (default: FALSE, which min-max scales the data)
+#' @param keepScale Leave the response data at original scale during Stan run. Only implemented for type "interval". Default is usually fine. Use keepScale if you need the Stan sampler to initialize the sampling at the hyperparameter values and keep the original scale. Best to keep at default. (default: FALSE, which min-max scales the data)
 #' @param maxDiv The maximum number of divergences to be tolerated during the Stan posterior sampling. This should be 0 unless a biased sample from the posterior is acceptable. (default: 0)
-#' @param setStringent Boolean flag to indicate more stringent sampling during Stan runs. Specifically, adapt_delta = 0.99, max_treedepth = 15. Setting to TRUE reduces the chances of divergences, but run time is slower. Usually the different in run time is not of practical concern. (default: TRUE)
-#' @param runMAP Boolean flag to indicate if Stan should be used to estimate the maximum a posteriori (MAP) values. (default: FALSE)
-#' @param processExtremes Boolean flag to indicate if parameters for the phenological extreme distributions should be included in the analysis. If set to TRUE, asymptotic estimates of the expected first onset and expected last cessation are sampled. A limitation is that an estimate of the population size is needed for this analysis. (default: TRUE)
-#' @param N The population size. For used when processExtremes is set to TRUE. (default: 500)
-#' @param partitionDataForPriors Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30% of the data are partitioned into a set to estimate the hyperparameters, and 70% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored. (default: FALSE)
-#' @param maximizeSampleSize Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates may be unacceptably large unless a fuller data set is used. Recommended to keep at default. (default: FALSE)
-#' @param threshApprox An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NA)
+#' @param setStringent Boolean flag to indicate more stringent sampling during Stan runs. Specifically, adapt_delta = 0.99, max_treedepth = 15. Setting to TRUE reduces the chances of divergences, but run time is slower. Usually the difference in run time is not of practical concern, so the default is fine. (default: TRUE)
+#' @param runMAP Boolean flag to indicate if Stan should be used to estimate the maximum a posteriori (MAP) values. (default: TRUE)
+#' @param processExtremes Boolean flag to indicate if parameters for the phenological extreme distributions should be estimated during the analysis. If set to TRUE, asymptotic estimates of the expected first onset and expected last cessation are sampled. Because asymptotic estimates are provided, estimates are made very quickly. A limitation is that an estimate of the population size is needed for this analysis. (default: TRUE)
+#' @param N The population size. Needed when processExtremes is set to TRUE. (default: 500)
+#' @param partitionDataForPriors Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30% of the data are partitioned into a set to estimate the hyperparameters, and 70% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored. This is not recommended if accurate estimates of duration and onset parameters are needed, but estimates of covariate coefficients tend to be accurate. (default: FALSE)
+#' @param maximizeSampleSize Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis. When the sample size is very small, and no prior information is available, the error on the estimates may be unacceptably large unless the fuller dataset is used for inference. Recommended to keep at default. (default: FALSE)
+#' @param threshApprox An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NULL)
 #' @param byPassChecks Boolean flag indicating whether to bypass checks for Stan. If Stan is not located, an attempt will be made to install Stan. Recommended to keep at default. (default: FALSE)
 #' @param priorLevel Specifies types of priors by an integer. Setting to 0 will use flat priors. Above 0 will use the user-input prior hyperparameters with normally distributed priors. For presence-only data, leave at default. (default: 2)
-#' @param ... Parameters to be input into the stan sample function. Not currently implemented. Do not use.
+#' @param ... Parameters to be input into the Stan sample function. Not currently implemented. Do not use.
 #'
 #' @return Details of what is returned will depend on which 'type' of model is used. See 'type' parameter.
 #'
-#' In the case of '*full': A list with the following items:
+#' In the case of \bold{'*full' type}, a list with the following items is returned:
 #'
 #' data: the data that were passed to Stan. These include the scaled and translated response and covariate data.
 #'
@@ -791,7 +868,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'
 #' sigmaHyper: the mean and standard deviation hyperparameter values for sigma
 #'
-#' result: the sample from Stan
+#' result: the sample from the Stan sampling
 #'
 #' model: the Stan model
 #'
@@ -807,7 +884,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'
 #' error_m: an error message, possibly indicating no error occurred.
 #'
-#' In the case of 'intercept-only' or 'interval': A list with the following items:
+#' In the case of \bold{'intercept-only' or 'interval'} type, a list with the following items is returned:
 #'
 #' data: the data that were passed to Stan. These include the scaled and translated response and covariate data.
 #'
@@ -843,7 +920,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' @examples
 #' \donttest{
 #' ##########################################################################################################################################################
-#' ##Run an example with EMPIRICAL COLLECTION TIMES of individuals in the phenophase (PRESENCE ONLY - PO)
+#' ##Run an example with EMPIRICAL COLLECTION TIMES of individuals in the phenophase (PRESENCE ONLY - PO) - type 'full'.
 #'
 #' ##DEFAULT PRIORS are used and are only reliable for slope coefficient estimations. 
 #' #!!*Use a prior based on biological data for the duration if accurate duration estimation is a priority.*!!
@@ -863,7 +940,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'                               , onsetCovariateNames=vars, durationCovariateNames=vars
 #'                               , taxonName="Sanguinaria_canadensis", removeOutliers=TRUE)
 #'
-#' #EMPIRICAL DATA STAN RUN WITH COVARIATES
+#' \bold{#EMPIRICAL DATA STAN RUN WITH COVARIATES}
 #' stanResult  =  runStanPhenology(type="full", responseData = data$responseData
 #'                                 , onsetCovariateData = data$onsetCovariateData
 #'                                 , durationCovariateData = data$durationCovariateData
@@ -878,7 +955,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##
 #' ##
 #' ##########################################################################################################################################################
-#' ##Run more complicated examples, this time with SIMULATED PHENOLOGY observed times before, during, and after the phenophase and with SIMULATED COVARIATES.
+#' ##Run more complicated examples, this time with SIMULATED PHENOLOGY and SIMULATED COVARIATES 
 #' #
 #' #COVARIATE MODEL
 #' covariate_namesOnset = c("v1", "v2")
@@ -932,7 +1009,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' durationCovariateDataBDA = simulated_data[,covariate_namesDuration, drop=FALSE]
 #' stageBDA = simulated_data$stage
 #' #
-#' ##BDA STAN RUN
+#' \bold{#BDA STAN RUN - type 'interval-full'}
 #' stanResultBDA = runStanPhenology(
 #' 			type="interval-full",
 #' 			responseData=responseDataBDA,
@@ -964,7 +1041,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' colnames( onsetCovariateData ) = covariate_namesOnset
 #' colnames( durationCovariateData ) = covariate_namesDuration
 #' #
-#' #PO STAN RUN
+#' \bold{#PO STAN RUN - type 'full'}
 #' stanResultPO = runStanPhenology(
 #' 			type="full",
 #' 			responseData=responseData,
@@ -1013,7 +1090,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' #BDA DATA
 #' responseDataBDA.NC = simulated_data$observedTime
 #' stageBDA.NC = simulated_data$stage
-#' #STAN RUN BDA
+#' \bold{#STAN RUN BDA - type 'interval'}
 #' stanResultBDA.NC = runStanPhenology(
 #' 			type="interval",
 #' 			responseData=responseDataBDA.NC,
@@ -1034,7 +1111,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' #PO DATA
 #' responseData.NC = simulated_data$observedTime[simulated_data$stage==2]
 #' #
-#' #STAN RUN PO
+#' \bold{#STAN RUN PO - type 'intercept-only'}
 #' stanResult.NC = runStanPhenology(
 #' 			type="intercept-only",
 #' 			responseData=responseData.NC,
@@ -1050,7 +1127,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' print(stanResult.NC$sample, max_rows = 15)
 #' ##########################################################################################################################################################
 #' }
-runStanPhenology = function(type=c("intercept-only","interval","interval-full","full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, ...) {
+runStanPhenology = function(type=c("intercept-only","interval","interval-full","full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, ...) {
 
   ## ###########################################################################
 	## CHECK STAN BLOCK
@@ -1093,7 +1170,7 @@ runStanPhenology = function(type=c("intercept-only","interval","interval-full","
 			hyperparams_noCovariates = getHyperparametersViaQuantiles(responseDataForPrior = partition$dataForPrior, scale = scale)
 			}
 		}
-		else if(type=="interval-full" || "interval") {
+		else if(type=="interval-full" || type=="interval") {
 			if(partitionDataForPriors) {
 				stop("Partitioning data for priors is not supported for interval estimation.")
 			}
@@ -1106,7 +1183,7 @@ runStanPhenology = function(type=c("intercept-only","interval","interval-full","
 			#get the data for inference
 			#if(length(partition$responseDataForInference)<150 && maximizeSampleSize) {
 			if(maximizeSampleSize) {
-				   #don't reduce the amount of data - this is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates will be unacceptably large unless a fuller data set is used.
+				   #don't reduce the amount of data - this is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates will be unacceptably large unless a fuller dataset is used.
 			}
 		else {
 			responseData = partition$responseDataForInference

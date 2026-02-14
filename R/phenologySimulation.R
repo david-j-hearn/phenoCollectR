@@ -443,8 +443,18 @@ simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NU
 
     sds_use <- sds_named[all_covs]
     p <- length(sds_use)
+    if(p==1) {
 	D <- diag(as.numeric(sds_use), nrow = p, ncol = p)
+    }
+    else {
+	    D = sds_use
+    }
     Sigma_use <- diag(D) %*% R_use %*% diag(D)
+    print(Sigma_use)
+    print(R_use)
+    print(sds_use)
+    print(D)
+    print(diag(D))
   }
 
   # ---- means ----
