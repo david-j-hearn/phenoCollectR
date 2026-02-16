@@ -16,7 +16,50 @@ obs_gp_nc <- function(mu_O, duration, sigma) {
   -0.5 + scaled_exp_sum + mu_C_terms + mu_O_terms;    
 }
 
+dobs_gp <- function(t, mu_O, duration, sigma, log = FALSE) {
+  mu_C <- mu_O + duration
+  base_ll <- 
+    dplyr::if_else(t > mu_O, 
+                   brms:::log_diff_exp(pnorm(mu_C, t, sigma, log = TRUE), pnorm(mu_O, t, sigma, log = TRUE)),
+                   brms:::log_diff_exp(pnorm(2 * t - mu_O, t, sigma, log = TRUE), pnorm(2 * t - mu_C, t, sigma, log = TRUE))
+    )
+  nc <- obs_gp_nc(mu_O, duration, sigma)                            
+  ll <- base_ll - log(nc)
+  if(log) {
+    ll
+  } else {
+    exp(ll)
+  }
+}
+
 robs_gp <- function(n, mu_O, duration, sigma, max_rejection = 10000) {
+  if(length(mu_O) == 1) {
+    mu_O <- rep(mu_O, n)
+  }
+  if(length(duration) == 1) {
+    duration <- rep(duration, n)
+  }
+  if(length(sigma) == 1) {
+    sigma <- rep(sigma, n)
+  }
+  
+  res <- rep(NA_real_, n)
+  
+  prob_reject_estimate_time <- pmin(1, 
+                                    pmax(0, -mu_O + sigma) / (duration + 2 * sigma) + 
+                                      pmax(0, -1 + mu_O + duration + sigma) / (duration + 2 * sigma)) 
+  prob_reject_estimate_obs <- pmin(1, 
+                                    pmax(0, mu_O - sigma) + 
+                                      pmax(0, 1 - mu_O - duration - sigma)) 
+  time_indices <- prob_reject_estimate_time <= prob_reject_estimate_obs
+    res[time_indices] <- robs_gp_time(sum(time_indices), mu_O[time_indices], duration[time_indices], sigma[time_indices])
+  res[!time_indices] <- robs_gp_observation(sum(!time_indices), mu_O[!time_indices], duration[!time_indices], sigma[!time_indices])
+  res
+}
+
+# Sample observation times and check whether it is within onset/cessation.
+# Will be faster choice if onset - cessation has a large window outside of [0, 1]
+robs_gp_observation <- function(n, mu_O, duration, sigma, max_rejection = 10000) {
   res <- rep(NA_real_, n)
   mu_C <- mu_O + duration
   if(length(mu_O) == 1) {
@@ -47,6 +90,40 @@ robs_gp <- function(n, mu_O, duration, sigma, max_rejection = 10000) {
   res
 }
 
+# Sample times within onset - cessation and the check whether they are within
+# [0, 1].
+# Will be faster choice if onset-cessation lies wholly (or at least motly) within [0, 1] 
+robs_gp_time <- function(n, mu_O, duration, sigma, max_rejection = 10000) {
+  res <- rep(NA_real_, n)
+  if(length(mu_O) == 1) {
+    mu_O <- rep(mu_O, n)
+  }
+  if(length(duration) == 1) {
+    duration <- rep(duration, n)
+  }
+  if(length(sigma) == 1) {
+    sigma <- rep(sigma, n)
+  }
+  
+  for(i in 1:max_rejection) {
+    na_indices <- is.na(res)
+    n_na <- sum(na_indices)
+    if(n_na == 0) {
+      break
+    }
+    onset <- rnorm(n_na, mean = mu_O[na_indices], sd = sigma[na_indices])
+    cessation <- onset + duration[na_indices] 
+    t <- runif(n_na, onset, cessation)
+    seen <- t > 0 & t < 1
+    t[!seen] <- NA_real_
+    res[na_indices] <- t
+  }
+  if(any(is.na(res))) {
+    warning("Could not produce viable observations for some indices by rejection sampling.")
+  }
+  res
+}
+
 posterior_predict_obs_gp <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   duration <- brms::get_dpar(prep, "duration", i = i)
@@ -66,17 +143,7 @@ log_lik_obs_gp <- function(i, prep) {
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   t <- prep$data$Y[i]
   
-  mu_O <- mu
-  mu_C <- mu + duration
-  base_ll <- 
-    dplyr::if_else(t > mu_O, 
-      brms:::log_diff_exp(pnorm(mu_C, t, sigma, log = TRUE), pnorm(mu_O, t, sigma, log = TRUE)),
-      brms:::log_diff_exp(pnorm(2 * t - mu_O, t, sigma, log = TRUE), pnorm(2 * t - mu_C, t, sigma, log = TRUE))
-    )
-  nc <- obs_gp_nc(mu_O, duration, sigma)                            
-  ll <- base_ll - log(nc)
-
-  ll
+  dobs_gp(t, mu, duration, sigma, log = TRUE)
 }
 
 obs_gp_brmsfamily <- function(link = "identity", link_duration = "log", link_sigma = "log") {
