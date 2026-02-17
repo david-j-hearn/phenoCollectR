@@ -169,7 +169,7 @@ simulatePopulationLatentIntervalStates = function(n,
 	#Simulate covariate data
 	covs_all = union(covariateNamesOnset,covariateNamesDuration)
 	if(!is.null(covs_all)) {
-	X = simulateCorrelatedCovariateData(n=n, cov_names=covs_all, means=covariateMeans, Sigma = covarianceMatrix, R = correlationMatrix, sds = covariateStandardDeviations, seed = seed)  
+	X = simulateCorrelatedCovariateData(n=n, covariateNames=covs_all, means=covariateMeans, Sigma = covarianceMatrix, R = correlationMatrix, covariateSDs = covariateStandardDeviations, seed = seed)  
 	data = X
 	}
 	else {
@@ -242,10 +242,10 @@ simulatePopulationLatentIntervalStates = function(n,
 #'                            , byrow = TRUE)
 #' rownames(correlation_matrix) = covariate_names
 #' colnames(correlation_matrix) = covariate_names
-#' sds = c(1,2,4)
-#' names(sds) = covariate_names
+#' covariateSDs = c(1,2,4)
+#' names(covariateSDs) = covariate_names
 #' n=1000
-#' X = simulateCorrelatedCovariateData(n=n, cov_names=covariate_names, means=means, R=correlation_matrix, sds=sds)
+#' X = simulateCorrelatedCovariateData(n=n, covariateNames=covariate_names, means=means, R=correlation_matrix, covariateSDs=covariateSDs)
 #'
 #' ##Next, simulate response data based on simulated covariate data
 #' #Set the model parameters
@@ -318,16 +318,394 @@ simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_
 	return(df)
 }
 
+#' Simulate a correlation matrix
+#'
+#' @description Simulates a correlation matrix, coviariate variances, and provides the covariance matrix as well.
+#' 
+#' @param C The number of covariates (default: 3)
+#' @param K The number of hidden factors that influence the correlations of the covariates (default: 2)
+#' @param loading_sd Standard deviation of the strength of covariation. Defines the average difference from the mean covariance, which is 0 (default: 0.7)
+#' @param var_min The minimum variance of a covariate, which is uniformly sampled between var_min and var_max. Must be positive and less than var_max. (default: 0.3)
+#' @param var_max The maximum variance of a covariate, which is uniformly sampled between var_min and var_max. Must be positive and more than var_min. (default: 1)
+#'
+#' @return A list with the correlation matrix, R, the covariance matrix, Sigma, the loading matrix Lambda defined by the normally distributed loading, the diagonal matrix of variances, Psi, covariateSDs, where Sigma is Lambda %*% t(Lambda) + Psi
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' nCovariates = 5
+#' nLatentFactorsUnderlyingCorrelations = 2
+#' averageDeviationFromMeanCovariance = 0.7
+#' minimumVariance = 0.3
+#' maximumVariance = 1.0
+#' simulateFactorCorrelation(nCovariates, nLatentFactorsUnderlyingCorrelations, averageDeviationFromMeanCovariance, minimumVariance, maximumVariance)
+#' }
+simulateFactorCorrelation <- function(C = 3, 
+				      K = 2, 
+				      loading_sd = 0.7, 
+				      var_min = 0.3, 
+				      var_max = 1.0) {
+
+	stopifnot(C >= 1)
+	stopifnot(K >= 1)
+	
+	# If C = 1, K must effectively be 1 (otherwise Lambda is 1xK, still OK,
+	# but the result is just a scalar variance anyway).
+	K_use <- min(K, C)
+	
+	# Loadings matrix: C x K_use
+	Lambda <- matrix(rnorm(C * K_use, 0, loading_sd), nrow = C, ncol = K_use)
+	
+	# Unique variances (length C)
+	psi <- runif(C, var_min, var_max)
+	
+	# Make Psi safely a C x C matrix
+	Psi <- diag(as.numeric(psi), nrow = C, ncol = C)
+	
+	# Covariance
+	Sigma <- Lambda %*% t(Lambda) + Psi
+	
+	# Correlation: for P=1, cov2cor returns 1
+	R <- if (C == 1) matrix(1, 1, 1) else cov2cor(Sigma)
+	
+	return(list(R = R, Sigma = Sigma, Lambda = Lambda, Psi = Psi, covariateSDs = sqrt(psi)))
+}
+
+#' Simulate a slope value for a phenological stage response to covariates
+#'
+#' @description Simulates a slope value for a phenological stage response to covariates
+#' 
+#' @param windowBelow The mean duration of the stage before the current one. (default: 10)
+#' @param windowAbove The mean duration of the current stage. (default: 10)
+#' @param minCovariate The minimum value of the covariate. (default: -10)
+#' @param maxCovariate The maximum value of the covariate. (default: 10)
+#' @param stageMinimumSeparation A value describing the minimum amount of separation between the previous and the subsequent stage. (default: 10)
+#'
+#' @return A slope value giving rise to data that fit, on average, within the input constraints
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' previousStageMeanDuration = 50
+#' currentStageMeanDuration = 60
+#' minCovariate = -4
+#' maxCovariate = 27
+#' stageMinimumSeparation = 5
+#' slope = simulateCovariateSlope(previousStageMeanDuration, currentStageMeanDuration, minCovariate, maxCovariate, stageMinimumSeparation=10)
+#' n = 100
+#' noise = 3
+#' x = runif(n, minCovariate,maxCovariate)
+#' y = rnorm(n, previousStageMeanDuration + x * slope, noise) 
+#' plot(x,y)
+#' }
+simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-10, maxCovariate=10, stageMinimumSeparation=10) {
+	#print("below")
+	#print(windowBelow)
+	#print("above")
+	#print(windowAbove)
+	#print("min sep")
+	#print(stageMinimumSeparation)
+	maxD = min(windowBelow, windowAbove) - stageMinimumSeparation
+	if(maxD < 0 ) { return(0) }
+	Bmax = maxD /(maxCovariate - minCovariate)
+	return(runif(1,-Bmax,Bmax))
+}
+
+#' Simulate covariate data, phenological stage onset times, sample times, and sampled stage data
+#'
+#' @description Simulate covariate data, phenological stage onset times, sample times, and sampled stage data.
+#' 
+#' @param n The sample size. (default: 1000)
+#' @param nStages The number of stages to simulate. Not optional. (default: 2)
+#' @param stageNames A vector of the names of stages. (default: NULL)
+#' @param stage1OnsetMean The mean value of the first stage's onset. (default: NULL)
+#' @param stage1OnsetSD The standard deviation of the first stage's onset. (default: NULL)
+#' @param stage1OnsetCovariateSlopes A vector with the first stage's onset model coefficients. (default: NULL)
+#' @param stageDurationMeans A vector with all but the last stage's mean durations. (default: NULL)
+#' @param stageDurationSDs A vector with all but the last stage's duration standard deviations. (default: NULL)
+#' @param stageDurationCovariateSlopes A matrix with the slopes for each coefficient of the duration model for each stage. Columns are the covariates, and rows are the stages. (default: NULL)
+#' @param stageMinimumSeparation The minimum separation, on average, between stage onsets. (default: 10)
+#' @param minStageVariance The minimum allowable variance in durations for a stage. (default: 0)
+#' @param maxStageVariance The maximum allowable variance in durations for a stage. (default: 3.0)
+#' @param meanOnsetSpread A value or a vector of values (one for each stage), indicating the relative duration, on average, of that stage. Positive numbers only. Smaller numbers result in greater variation of durations. (default: 5.0)
+#' @param minResponse The minimum response time. (default: 0)
+#' @param maxResponse The maximum response time. (default: 365)
+#' @param nCovariates The number of covariates. (default: 1)
+#' @param X An n X nCovariates matrix with the covariate data. (default: NULL)
+#' @param covariateMeans A vector of covariate means. (default: NULL)
+#' @param covariateSDs A vector of covariate standard deviations. (default: NULL)
+#' @param covariateNames A vector of covariate names. (default: NULL)
+#' @param R A correlation matrix for the covariates. Used if no Sigma covariance matrix is provided. (default: NULL)
+#' @param Sigma A covariance matrix for the covariates. (default: NULL)
+#' @param nHiddenFactors The number of hidden factors that link to the covariates, if their correlation structure is to be simulated. (default: 2)
+#' @param hiddenFactorStrength The average deviation from the mean covariance of 0. (default: 0.7)
+#' @param minCovariateVariance The minimum allowable variance of a covariate. (default: 1.0)
+#' @param maxCovariateVariance The maximum allowable variance of a covariate. (default: 25.0)
+#' @param minCovariateMean The minimum mean value of a covariate (default: -10.0)
+#' @param maxCovariateMean The maximum mean value of a covariate (default: 10.0)
+#' @param seed The random number generator seed. (default: NULL)
+#'
+#' @return A data frame with the covariate data, the stage onset times, the sampled times, and the stage at the sampled times
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' plotSimulation = function(data, target, colors,nCovariates) {
+#' cols = colors
+#' for(i in 1:numberStages) {
+#'	 if(i == 1) {
+#'		plot(data$outputData[,target],data$outputData[,nCovariates+1],col=cols[1],ylim=c(0,365),pch=16)
+#'	}
+#'	else {
+#'		points(data$outputData[,target],data$outputData[,nCovariates+i],col=cols[i],pch=16)
+#'	}
+#'	fit = lm(data$outputData[,nCovariates+i] ~ data$outputData[,1])
+#'	abline(fit,col=cols[i])
+#' }
+#' segments(x0=data$outputData[,target],x1=data$outputData[,target],y0=0,y1=365,col="gray25")
+#' points(data$outputData[,target], data$outputData$sampledTime, col=cols[data$outputData$sampledStage], pch=4, cex=3)
+#' }
+#' 
+#' numberStages = 5
+#' numberCovariates = 3
+#' sampleSize = 50
+#' simulatedData = simulateMultistageData(n=sampleSize, nStages=numberStages, nCovariates=numberCovariates)
+#' targetCovariate = 1
+#' cols = c("red","blue","orange","black","pink")
+#' plotSimulation(simulatedData, targetCovariate, cols,numberCovariates)
+#' }
+simulateMultistageData = function(n=1000, 
+				  nStages=2, 
+				  stageNames=NULL,
+				  stage1OnsetMean=NULL,
+				  stage1OnsetSD=NULL,
+				  stage1OnsetCovariateSlopes=NULL,
+				  stageDurationMeans=NULL,
+				  stageDurationSDs=NULL,		
+				  stageDurationCovariateSlopes=NULL,
+				  stageMinimumSeparation=10,		#used to determine how much time between stages, at a minimum (on average, without including noise)
+				  minStageVariance=0,
+				  maxStageVariance=3.0,
+				  meanOnsetSpread=5.0,		#dirichlet alphas, integer or vector of length nStages, larger values mean more even spread of durations, if not given
+				  minResponse=0,
+				  maxResponse=365, 		
+				  nCovariates=1, 
+				  X=NULL,			#allow users to enter the covariate information already
+				  covariateMeans=NULL, 
+				  covariateSDs=NULL, 
+				  covariateNames=NULL,
+				  R=NULL, 
+				  Sigma=NULL, 
+				  nHiddenFactors=2, 
+				  hiddenFactorStrength=0.7, 
+				  minCovariateVariance=1.0,
+				  maxCovariateVariance=25.0,
+				  minCovariateMean=-10.0,
+				  maxCovariateMean=10.0,
+				  seed=NULL) {
+
+
+	#Basic checks
+	if(minResponse!=0) {
+		stop("Minimum responses other than 0 are not supported.")
+	}
+
+	if(nStages<2) {
+		stop("There must be at least 2 stages, even if these are just 'active' and 'dormant'.")
+	}
+
+	if(nCovariates<1) {
+		stop("There must be at least 1 covariates.")
+	}
+
+	#Generate covariate names, if needed
+	if(is.null(covariateNames) || length(covariateNames) < nCovariates) {
+		covariateNames = paste0("cov", 1:nCovariates)
+	}
+
+	#Generate stage names, if needed
+	if(is.null(stageNames) || length(stageNames) < nStages) {
+		stageNames = paste0("stage", 1:nStages)
+	}
+
+	#Simulate covariate data
+	#	check if simulation is needed
+	simulate=FALSE
+	if(is.null(X)) { simulate=TRUE }
+	if(!simulate) { 
+		if(nrow(X) != n) {
+			warning("Simulating covariate data since the requested sample size does not match the given covariate data.")
+			simulate=TRUE
+		}
+	}
+
+	if(simulate) {
+		#simulate correlation matrix if needed
+		if((is.null(R) || is.null(covariateSDs)) && is.null(Sigma)) {
+			RInfo=simulateFactorCorrelation(C=nCovariates, K = nHiddenFactors, loading_sd = hiddenFactorStrength, var_min = minCovariateVariance, var_max = maxCovariateVariance) 
+			Sigma = RInfo$Sigma
+			colnames(Sigma) = covariateNames
+			rownames(Sigma) = covariateNames
+			covariateSDs = RInfo$covariateSDs
+			names(covariateSDs) = covariateNames
+		}
+	
+		#simulate mean covariate values if needed
+		if(is.null(covariateMeans)) {
+			if(minCovariateMean>=maxCovariateMean) {
+				stop("The minimum covariate mean must be smaller than the maximum covariate mean, or provide the means themselves.")
+			}
+			covariateMeans = runif(nCovariates,minCovariateMean,maxCovariateMean)
+			names(covariateMeans) = covariateNames
+		}
+
+		#simulate covariate data - is a data frame
+		X = simulateCorrelatedCovariateData(n=n, covariateNames=covariateNames, covariateMeans=covariateMeans, Sigma=Sigma, R=R, covariateSDs=covariateSDs, seed=seed) 
+		
+	}
+
+	#simulate response data
+	#	simulate stage 1 onset SD, if needed
+	if(is.null(stage1OnsetSD)) {
+		if(minStageVariance<0 || minStageVariance >= maxStageVariance) {
+			stop("The minimum stage variance must be positive and less than the maximum stage variance.")
+		}
+		stage1OnsetSD = sqrt(runif(1, minStageVariance, maxStageVariance))
+	}
+	#	simulate onset means for each stage, and convert these to durations, as needed
+	if(is.null(stage1OnsetMean) || is.null(stageDurationMeans) || length(stageDurationMeans)!=nStages-1) {
+		if(length(meanOnsetSpread)==1) {
+			meanOnsetSpread = rep(meanOnsetSpread,nStages)
+		}
+		if(any(meanOnsetSpread<0)) {
+			stop("Each mean onset spread must be positive.")
+		}
+		if(length(meanOnsetSpread)!=nStages) {
+			stop("Provide a vector of length nStages representing the weight to give each stage when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
+		}
+		means = rdirichlet(1,meanOnsetSpread) * (maxResponse - minResponse) + minResponse
+		stage1OnsetMean = means[nStages]/2	#start the first stage 1/2 of the duration of the last stage past the time period start
+		stageDurationMeans = means[1:nStages-1]
+	}
+	#	simulate duration SDs, if needed
+	if(is.null(stageDurationSDs) || length(stageDurationSDs)!=nStages-1) {
+		stageDurationSDs = sqrt(runif(nStages-1, minStageVariance, maxStageVariance))
+	}
+
+	#	simulate stage 1 slopes for onset model, if needed
+	if(is.null(stage1OnsetCovariateSlopes) || length(stage1OnsetCovariateSlopes)!=nCovariates) {
+		stage1OnsetCovariateSlopes = rep(0,nCovariates)
+		d1 = stage1OnsetMean
+		d2 = stageDurationMeans[1]
+		#print("Stage 1")
+		for(i in 1:nCovariates) {
+			#the current / next is different here, since this is the onset model, not the duration model
+			stage1OnsetCovariateSlopes[i] = simulateCovariateSlope(windowBelow=d1, windowAbove=d2, minCovariate=min(X[,i]), maxCovariate=max(X[,i]), stageMinimumSeparation = stageMinimumSeparation) 
+		}
+	}
+	#	simulate stage duration covariate slopes, if needed
+	if(is.null(stageDurationCovariateSlopes) || ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages) {
+		stageDurationCovariateSlopes = matrix(0,ncol=nCovariates,nrow=nStages-1)
+		colnames(stageDurationCovariateSlopes) = covariateNames
+		rownames(stageDurationCovariateSlopes) = stageNames[1:nStages-1]
+		for(i in 1:nCovariates) {
+			#print("covariate")
+			#print(i)
+			mC = min(X[,i])
+			MC = max(X[,i])
+			for(j in 1:(nStages-1)) {
+				#print("stage")
+				#print(j)
+				windowBelow = stageDurationMeans[j]
+				if(j == nStages-1) { #wrap around
+					windowAbove = stage1OnsetMean
+				}
+				else {
+					windowAbove = stageDurationMeans[j+1]
+				}
+				stageDurationCovariateSlopes[j,i] = simulateCovariateSlope(windowBelow=windowBelow, windowAbove=windowAbove, minCovariate=mC, maxCovariate=MC, stageMinimumSeparation = stageMinimumSeparation)
+			}
+		}
+	}
+
+	#Simulate individuals' stages
+	#	Basic checks
+	if(nrow(X) != n) {
+		stop("The number of rows in the covariate data matrix does not match the requested sample size.")
+	}
+	if(ncol(X) != nCovariates) {
+		stop("The number of columns in the covariate data matrix does not match the requensted number of covariates.")
+	}
+
+	#
+	#simulate the onset times for each stage and simulate sampling each individual in the population
+	times = runif(n,minResponse,maxResponse)
+	stages = rep(0,n)
+	onsets = matrix(0,nrow=n,ncol=nStages)
+	colnames(onsets) = stageNames
+	onsetCumTot = 0
+	for(i in 1:n) {
+		#covariates = as.vector(X[i,]) #get vector of covariate values
+		covariates = as.numeric(X[i,]) #get vector of covariate values
+		for(j in 1:nStages) {
+			if(j==1) {
+				slopes = stage1OnsetCovariateSlopes
+				intercept = stage1OnsetMean - sum(slopes * covariateMeans)
+				sd = stage1OnsetSD
+				#print(slopes)
+				#print(covariates)
+				onsets[i,j] = rnorm(1, softplus(intercept + sum(slopes * covariates)),sd)
+				if(times[i]>0 && times[i]<=onsets[i,j]) {
+					stages[i] = nStages
+				}
+				onsetCumTot = stage1OnsetMean
+			}
+			else {
+				slopes = as.vector(stageDurationCovariateSlopes[j-1,])
+				intercept = stageDurationMeans[j-1] - sum(slopes * covariateMeans)
+				sd = stageDurationSDs[j-1]
+				#print(slopes)
+				#print(covariates)
+				duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd))
+				onsets[i,j] = onsetCumTot + duration
+				if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
+					stages[i] = j-1
+				}
+				onsetCumTot = onsetCumTot + stageDurationMeans[j-1]
+			}
+		}
+		if(times[i]>=onsetCumTot) {
+			stages[i]=nStages
+		}
+	}
+
+	outputData = cbind(X,as.data.frame(onsets))
+	outputData$sampledTime = times
+	outputData$sampledStage = stages
+
+	return(list(outputData=outputData, R=R, Sigma=Sigma, covariateSDs=covariateSDs, covariateMeans=covariateMeans, X=X, stage1OnsetMean=stage1OnsetMean, stage1OnsetSD=stage1OnsetSD, stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes, stageDurationMeans=stageDurationMeans, stageDurationSDs=stageDurationSDs, stageDurationCovariateSlopes=stageDurationCovariateSlopes))
+
+	#Output
+	#	data frame of simulated data: covariates, stage onsets, sampled time, sampled stage
+	#	parameters for simulation: 
+	#	covariate correlation structure: R, Sigma, 
+	#	covariate descriptive statistics: covariateSDs, covariateMeans, 
+	#	covariate data: X, 
+	#	stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes, 
+	#	duration models: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
+}
+
+
 #' Simulate linearly correlated covariate data
 #'
 #' @description Simulate linearly correlated covariate data for any positive number of covariates. 
 #'
 #' @param n Sample size
-#' @param cov_names Vector of the names of the covariates
+#' @param covariateNames Vector of the names of the covariates
 #' @param means Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)
 #' @param Sigma The covariance matrix. Must be real positive semidefinite and of dimension length(beta) X length(beta) (default: identity matrix if no correlation matrix provided)
-#' @param R The correlation matrix. Diagonal must be all ones, and off diagonal entries must vary between -1 and 1. Needs value of sds parameter to be applied. (default: identity matrix)
-#' @param sds A vector of standard deviations of each covariate. 
+#' @param R The correlation matrix. Diagonal must be all ones, and off diagonal entries must vary between -1 and 1. Needs value of covariateSDs parameter to be applied. (default: identity matrix)
+#' @param covariateSDs A vector of standard deviations of each covariate. 
 #' @param seed An optional seed for the random number generator.
 #'
 #' @return A data frame with columns labeled with the covariate names and n rows representing simulation replicates.
@@ -346,19 +724,19 @@ simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_
 #'                            , byrow = TRUE)
 #' rownames(correlation_matrix) = covariate_names
 #' colnames(correlation_matrix) = covariate_names
-#' sds = c(1,2,4)
-#' names(sds) = covariate_names
+#' covariateSDs = c(1,2,4)
+#' names(covariateSDs) = covariate_names
 #' n=1000
 #' #Simulate the data
-#' X = simulateCorrelatedCovariateData(n=n, cov_names=covariate_names, means=means, R=correlation_matrix, sds=sds)
+#' X = simulateCorrelatedCovariateData(n=n, covariateNames=covariate_names, covariateMeans=means, R=correlation_matrix, covariateSDs=covariateSDs)
 #' #Make a scatter plot of the simulated data
 #' plot(X$x1, X$x2, main=NULL, xlab="X1", ylab="X2")
 #' #Correlation matrix should be close to the true correlation matrix
 #' cor(X)
 #' }
-simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NULL, R = NULL, sds = NULL, seed = NULL)  {
+simulateCorrelatedCovariateData = function (n, covariateNames=NULL, covariateMeans=NULL, Sigma = NULL, R = NULL, covariateSDs = NULL, seed = NULL)  {
 
-	if(is.null(cov_names)) {
+	if(is.null(covariateNames)) {
 		return(rep(0,n))
 	}
 
@@ -366,7 +744,7 @@ simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NU
 	N = n
 
 #Set seed
-	if (!is.null(seed)) set.seed(seed)
+	if (!is.null(seed)) { set.seed(seed) }
 
 # Load required package
 	if (!requireNamespace("MASS", quietly = TRUE)) {
@@ -374,11 +752,11 @@ simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NU
 	}
 
   # ---- all covariates (union) ----
-  all_covs = cov_names
+  all_covs = covariateNames
   p <- length(all_covs)
 
   # ---- checks ----
-  if (is.null(Sigma) && (is.null(R) || is.null(sds))) {
+  if (is.null(Sigma) && (is.null(R) || is.null(covariateSDs))) {
     warn("No covariance or correlation matrix with scales provided. Using identity matrix for covariance matrix.")
 	Sigma = diag(p)
   	rownames(Sigma) = all_covs
@@ -406,7 +784,7 @@ simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NU
     Sigma_use <- Sigma[all_covs, all_covs, drop = FALSE]
 
   } else {
-    # R + sds path
+    # R + covariateSDs path
     if (!is.matrix(R)) stop("R must be a matrix.")
 
     rn <- rownames(R)
@@ -425,20 +803,20 @@ simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NU
 
     R_use <- R[all_covs, all_covs, drop = FALSE]
 
-    # sds can be named or unnamed
-    if (is.null(names(sds))) {
-      if (length(sds) != nrow(R)) {
-        stop("If sds is unnamed, it must have length equal to nrow(R).")
+    # covariateSDs can be named or unnamed
+    if (is.null(names(covariateSDs))) {
+      if (length(covariateSDs) != nrow(R)) {
+        stop("If covariateSDs is unnamed, it must have length equal to nrow(R).")
       }
-      sds_named <- sds
+      sds_named <- covariateSDs
       names(sds_named) <- rownames(R)
     } else {
-      sds_named <- sds
+      sds_named <- covariateSDs
     }
 
     missing_sds <- setdiff(all_covs, names(sds_named))
     if (length(missing_sds) > 0) {
-      stop("sds is missing covariates: ", paste(missing_sds, collapse = ", "))
+      stop("covariateSDs is missing covariates: ", paste(missing_sds, collapse = ", "))
     }
 
     sds_use <- sds_named[all_covs]
@@ -450,26 +828,26 @@ simulateCorrelatedCovariateData = function (n, cov_names, means=NULL, Sigma = NU
 	    D = sds_use
     }
     Sigma_use <- diag(D) %*% R_use %*% diag(D)
-    print(Sigma_use)
-    print(R_use)
-    print(sds_use)
-    print(D)
-    print(diag(D))
+    #print(Sigma_use)
+    #print(R_use)
+    #print(sds_use)
+    #print(D)
+    #print(diag(D))
   }
 
   # ---- means ----
-  if (is.null(means)) {
+  if (is.null(covariateMeans)) {
     means_use <- rep(0, p)
     names(means_use) <- all_covs
   } else {
-    if (is.null(names(means))) {
+    if (is.null(names(covariateMeans))) {
       stop("means must be a named vector with names matching covariates.")
     }
-    missing_means <- setdiff(all_covs, names(means))
+    missing_means <- setdiff(all_covs, names(covariateMeans))
     if (length(missing_means) > 0) {
       stop("means is missing covariates: ", paste(missing_means, collapse = ", "))
     }
-    means_use <- means[all_covs]
+    means_use <- covariateMeans[all_covs]
   }
 
   # ---- PD check ----
@@ -492,11 +870,11 @@ return(X)
 #'
 #' @param n Sample size
 #' @param beta Vector of slope coefficients of the covariates
-#' @param cov_names Vector of the names of the covariates
+#' @param covariateNames Vector of the names of the covariates
 #' @param mu Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)
 #' @param response_name The name of the response variable (default: "Y")
-#' @param Sigma The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix). Either this or the correlation matrix R with covariate standardiviations (sds) should be provided, and if none, the identity matrix is default. Default: identity matrix
-#' @param R The correlation matrix. Either with the standard deviations of each covariate (sds) or the Sigma covariance matrix should be given, and if none, the identity matrix is default. Default: identity matrix
+#' @param Sigma The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix). Either this or the correlation matrix R with covariate standardiviations (covariateSDs) should be provided, and if none, the identity matrix is default. Default: identity matrix
+#' @param R The correlation matrix. Either with the standard deviations of each covariate (covariateSDs) or the Sigma covariance matrix should be given, and if none, the identity matrix is default. Default: identity matrix
 #' @param anchor Marginal mean value of the response variable
 #' @param noise_sd Standard deviation of the noise in the response variable
 #'
@@ -521,7 +899,7 @@ return(X)
 #' noise = 3
 #' n=50000
 #' #Simulate the data
-#' simulated_data = simulateCorrelatedCovariateAndResponseData(n=n, beta=slopes, cov_names=covariate_names
+#' simulated_data = simulateCorrelatedCovariateAndResponseData(n=n, beta=slopes, covariateNames=covariate_names
 #'                                                  , cov_means = means, Sigma=covariance_matrix
 #'                                                  , anchor=mean_response
 #'                                                  , response_name = response_name
@@ -534,10 +912,10 @@ return(X)
 #' #Means should be 100, 10, 20, 30
 #' colMeans(simulated_data)
 #' }
-simulateCorrelatedCovariateAndResponseData = function(n, beta, cov_names, cov_means = NULL, response_name = "Y", Sigma = NULL, R = NULL, sds = NULL, anchor = 0, noise_sd = 1) {
+simulateCorrelatedCovariateAndResponseData = function(n, beta, covariateNames, cov_means = NULL, response_name = "Y", Sigma = NULL, R = NULL, covariateSDs = NULL, anchor = 0, noise_sd = 1) {
 
 # Simulate covariates
-	X = simulateCorrelatedCovariateData(n=n, cov_names=cov_names, means=cov_means, Sigma = Sigma, R = R, sds = sds)  
+	X = simulateCorrelatedCovariateData(n=n, covariateNames=cov_names, means=cov_means, Sigma = Sigma, R = R, covariateSDs = covariateSDs)  
 
 # Simulate response
 	Y = simulateResponseData(X=X, beta=beta, response_name=response_name, anchor=anchor, noise_sd=noise_sd) 
@@ -573,7 +951,7 @@ simulatePopulation.BB = function(N, minResponse=0, maxResponse=365, mu_O, sigma_
 
 
 		if(alpha_s<mins || alpha_s>maxs || alpha_d<mins || alpha_d>maxs || beta_s<mins || beta_s>maxs || beta_d<mins || beta_d>maxs) {
-			print(c(alpha_s,beta_s,alpha_d,beta_d))
+			#print(c(alpha_s,beta_s,alpha_d,beta_d))
 				return(list(error_m = "Infeasible parameter value provided as input under beta onset, beta duration model. Try different parameter values, paying close attention to the scale of sigma. Sigmas that are too large cannot be accommodated by the beta distribution.", error=T))
 
 		}

@@ -1,3 +1,13 @@
+
+rdirichlet <- function(n, alpha) {
+	K <- length(alpha)
+	G <- matrix(rgamma(n * K, shape = alpha, rate = 1), nrow = n, ncol = K, byrow = TRUE)
+	G / rowSums(G)
+}
+
+softplus <- function(x) ifelse(x > 30, x, log1p(exp(x)))
+
+
 parameter_checks = function(mu_O=NA, sigma_O=NA, mu_D=NA, sigma_D=NA, mu_C=NA, sigma_C=NA, N=NA, n=NA, minResponse=NA, maxResponse=NA) {
 	flag = FALSE
 	if(is.na(minResponse) || is.na(maxResponse)) {

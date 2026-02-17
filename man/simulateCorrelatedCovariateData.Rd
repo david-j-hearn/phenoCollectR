@@ -6,28 +6,28 @@
 \usage{
 simulateCorrelatedCovariateData(
   n,
-  cov_names,
-  means = NULL,
+  covariateNames = NULL,
+  covariateMeans = NULL,
   Sigma = NULL,
   R = NULL,
-  sds = NULL,
+  covariateSDs = NULL,
   seed = NULL
 )
 }
 \arguments{
 \item{n}{Sample size}
 
-\item{cov_names}{Vector of the names of the covariates}
-
-\item{means}{Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)}
+\item{covariateNames}{Vector of the names of the covariates}
 
 \item{Sigma}{The covariance matrix. Must be real positive semidefinite and of dimension length(beta) X length(beta) (default: identity matrix if no correlation matrix provided)}
 
-\item{R}{The correlation matrix. Diagonal must be all ones, and off diagonal entries must vary between -1 and 1. Needs value of sds parameter to be applied. (default: identity matrix)}
+\item{R}{The correlation matrix. Diagonal must be all ones, and off diagonal entries must vary between -1 and 1. Needs value of covariateSDs parameter to be applied. (default: identity matrix)}
 
-\item{sds}{A vector of standard deviations of each covariate.}
+\item{covariateSDs}{A vector of standard deviations of each covariate.}
 
 \item{seed}{An optional seed for the random number generator.}
+
+\item{means}{Vector of the means of the covariates; must be of same length as beta. (default: all 0 mean)}
 }
 \value{
 A data frame with columns labeled with the covariate names and n rows representing simulation replicates.
@@ -47,11 +47,11 @@ correlation_matrix = matrix(c( 1.0, 0.5, 0.3,
                            , byrow = TRUE)
 rownames(correlation_matrix) = covariate_names
 colnames(correlation_matrix) = covariate_names
-sds = c(1,2,4)
-names(sds) = covariate_names
+covariateSDs = c(1,2,4)
+names(covariateSDs) = covariate_names
 n=1000
 #Simulate the data
-X = simulateCorrelatedCovariateData(n=n, cov_names=covariate_names, means=means, R=correlation_matrix, sds=sds)
+X = simulateCorrelatedCovariateData(n=n, covariateNames=covariate_names, covariateMeans=means, R=correlation_matrix, covariateSDs=covariateSDs)
 #Make a scatter plot of the simulated data
 plot(X$x1, X$x2, main=NULL, xlab="X1", ylab="X2")
 #Correlation matrix should be close to the true correlation matrix

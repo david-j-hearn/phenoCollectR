@@ -10,13 +10,13 @@ functions {
 			" O_stage=", O[stage], " sigma_stage=", sigma[stage]);
 		}
 
-	//Three cases
+	//Two cases
 I	//	Case I: Stage S: spans the "start" boundary
 	//		P(t>m, O_1>t) or P(t<M, t>=O_S) = 1 * (1 - CDF(O_1)) + 1 * CDF(O_S)
 	//		P(A U B) = 1 - P(A' ∩ B') = 1 - P(O_S > t, O_1 <= t)
 		if (stage == S) {
 			real log_p_comp = normal_lccdf(t | O[S], sigma[S]) + normal_lcdf(t | O[1], sigma[1]);
-			log_p = log1m_exp(log_p_comp);
+			log_p = log1m_exp(log_p_comp);		//REVISIT THIS IF NOT NUMERICALLY STABLE!!
 			return log_p;
 		}
 
@@ -27,8 +27,8 @@ I	//	Case I: Stage S: spans the "start" boundary
 			return log_p;
 		}
 
-	//	NA!!!: Case III: Last stage: wraparound to O_1
-	//		P(t>=O_{S},t<O_1)
+	////	NA!!!: Case III: Last stage: wraparound to O_1
+	////		P(t>=O_{S},t<O_1)
 		//if (stage == S) {
 			//log_p = normal_lcdf(t | O[S], sigma[S]) + normal_lccdf(t | O[1], sigma[1]);
 			//return log_p;

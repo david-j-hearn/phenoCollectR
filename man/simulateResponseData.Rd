@@ -38,10 +38,10 @@ correlation_matrix = matrix(c( 1.0, 0.5, 0.3,
                            , byrow = TRUE)
 rownames(correlation_matrix) = covariate_names
 colnames(correlation_matrix) = covariate_names
-sds = c(1,2,4)
-names(sds) = covariate_names
+covariateSDs = c(1,2,4)
+names(covariateSDs) = covariate_names
 n=1000
-X = simulateCorrelatedCovariateData(n=n, cov_names=covariate_names, means=means, R=correlation_matrix, sds=sds)
+X = simulateCorrelatedCovariateData(n=n, covariateNames=covariate_names, means=means, R=correlation_matrix, covariateSDs=covariateSDs)
 
 ##Next, simulate response data based on simulated covariate data
 #Set the model parameters

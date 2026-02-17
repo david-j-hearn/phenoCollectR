@@ -7,12 +7,12 @@
 simulateCorrelatedCovariateAndResponseData(
   n,
   beta,
-  cov_names,
+  covariateNames,
   cov_means = NULL,
   response_name = "Y",
   Sigma = NULL,
   R = NULL,
-  sds = NULL,
+  covariateSDs = NULL,
   anchor = 0,
   noise_sd = 1
 )
@@ -22,13 +22,13 @@ simulateCorrelatedCovariateAndResponseData(
 
 \item{beta}{Vector of slope coefficients of the covariates}
 
-\item{cov_names}{Vector of the names of the covariates}
+\item{covariateNames}{Vector of the names of the covariates}
 
 \item{response_name}{The name of the response variable (default: "Y")}
 
-\item{Sigma}{The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix). Either this or the correlation matrix R with covariate standardiviations (sds) should be provided, and if none, the identity matrix is default. Default: identity matrix}
+\item{Sigma}{The covariance matrix. Must be of dimension length(beta) X length(beta) (default: identity matrix). Either this or the correlation matrix R with covariate standardiviations (covariateSDs) should be provided, and if none, the identity matrix is default. Default: identity matrix}
 
-\item{R}{The correlation matrix. Either with the standard deviations of each covariate (sds) or the Sigma covariance matrix should be given, and if none, the identity matrix is default. Default: identity matrix}
+\item{R}{The correlation matrix. Either with the standard deviations of each covariate (covariateSDs) or the Sigma covariance matrix should be given, and if none, the identity matrix is default. Default: identity matrix}
 
 \item{anchor}{Marginal mean value of the response variable}
 
@@ -59,7 +59,7 @@ mean_response = 100
 noise = 3
 n=50000
 #Simulate the data
-simulated_data = simulateCorrelatedCovariateAndResponseData(n=n, beta=slopes, cov_names=covariate_names
+simulated_data = simulateCorrelatedCovariateAndResponseData(n=n, beta=slopes, covariateNames=covariate_names
                                                  , cov_means = means, Sigma=covariance_matrix
                                                  , anchor=mean_response
                                                  , response_name = response_name
