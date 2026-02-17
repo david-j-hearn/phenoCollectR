@@ -59,6 +59,115 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 	preds
 }
 
+#' Make a plot of simulated multistage data
+#'
+#' @description Make a plot of simulated multistage data
+#'
+#' @param simulatedData The output object from the function simulateMultistageData. (default: NULL)
+#' @param targetCovariateIndex The index number of the covariate to be plotted along the x-axis. (default: 1)
+#' @param stageColors A vector of colors, one per stage. (default: NULL)
+#'
+#' @return A plot illustrating the simulated multistage data for one target covariate along the x-axis.
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' ##Set basic simulation parameters
+#' numberStages = 3
+#' numberCovariates = 1
+#' sampleSize = 50
+#'
+#' ##Simulate data
+#' simulatedData = simulateMultistageData(n=sampleSize, nStages=numberStages, nCovariates=numberCovariates)
+#'
+#' ##Plot simulated data with the first covariate (the only covariate in this case) along the x-axis.
+#' #    set colors for the stages
+#' stageColors = viridisLite::viridis(numberStages)
+#' # stageColors = rainbow(numberStages)
+#' #    create the plot
+#' plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
+#' }
+plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL) {
+
+	#print(simulatedData)
+
+
+	#Extract information
+
+	if(is.null(simulatedData)) { stop("As input, provide the simulated data from the function simulateMultistageData.") }
+	if(is.null(targetCovariateIndex) || targetCovariateIndex<1) { stop("As input, provide the covariate number you wish to plot. Covariates are indexed from 1 to the number of covariates.") }
+	if(is.null(stageColors)) { stop("Provide a vector with a named color for each stage in your multistage model.") }
+
+
+#simulatedData$outputData                    simulatedData$stage1OnsetMean
+#simulatedData$R                             simulatedData$stage1OnsetSD
+#simulatedData$Sigma                         simulatedData$stage1OnsetCovariateSlopes
+#simulatedData$covariateSDs                  simulatedData$stageDurationMeans
+#simulatedData$covariateMeans                simulatedData$stageDurationSDs
+#simulatedData$X                             simulatedData$stageDurationCovariateSlopes
+	numberStages = 1 + length(simulatedData$stageDurationMeans)
+	numberCovariates = length(simulatedData$covariateSDs)
+	trueSlopes = rep(0,numberStages)		#one slope per stage for the target covariate
+	trueIntercepts = rep(0,numberStages)		#one intercept per stage for the target covariate
+	if(targetCovariateIndex>numberCovariates) { stop("Please provide the index number of the covariate you wish to plot between 1 and the number of covariates, inclusive.") }
+	if(length(stageColors) < numberStages) { 
+		#print(length(stageColors))
+		#print(numberStages)
+		#print(length(simulatedData$stageDurationsMeans))
+		stop("Please provide a color for each stage.") 
+	}
+
+	if(numberCovariates==1) { #one covariate, so intercept (with anchor adjustment) and slope stay the same
+		trueSlopes[1] = simulatedData$stage1OnsetCovariateSlopes[targetCovariateIndex]
+		trueIntercepts[1] = simulatedData$stage1OnsetMean - sum(simulatedData$stage1OnsetCovariateSlopes * simulatedData$covariateMeans) #sum not neede here, for for consistency
+		cumOnsetSum = simulatedData$stage1OnsetMean
+		for(i in 1:(numberStages-1)) {
+			trueSlopes[i+1] = simulatedData$stageDurationCovariateSlopes[i,targetCovariateIndex]
+			trueIntercepts[i+1] = cumOnsetSum + simulatedData$stageDurationMeans[i] - sum(simulatedData$stageDurationCovariateSlopes[i,] * simulatedData$covariateMeans)
+			cumOnsetSum = cumOnsetSum + simulatedData$stageDurationMeans[i]
+		}
+	}
+	else { #get marginal model parameters based on correlation structure of the covariates
+		modelStage1 = true_marginal_line(beta0 = simulatedData$stage1OnsetMean - sum(simulatedData$stage1OnsetCovariateSlopes * simulatedData$covariateMeans), 
+						 beta = simulatedData$stage1OnsetCovariateSlopes, 
+						 mu = simulatedData$covariateMeans, 
+						 j = targetCovariateIndex, 
+						 Sigma = simulatedData$Sigma, 
+						 R = simulatedData$R, 
+						 sd_x = simulatedData$covariateSDs) 
+		trueSlopes[1] = modelStage1$slope
+		trueIntercepts[1] = modelStage1$intercept
+		cumOnsetSum = simulatedData$stage1OnsetMean
+		for(i in 1:(numberStages-1)) {
+		model = true_marginal_line(beta0 = simulatedData$stageDurationMeans[i] - sum(simulatedData$stageDurationCovariateSlopes[i,] * simulatedData$covariateMeans),
+						 beta = simulatedData$stageDurationCovariateSlopes[i,],
+						 mu = simulatedData$covariateMeans, 
+						 j = targetCovariateIndex, 
+						 Sigma = simulatedData$Sigma, 
+						 R = simulatedData$R, 
+						 sd_x = simulatedData$covariateSDs) 
+			trueSlopes[i+1] = model$slope
+			trueIntercepts[i+1] = model$intercept + cumOnsetSum
+			cumOnsetSum = cumOnsetSum + simulatedData$stageDurationMeans[i]
+		}
+	}
+
+	#begin the plotting
+	for(i in 1:numberStages) {
+		if(i == 1) {
+			plot(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+1],col=stageColors[1],ylim=c(0,365),pch=16)
+		}
+		else {
+			points(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+i],col=stageColors[i],pch=16)
+		}
+		fit = lm(simulatedData$outputData[,numberCovariates+i] ~ simulatedData$outputData[,targetCovariateIndex])
+		abline(fit,col=stageColors[i], lty="dashed")
+		abline(a=trueIntercepts[i], b=trueSlopes[i], col=stageColors[i])
+	}
+	#segments(x0=simulatedData$outputData[,targetCovariateIndex],x1=simulatedData$outputData[,targetCovariateIndex],y0=0,y1=365,col="gray25")
+	points(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=stageColors[simulatedData$outputData$sampledStage], pch=4, cex=3)
+}
+
 #' Make a posterior predictive plot focussed on one covariate and marginalized across the other covariates
 #'
 #' @description Make a graphic of the posterior predictive values of the extremes, onset, observed, and cessation values as well as sub-plots indication directions of change for onset, duration, and observed collection times. 

@@ -169,7 +169,7 @@ simulatePopulationLatentIntervalStates = function(n,
 	#Simulate covariate data
 	covs_all = union(covariateNamesOnset,covariateNamesDuration)
 	if(!is.null(covs_all)) {
-	X = simulateCorrelatedCovariateData(n=n, covariateNames=covs_all, means=covariateMeans, Sigma = covarianceMatrix, R = correlationMatrix, covariateSDs = covariateStandardDeviations, seed = seed)  
+	X = simulateCorrelatedCovariateData(n=n, covariateNames=covs_all, covariateMeans=covariateMeans, Sigma = covarianceMatrix, R = correlationMatrix, covariateSDs = covariateStandardDeviations, seed = seed)  
 	data = X
 	}
 	else {
@@ -445,34 +445,32 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 #' @param maxCovariateMean The maximum mean value of a covariate (default: 10.0)
 #' @param seed The random number generator seed. (default: NULL)
 #'
-#' @return A data frame with the covariate data, the stage onset times, the sampled times, and the stage at the sampled times
+#' @return A list with the following: 
+#'		Data frame of sampled data for simulated individuals: covariate data, stage onsets, sampled times, sampled stages
+#'		Parameters for simulation: 
+#'			Covariate correlation structure: R, Sigma 
+#'			Covariate descriptive statistics: covariateSDs, covariateMeans
+#'			Covariate data: X
+#'			Stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes
+#'			Duration models for all but the last stage: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
 #' @export
 #'
 #' @examples
 #' \donttest{
-#' plotSimulation = function(data, target, colors,nCovariates) {
-#' cols = colors
-#' for(i in 1:numberStages) {
-#'	 if(i == 1) {
-#'		plot(data$outputData[,target],data$outputData[,nCovariates+1],col=cols[1],ylim=c(0,365),pch=16)
-#'	}
-#'	else {
-#'		points(data$outputData[,target],data$outputData[,nCovariates+i],col=cols[i],pch=16)
-#'	}
-#'	fit = lm(data$outputData[,nCovariates+i] ~ data$outputData[,1])
-#'	abline(fit,col=cols[i])
-#' }
-#' segments(x0=data$outputData[,target],x1=data$outputData[,target],y0=0,y1=365,col="gray25")
-#' points(data$outputData[,target], data$outputData$sampledTime, col=cols[data$outputData$sampledStage], pch=4, cex=3)
-#' }
-#' 
+#' ##Set basic simulation parameters 
 #' numberStages = 5
 #' numberCovariates = 3
 #' sampleSize = 50
+#'
+#' ##Simulate data
 #' simulatedData = simulateMultistageData(n=sampleSize, nStages=numberStages, nCovariates=numberCovariates)
-#' targetCovariate = 1
-#' cols = c("red","blue","orange","black","pink")
-#' plotSimulation(simulatedData, targetCovariate, cols,numberCovariates)
+#'
+#' ##Plot simulated data with the first covariate along the x-axis.
+#' #	set colors for the stages
+#' #stageColors = rainbow(numberStages) 
+#' stageColors = viridisLite::viridis(numberStages)
+#' #	create the plot
+#' plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 #' }
 simulateMultistageData = function(n=1000, 
 				  nStages=2, 
@@ -515,7 +513,7 @@ simulateMultistageData = function(n=1000,
 	}
 
 	if(nCovariates<1) {
-		stop("There must be at least 1 covariates.")
+		stop("There must be at least 1 covariate.")
 	}
 
 	#Generate covariate names, if needed
@@ -584,7 +582,7 @@ simulateMultistageData = function(n=1000,
 			stop("Provide a vector of length nStages representing the weight to give each stage when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
 		}
 		means = rdirichlet(1,meanOnsetSpread) * (maxResponse - minResponse) + minResponse
-		stage1OnsetMean = means[nStages]/2	#start the first stage 1/2 of the duration of the last stage past the time period start
+		stage1OnsetMean = means[nStages]/2	#arbitrarily start the first stage 1/2 of the duration of the last stage past the time period start
 		stageDurationMeans = means[1:nStages-1]
 	}
 	#	simulate duration SDs, if needed
@@ -652,30 +650,50 @@ simulateMultistageData = function(n=1000,
 				slopes = stage1OnsetCovariateSlopes
 				intercept = stage1OnsetMean - sum(slopes * covariateMeans)
 				sd = stage1OnsetSD
-				#print(slopes)
-				#print(covariates)
 				onsets[i,j] = rnorm(1, softplus(intercept + sum(slopes * covariates)),sd)
-				if(times[i]>0 && times[i]<=onsets[i,j]) {
-					stages[i] = nStages
-				}
+				#onsets[i,j] = rnorm(1, intercept + sum(slopes * covariates),sd)
+				#if(times[i]>0 && times[i]<=onsets[i,j]) {
+					#stages[i] = nStages
+				#}
 				onsetCumTot = stage1OnsetMean
 			}
 			else {
 				slopes = as.vector(stageDurationCovariateSlopes[j-1,])
 				intercept = stageDurationMeans[j-1] - sum(slopes * covariateMeans)
 				sd = stageDurationSDs[j-1]
-				#print(slopes)
-				#print(covariates)
 				duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd))
+				#duration = rnorm(1,intercept + sum(slopes * covariates),sd)
 				onsets[i,j] = onsetCumTot + duration
-				if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
-					stages[i] = j-1
+				diff = onsets[i,j] - onsets[i,j-1]
+				if(diff < 0) {
+					onsets[i,j] = onsets[i,j-1]+1e-5 #stage of 1e-5 duration
 				}
+				#if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
+					#stages[i] = j-1
+				#}
 				onsetCumTot = onsetCumTot + stageDurationMeans[j-1]
 			}
 		}
-		if(times[i]>=onsetCumTot) {
-			stages[i]=nStages
+		#if(times[i]>=onsetCumTot) {
+			#stages[i]=nStages
+		#}
+	}
+
+	for(i in 1:n) {
+		for(j in 1:nStages) {
+			if(j==1) {
+				if(times[i]>0 && times[i]<=onsets[i,j]) {
+					stages[i] = nStages
+				}
+			}
+			else {
+				if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
+					stages[i] = j-1
+				}
+			}
+			if(j==nStages && times[i]>=onsets[i,j]) {
+				stages[i] = j
+			}
 		}
 	}
 
@@ -683,16 +701,19 @@ simulateMultistageData = function(n=1000,
 	outputData$sampledTime = times
 	outputData$sampledStage = stages
 
-	return(list(outputData=outputData, R=R, Sigma=Sigma, covariateSDs=covariateSDs, covariateMeans=covariateMeans, X=X, stage1OnsetMean=stage1OnsetMean, stage1OnsetSD=stage1OnsetSD, stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes, stageDurationMeans=stageDurationMeans, stageDurationSDs=stageDurationSDs, stageDurationCovariateSlopes=stageDurationCovariateSlopes))
+	return(list(outputData=outputData, 
+		    R=R,
+		    Sigma=Sigma,
+		    covariateSDs=covariateSDs,
+		    covariateMeans=covariateMeans,
+		    X=X,
+		    stage1OnsetMean=stage1OnsetMean,
+		    stage1OnsetSD=stage1OnsetSD,
+		    stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes,
+		    stageDurationMeans=stageDurationMeans,
+		    stageDurationSDs=stageDurationSDs,
+		    stageDurationCovariateSlopes=stageDurationCovariateSlopes))
 
-	#Output
-	#	data frame of simulated data: covariates, stage onsets, sampled time, sampled stage
-	#	parameters for simulation: 
-	#	covariate correlation structure: R, Sigma, 
-	#	covariate descriptive statistics: covariateSDs, covariateMeans, 
-	#	covariate data: X, 
-	#	stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes, 
-	#	duration models: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
 }
 
 
@@ -915,7 +936,7 @@ return(X)
 simulateCorrelatedCovariateAndResponseData = function(n, beta, covariateNames, cov_means = NULL, response_name = "Y", Sigma = NULL, R = NULL, covariateSDs = NULL, anchor = 0, noise_sd = 1) {
 
 # Simulate covariates
-	X = simulateCorrelatedCovariateData(n=n, covariateNames=cov_names, means=cov_means, Sigma = Sigma, R = R, covariateSDs = covariateSDs)  
+	X = simulateCorrelatedCovariateData(n=n, covariateNames=cov_names, covariateMeans=cov_means, Sigma = Sigma, R = R, covariateSDs = covariateSDs)  
 
 # Simulate response
 	Y = simulateResponseData(X=X, beta=beta, response_name=response_name, anchor=anchor, noise_sd=noise_sd) 

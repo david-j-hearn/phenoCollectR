@@ -7,6 +7,56 @@ rdirichlet <- function(n, alpha) {
 
 softplus <- function(x) ifelse(x > 30, x, log1p(exp(x)))
 
+true_marginal_line <- function(beta0, beta, mu, j,
+                               Sigma = NULL,
+                               R = NULL,
+                               sd_x = NULL) {
+
+  C <- length(beta)
+  stopifnot(length(mu) == C)
+  stopifnot(j >= 1 && j <= C)
+
+  # --- Build Sigma if needed ---
+  if (is.null(Sigma)) {
+
+    # Must have R and sd_x
+    if (is.null(R) || is.null(sd_x)) {
+      stop("Provide either Sigma, OR (R and sd_x).")
+    }
+
+    stopifnot(all(dim(R) == c(C, C)))
+    stopifnot(length(sd_x) == C)
+
+    # Convert correlation + SDs to covariance
+    Sigma <- diag(sd_x) %*% R %*% diag(sd_x)
+
+  } else {
+    stopifnot(all(dim(Sigma) == c(C, C)))
+  }
+
+  # --- Partition indices ---
+  idx_other <- setdiff(seq_len(C), j)
+
+  beta_j    <- beta[j]
+  beta_rest <- beta[idx_other]
+
+  mu_j      <- mu[j]
+  mu_rest   <- mu[idx_other]
+
+  # --- Covariance blocks ---
+  Sigma_jj      <- Sigma[j, j]             # scalar
+  Sigma_rest_j  <- Sigma[idx_other, j]     # (C-1) x 1 vector
+
+  # --- Marginal line parameters ---
+  slope <- beta_j + as.numeric(t(beta_rest) %*% Sigma_rest_j / Sigma_jj)
+
+  intercept <- beta0 + as.numeric(
+    t(beta_rest) %*% (mu_rest - Sigma_rest_j * mu_j / Sigma_jj)
+  )
+
+  list(intercept = intercept, slope = slope, Sigma = Sigma)
+}
+
 
 parameter_checks = function(mu_O=NA, sigma_O=NA, mu_D=NA, sigma_D=NA, mu_C=NA, sigma_C=NA, N=NA, n=NA, minResponse=NA, maxResponse=NA) {
 	flag = FALSE

@@ -96,35 +96,33 @@ simulateMultistageData(
 \item{seed}{The random number generator seed. (default: NULL)}
 }
 \value{
-A data frame with the covariate data, the stage onset times, the sampled times, and the stage at the sampled times
+A list with the following:
+Data frame of sampled data for simulated individuals: covariate data, stage onsets, sampled times, sampled stages
+Parameters for simulation:
+Covariate correlation structure: R, Sigma
+Covariate descriptive statistics: covariateSDs, covariateMeans
+Covariate data: X
+Stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes
+Duration models for all but the last stage: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
 }
 \description{
 Simulate covariate data, phenological stage onset times, sample times, and sampled stage data.
 }
 \examples{
 \donttest{
-plotSimulation = function(data, target, colors,nCovariates) {
-cols = colors
-for(i in 1:numberStages) {
- if(i == 1) {
-	plot(data$outputData[,target],data$outputData[,nCovariates+1],col=cols[1],ylim=c(0,365),pch=16)
-}
-else {
-	points(data$outputData[,target],data$outputData[,nCovariates+i],col=cols[i],pch=16)
-}
-fit = lm(data$outputData[,nCovariates+i] ~ data$outputData[,1])
-abline(fit,col=cols[i])
-}
-segments(x0=data$outputData[,target],x1=data$outputData[,target],y0=0,y1=365,col="gray25")
-points(data$outputData[,target], data$outputData$sampledTime, col=cols[data$outputData$sampledStage], pch=4, cex=3)
-}
-
+##Set basic simulation parameters 
 numberStages = 5
 numberCovariates = 3
 sampleSize = 50
+
+##Simulate data
 simulatedData = simulateMultistageData(n=sampleSize, nStages=numberStages, nCovariates=numberCovariates)
-targetCovariate = 1
-cols = c("red","blue","orange","black","pink")
-plotSimulation(simulatedData, targetCovariate, cols,numberCovariates)
+
+##Plot simulated data with the first covariate along the x-axis.
+#	set colors for the stages
+#stageColors = rainbow(numberStages) 
+stageColors = viridisLite::viridis(numberStages)
+#	create the plot
+plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 }
 }
