@@ -417,6 +417,7 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 #' 
 #' @param n The sample size. (default: 1000)
 #' @param nStages The number of stages to simulate. Not optional. (default: 2)
+#' @param nonCyclical Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: FALSE)
 #' @param stageNames A vector of the names of stages. (default: NULL)
 #' @param stage1OnsetMean The mean value of the first stage's onset. (default: NULL)
 #' @param stage1OnsetSD The standard deviation of the first stage's onset. (default: NULL)
@@ -427,7 +428,7 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 #' @param stageMinimumSeparation The minimum separation, on average, between stage onsets. (default: 10)
 #' @param minStageVariance The minimum allowable variance in durations for a stage. (default: 0)
 #' @param maxStageVariance The maximum allowable variance in durations for a stage. (default: 3.0)
-#' @param meanOnsetSpread A value or a vector of values (one for each stage), indicating the relative duration, on average, of that stage. Positive numbers only. Smaller numbers result in greater variation of durations. (default: 5.0)
+#' @param meanOnsetSpread A value or a vector of values (one for each stage, including before stage one and after the last stage), indicating the relative duration, on average, of that stage. Positive numbers only. Smaller numbers result in greater variation of durations. (default: 5.0)
 #' @param minResponse The minimum response time. (default: 0)
 #' @param maxResponse The maximum response time. (default: 365)
 #' @param nCovariates The number of covariates. (default: 1)
@@ -458,7 +459,7 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 #' @examples
 #' \donttest{
 #' ##Set basic simulation parameters 
-#' numberStages = 5
+#' numberStages = 9
 #' numberCovariates = 3
 #' sampleSize = 50
 #'
@@ -468,12 +469,14 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 #' ##Plot simulated data with the first covariate along the x-axis.
 #' #	set colors for the stages
 #' #stageColors = rainbow(numberStages) 
-#' stageColors = viridisLite::viridis(numberStages)
+#' #stageColors = viridisLite::viridis(numberStages)
+#' stageColors = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499") #Paul Tol
 #' #	create the plot
 #' plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 #' }
 simulateMultistageData = function(n=1000, 
 				  nStages=2, 
+				  nonCyclical=FALSE,
 				  stageNames=NULL,
 				  stage1OnsetMean=NULL,
 				  stage1OnsetSD=NULL,
@@ -482,11 +485,11 @@ simulateMultistageData = function(n=1000,
 				  stageDurationSDs=NULL,		
 				  stageDurationCovariateSlopes=NULL,
 				  stageMinimumSeparation=10,		#used to determine how much time between stages, at a minimum (on average, without including noise)
-				  minStageVariance=0,
-				  maxStageVariance=3.0,
+				  minStageVariance=16.0,
+				  maxStageVariance=100.0,
 				  meanOnsetSpread=5.0,		#dirichlet alphas, integer or vector of length nStages, larger values mean more even spread of durations, if not given
-				  minResponse=0,
-				  maxResponse=365, 		
+				  minResponse=0.0,
+				  maxResponse=365.0, 		
 				  nCovariates=1, 
 				  X=NULL,			#allow users to enter the covariate information already
 				  covariateMeans=NULL, 
@@ -496,8 +499,8 @@ simulateMultistageData = function(n=1000,
 				  Sigma=NULL, 
 				  nHiddenFactors=2, 
 				  hiddenFactorStrength=0.7, 
-				  minCovariateVariance=1.0,
-				  maxCovariateVariance=25.0,
+				  minCovariateVariance=16.0,
+				  maxCovariateVariance=100.0,
 				  minCovariateMean=-10.0,
 				  maxCovariateMean=10.0,
 				  seed=NULL) {
@@ -573,17 +576,17 @@ simulateMultistageData = function(n=1000,
 	#	simulate onset means for each stage, and convert these to durations, as needed
 	if(is.null(stage1OnsetMean) || is.null(stageDurationMeans) || length(stageDurationMeans)!=nStages-1) {
 		if(length(meanOnsetSpread)==1) {
-			meanOnsetSpread = rep(meanOnsetSpread,nStages)
+			meanOnsetSpread = rep(meanOnsetSpread,nStages+1)
 		}
 		if(any(meanOnsetSpread<0)) {
 			stop("Each mean onset spread must be positive.")
 		}
-		if(length(meanOnsetSpread)!=nStages) {
-			stop("Provide a vector of length nStages representing the weight to give each stage when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
+		if(length(meanOnsetSpread)!=nStages+1) {
+			stop("Provide a vector of length nStages+1 representing the weight to give each stage (including before stage one and after the last stage) when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
 		}
-		means = rdirichlet(1,meanOnsetSpread) * (maxResponse - minResponse) + minResponse
-		stage1OnsetMean = means[nStages]/2	#arbitrarily start the first stage 1/2 of the duration of the last stage past the time period start
-		stageDurationMeans = means[1:nStages-1]
+		means = phenoCollectR:::rdirichlet(1,meanOnsetSpread) * (maxResponse - minResponse) + minResponse
+		stage1OnsetMean = means[1]	
+		stageDurationMeans = means[2:nStages]
 	}
 	#	simulate duration SDs, if needed
 	if(is.null(stageDurationSDs) || length(stageDurationSDs)!=nStages-1) {
@@ -602,7 +605,11 @@ simulateMultistageData = function(n=1000,
 		}
 	}
 	#	simulate stage duration covariate slopes, if needed
-	if(is.null(stageDurationCovariateSlopes) || ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages) {
+	if(!is.null(stageDurationCovariateSlopes) && (ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-1)) {
+		stop("Duration Covariate Slopes are provided, but the dimensions do no match: nStages-1 X nCovariates")
+	}
+	if(is.null(stageDurationCovariateSlopes) || ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-1) {
+		#print(stageDurationCovariateSlopes)
 		stageDurationCovariateSlopes = matrix(0,ncol=nCovariates,nrow=nStages-1)
 		colnames(stageDurationCovariateSlopes) = covariateNames
 		rownames(stageDurationCovariateSlopes) = stageNames[1:nStages-1]
@@ -632,7 +639,7 @@ simulateMultistageData = function(n=1000,
 		stop("The number of rows in the covariate data matrix does not match the requested sample size.")
 	}
 	if(ncol(X) != nCovariates) {
-		stop("The number of columns in the covariate data matrix does not match the requensted number of covariates.")
+		stop("The number of columns in the covariate data matrix does not match the requested number of covariates.")
 	}
 
 	#
@@ -648,7 +655,9 @@ simulateMultistageData = function(n=1000,
 		for(j in 1:nStages) {
 			if(j==1) {
 				slopes = stage1OnsetCovariateSlopes
-				intercept = stage1OnsetMean - sum(slopes * covariateMeans)
+				#print(slopes)
+				#print(covariateMeans)
+				intercept = stage1OnsetMean - sum(as.numeric(slopes) * as.numeric(covariateMeans))
 				sd = stage1OnsetSD
 				onsets[i,j] = rnorm(1, softplus(intercept + sum(slopes * covariates)),sd)
 				#onsets[i,j] = rnorm(1, intercept + sum(slopes * covariates),sd)
@@ -659,8 +668,10 @@ simulateMultistageData = function(n=1000,
 			}
 			else {
 				slopes = as.vector(stageDurationCovariateSlopes[j-1,])
-				intercept = stageDurationMeans[j-1] - sum(slopes * covariateMeans)
+				intercept = stageDurationMeans[j-1] - sum(as.numeric(slopes) * as.numeric(covariateMeans))
 				sd = stageDurationSDs[j-1]
+				#print(slopes)
+				#print(covariateMeans)
 				duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd))
 				#duration = rnorm(1,intercept + sum(slopes * covariates),sd)
 				onsets[i,j] = onsetCumTot + duration
@@ -681,18 +692,35 @@ simulateMultistageData = function(n=1000,
 
 	for(i in 1:n) {
 		for(j in 1:nStages) {
-			if(j==1) {
-				if(times[i]>0 && times[i]<=onsets[i,j]) {
-					stages[i] = nStages
+			if(nonCyclical) {
+				if(j==1) {
+					if(times[i]>0 && times[i]<=onsets[i,j]) {
+						stages[i] = 1
+					}
+				}
+				else {
+					if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
+						stages[i] = j
+					}
+				}
+				if(j==nStages && times[i]>=onsets[i,j]) {
+					stages[i] = nStages+1
 				}
 			}
 			else {
-				if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
-					stages[i] = j-1
+				if(j==1) {
+					if(times[i]>0 && times[i]<=onsets[i,j]) {
+						stages[i] = nStages
+					}
 				}
-			}
-			if(j==nStages && times[i]>=onsets[i,j]) {
-				stages[i] = j
+				else {
+					if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
+						stages[i] = j-1
+					}
+				}
+				if(j==nStages && times[i]>=onsets[i,j]) {
+					stages[i] = nStages
+				}
 			}
 		}
 	}

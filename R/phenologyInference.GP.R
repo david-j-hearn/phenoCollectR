@@ -211,6 +211,10 @@ runStan.NoCovariates.Interval.T.GP = function(responseData,stage, minResponse=0,
 	cat("Starting Stan run.\n")
 
 	if(keepScale) {
+		stop("keepScale must be set to FALSE.")
+	}
+
+	if(keepScale) {
 		sf = 1
 		shift = 0
 	}

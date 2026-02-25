@@ -7,7 +7,7 @@ rdirichlet <- function(n, alpha) {
 
 softplus <- function(x) ifelse(x > 30, x, log1p(exp(x)))
 
-true_marginal_line <- function(beta0, beta, mu, j,
+true_marginal_line <- function(alpha, beta, mu, j,
                                Sigma = NULL,
                                R = NULL,
                                sd_x = NULL) {
@@ -50,7 +50,7 @@ true_marginal_line <- function(beta0, beta, mu, j,
   # --- Marginal line parameters ---
   slope <- beta_j + as.numeric(t(beta_rest) %*% Sigma_rest_j / Sigma_jj)
 
-  intercept <- beta0 + as.numeric(
+  intercept <- alpha + as.numeric(
     t(beta_rest) %*% (mu_rest - Sigma_rest_j * mu_j / Sigma_jj)
   )
 

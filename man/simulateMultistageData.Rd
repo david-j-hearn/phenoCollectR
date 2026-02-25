@@ -7,6 +7,7 @@
 simulateMultistageData(
   n = 1000,
   nStages = 2,
+  nonCyclical = FALSE,
   stageNames = NULL,
   stage1OnsetMean = NULL,
   stage1OnsetSD = NULL,
@@ -15,8 +16,8 @@ simulateMultistageData(
   stageDurationSDs = NULL,
   stageDurationCovariateSlopes = NULL,
   stageMinimumSeparation = 10,
-  minStageVariance = 0,
-  maxStageVariance = 3,
+  minStageVariance = 16,
+  maxStageVariance = 100,
   meanOnsetSpread = 5,
   minResponse = 0,
   maxResponse = 365,
@@ -29,8 +30,8 @@ simulateMultistageData(
   Sigma = NULL,
   nHiddenFactors = 2,
   hiddenFactorStrength = 0.7,
-  minCovariateVariance = 1,
-  maxCovariateVariance = 25,
+  minCovariateVariance = 16,
+  maxCovariateVariance = 100,
   minCovariateMean = -10,
   maxCovariateMean = 10,
   seed = NULL
@@ -40,6 +41,8 @@ simulateMultistageData(
 \item{n}{The sample size. (default: 1000)}
 
 \item{nStages}{The number of stages to simulate. Not optional. (default: 2)}
+
+\item{nonCyclical}{Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: FALSE)}
 
 \item{stageNames}{A vector of the names of stages. (default: NULL)}
 
@@ -61,7 +64,7 @@ simulateMultistageData(
 
 \item{maxStageVariance}{The maximum allowable variance in durations for a stage. (default: 3.0)}
 
-\item{meanOnsetSpread}{A value or a vector of values (one for each stage), indicating the relative duration, on average, of that stage. Positive numbers only. Smaller numbers result in greater variation of durations. (default: 5.0)}
+\item{meanOnsetSpread}{A value or a vector of values (one for each stage, including before stage one and after the last stage), indicating the relative duration, on average, of that stage. Positive numbers only. Smaller numbers result in greater variation of durations. (default: 5.0)}
 
 \item{minResponse}{The minimum response time. (default: 0)}
 
@@ -111,7 +114,7 @@ Simulate covariate data, phenological stage onset times, sample times, and sampl
 \examples{
 \donttest{
 ##Set basic simulation parameters 
-numberStages = 5
+numberStages = 9
 numberCovariates = 3
 sampleSize = 50
 
@@ -121,7 +124,8 @@ simulatedData = simulateMultistageData(n=sampleSize, nStages=numberStages, nCova
 ##Plot simulated data with the first covariate along the x-axis.
 #	set colors for the stages
 #stageColors = rainbow(numberStages) 
-stageColors = viridisLite::viridis(numberStages)
+#stageColors = viridisLite::viridis(numberStages)
+stageColors = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499") #Paul Tol
 #	create the plot
 plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 }

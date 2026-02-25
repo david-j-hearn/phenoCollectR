@@ -1,251 +1,191 @@
 functions {
-	// Log probability of stage at time t
-	//The times, mus (mean stage onsets O), sigmas in min max transformed scale
-	real log_p_y_given_t(int S, int stage, real t, vector O, vector sigma, int debug) {
-	
-		real log_p;
 
-		if (debug) {
-			print("t=", t, " stage=", stage,
-			" O_stage=", O[stage], " sigma_stage=", sigma[stage]);
-		}
+  real log_p_stage_given_t(int S,
+                       int stage,
+                       real t_std,
+                       vector O_std,
+                       //vector sigma_std) {
+                       real sigma_std) {
 
-	//Two cases
-I	//	Case I: Stage S: spans the "start" boundary
-	//		P(t>m, O_1>t) or P(t<M, t>=O_S) = 1 * (1 - CDF(O_1)) + 1 * CDF(O_S)
-	//		P(A U B) = 1 - P(A' ∩ B') = 1 - P(O_S > t, O_1 <= t)
-		if (stage == S) {
-			real log_p_comp = normal_lccdf(t | O[S], sigma[S]) + normal_lcdf(t | O[1], sigma[1]);
-			log_p = log1m_exp(log_p_comp);		//REVISIT THIS IF NOT NUMERICALLY STABLE!!
-			return log_p;
-		}
+    real z_lo;
+    real z_hi;
 
-	//	Case II: Internal stages
-	//		P(t>=O_{stage}, t<O_{stage+1})
-		if (stage >= 1 && stage < S) {
-			log_p = normal_lcdf(t | O[stage], sigma[stage]) + normal_lccdf(t | O[stage+1], sigma[stage+1]);
-			return log_p;
-		}
+    // Time is in the time period closest to the start and before stage 2. This is really stage S wrapped around the start.
+    // P(stage=1 | t, theta) = P(t<O2)
+    if (stage == 1) {
+      //z_hi = (t_std - O_std[2]) / sigma_std[2-1]; //sigma index 1 is stage 2, S-1 is S, stage-1 is stage
+      z_hi = (t_std - O_std[2]) / sigma_std; //sigma index 1 is stage 2, S-1 is S, stage-1 is stage
+      return normal_lccdf(z_hi | 0, 1);
+    }
 
-	////	NA!!!: Case III: Last stage: wraparound to O_1
-	////		P(t>=O_{S},t<O_1)
-		//if (stage == S) {
-			//log_p = normal_lcdf(t | O[S], sigma[S]) + normal_lccdf(t | O[1], sigma[1]);
-			//return log_p;
-		//}
+    // Final stage - final stage is the "after" part
+    // Stage S is the final stage after the onset of the last stage and before the end of the time period
+    // P(stage=S | t, theta) = P(t>OS)
+    if (stage == S) {
+      //z_lo = (t_std - O_std[S]) / sigma_std[S-1];
+      z_lo = (t_std - O_std[S]) / sigma_std;
+      return normal_lcdf(z_lo | 0, 1);
+    }
 
-	reject("Invalid stage: ", stage, " for S=", S);
-	return negative_infinity();
-	}
+    // Internal stage - default
+    // P(stage=i | t, theta) = P(O_i <= t < O_{i+1})
+    // use de morgan's law: P(stage=i) = CDF(t|O_i) - CDF(t|O_{i+1}) 
+    //z_lo = (t_std - O_std[stage]) / sigma_std[stage-1];
+    //z_hi = (t_std - O_std[stage+1]) / sigma_std[stage];
+    z_lo = (t_std - O_std[stage]) / sigma_std;
+    z_hi = (t_std - O_std[stage+1]) / sigma_std;
 
-  // Functions for E_Kth_shift / E_Kth_approx remain unchanged
-	real E_Kth_shift(int n, real sigma, int k) {
-		real p = (k - pi() / 8) / (n - pi() / 4 + 1);
-		if (p <= 0 || p >= 1) reject("Probability argument to inv_Phi out of bounds: ", p);
-		return sigma * inv_Phi(p);
-	}
-
-	real E_Kth_approx(int n, real mu, real sigma, int k) {
-		return mu + E_Kth_shift(n, sigma, k);
-	}
+    return log_diff_exp(
+      normal_lcdf(z_lo | 0, 1),
+      normal_lcdf(z_hi | 0, 1)
+    );
+  }
 }
 
+//In this coding, stage 1 is the stage before the first full stage in the time period
+//Stage 1 in this coding doesn't have an onset, but it does have a duration
+//Stage 2 onset is the onset of the first full stage
 data {
-	
-	//Checks
-	int<lower=0, upper=10> debug;
-	int<lower=0, upper=1> drop_ll;		//useful if testing prior predictives
+  int<lower=1> N;
+  int<lower=2> S;	//this is the number of stages + 1 to include the times before the stage 2 onset as stage 1
+  int<lower=1> K;
 
-	//Handle Extremes
-	int<lower=0, upper=1> process_extremes;	//process first and last of the onset events
-	int<lower=0> n;				//population size to process extremes
+  vector[N] t_raw;
+  matrix[N, K] X_raw;
 
-	//Sample size
-	int<lower=0> N;				//number of observations
+  array[N] int<lower=1, upper=S> stage;
 
-	//Response data
-	vector[N] T_raw;			//observed times in the min max transformed scale (between 0 and 1)
-	real T_min;				//minimum time on the original scale
-	real T_max;				//maximum time on the original scale
-
-	//Stage data
-	int<lower=2> S;				//number of stages
-	array[N] int<lower=1, upper=S> stage;	//stage designation for each individual
-
-	//Covariate data
-	int<lower=1> C;				//number of covariates
-	matrix[N,C] X_raw;			//covariate data in the min max transformed scale (between 0 and 1)
-	vector[C] mean_X_raw;			//covariate means in the min max transformed scale (bewteen 0 and 1)
-	vector[C] min_X;			//min of onset covariates in original scale
-	vector<lower=min_X>[C] max_X;		//max of onset covariates in original scale
-
-	int<lower=0> priors;			//0 = flat prior, 1 or above = normal prior
-
-	//Hyperparameters: means and SDs for each parameter in the min max transformed scale
-
-	//	Sigma parameters for onsets
-	vector<lower=0>[S] sigmaMean;
-	vector<lower=0>[S] sigmaSD;
-	
-	//	Stage two linear model
-	real anchor1Mean;
-	real<lower=0> anchor1SD;
-	row_vector[C] beta1Mean;
-	row_vector<lower=0>[C] beta1SD;
-
-	//	Linear model for stage durations (except stage 1, which is defined in terms of when stage 2 starts, so these start with stage two duration up to stage S duration
-	vector[S-1] anchor_dMean;
-	vector<lower=0>[S-1] anchor_dSD;
-	matrix[S-1,C] beta_dMean;
-	matrix<lower=0>[S-1,C] beta_dSD;
-
-	}
+  real T_max;
+}
 
 transformed data {
 
-	real<lower=0> T_range = T_max - T_min;
-	vector<lower=0>[C] range_X;
-	vector[C] mean_X;
+  vector[N] t_std;
+  matrix[N, K] X_std;
 
-	//Transform covariate means and ranges to original scale
-	for (k in 1:C) {
-		range_X[k] = max_X[k] - min_X[k];
-		mean_X[k] = mean_X_raw[k] * range_X[k] + min_X[k];
-	}
+  real mean_t = mean(t_raw);
+  real sd_t = sd(t_raw);
+
+  vector[K] mean_X;
+  vector[K] sd_X;
+
+  real T_min_std = (0.0 - mean_t) / sd_t;	//times start at m_raw = 0 for stage 1
+  real<lower=T_min_std> T_max_std = (T_max - mean_t) / sd_t;
+  real range_std = T_max_std - T_min_std;
+
+  // Standardize time
+  for (n in 1:N)
+    t_std[n] = (t_raw[n] - mean_t) / sd_t;
+
+  // Standardize covariates
+  for (k in 1:K) {
+    mean_X[k] = mean(col(X_raw, k));
+    sd_X[k]   = sd(col(X_raw, k));
+
+    for (n in 1:N)
+      X_std[n, k] = (X_raw[n, k] - mean_X[k]) / sd_X[k];
+  }
 }
 
 parameters {
 
-	//Stage duration increments (covariate-dependent)
-	vector<lower=0,upper=1>[S-1] anchor_d_raw;		// anchors for increments : indexed starting at stage 1, 2, 3, ..., S-1 so S-1 elements
-	matrix[S-1,C] beta_d_raw;		// covariate slopes for increments
+  // Duration models (standardized time units)
+  vector<lower=0.0>[S-1] alpha_d_std;		//does not include last stage 
+  matrix[S-1, K] beta_d_std;			//does not include last stage 
+  //vector<lower=0.001>[S-1] sigma_std; 	//does not include stage 1, which is fixed at m
+  real sigma_std; 	//single sigma
 
-	//Covariate linear model for stage 1 (first stage after "start" of cycle)
-	real<lower=0,upper=1> anchor1_raw;	//anchor for stage 1 onset (mean stage 1 onset)
-	vector[C] beta1_raw;			//covariate slopes for stage 1 onset
-
-	//Stage-specific SDs
-	vector<lower=0.001>[S] sigma_raw;
-}
-
-transformed parameters {
-	matrix[N,S] O_raw;		//individual-specific stage boundary means based on linear models, indexed from stage 1
-	vector[S-1] alpha_d_raw;	//intercepts for durations
-	real alpha1_raw;			//intercept for stage 1 onset
-
-	//Compute intercepts
-	alpha1_raw = anchor1_raw - dot_product(mean_X_raw, beta1_raw);
-
-	//index 1 is stage 1 duration
-	for(i in 1:S-1) {
-		alpha_d_raw[i] = anchor_d_raw[i] - dot_product(mean_X_raw, row(beta_d_raw, i));
-	}
-
-	//Compute individual-specific stage boundaries
-	for (j in 1:N) {
-		// Stage 1 anchored to predicted mean
-		O_raw[j,1] = alpha1 + dot_product(row(X_raw,j), beta1_raw);
-
-		// Forward stages (1..S-1)
-		for (i in 1:S-1) {
-			real d_linear = alpha_d_raw[i] + dot_product(row(X_raw,j), row(beta_d_raw,i));
-			O_raw[j,i+1] = O_raw[j,i+1] + softplus(d_linear);	//Onset from previous stage plus duration from previous stage determines onset of following stage
-		}
-
-		//// NA!!! Wraparound stage 1: last stage + increment
-		//real d_linear_S = alpha_d_raw[S-1] + dot_product(row(X_raw,j), row(beta_d_raw,S-1));
-		//O_raw[j,1] = O_raw[j,S] + softplus(d_linear_S);
-	}
 }
 
 model {
-	// Priors
-	if (priors >= 1) {
-		anchor1_raw ~ normal(anchor1Mean, anchor1SD);
-		beta1_raw ~ normal(beta1Mean, beta1SD);
-		anchor_d_raw ~ normal(anchor_dMean, anchor_dSD);
-		to_vector(beta_d_raw) ~ normal(to_vector(beta_dMean), to_vector(beta_dSD));
-		sigma_raw ~ normal(sigmaMean, sigmaSD);
-	}
 
-  	// Likelihood
-	if (!drop_ll) {
-		for (j in 1:N) {
-			target += log_p_y_given_t(S, stage[j], T_raw[j], to_vector(row(O_raw, j)), sigma_raw, debug);
-		}
-	}
+  //epsilon
+  real epsilon = 1e-12;
+
+  // Priors tuned for standardized space
+  alpha_d_std ~ normal(range_std/(S-1), 1.0);	//Set to average duration
+  to_vector(beta_d_std) ~ normal(0.0, 1.0);
+  //sigma_std ~ normal(0.0, 0.5);
+  sigma_std ~ normal(0.0, 0.1);	
+
+  //Likelihoods
+
+  for (n in 1:N) {
+
+    vector[S] O_mean_std;
+    vector[S-1] D_mean_std;
+    for(s in 1:S-1) {
+
+	D_mean_std[s] = alpha_d_std[s] + dot_product(to_vector(beta_d_std[s,]), X_std[n,]);
+	if(D_mean_std[s] < 0.0)
+		D_mean_std[s] = epsilon;
+
+	if(s == 1) 
+		O_mean_std[1] = T_min_std;
+	else 
+		O_mean_std[s] = O_mean_std[s-1] + D_mean_std[s-1];
+
+    }
+	O_mean_std[S] = O_mean_std[S-1] + D_mean_std[S-1];
+
+
+    target += log_p_stage_given_t(S,
+                              stage[n],
+                              t_std[n],
+                              O_mean_std,
+                              sigma_std);
+  }
 }
 
 generated quantities {
-	real anchor1;
-	real alpha1;
-	row_vector[C] beta1;
 
-	real alpha1k1;
-	real alpha1kN;
-	row_vector[C] beta1k1;
-	row_vector[C] beta1kN;
+  // Back-transformed parameters (original scale)
 
-	vector[S-1] anchor_d;
-	vector[S-1] alpha_d;
-	matrix[S-1,C] beta_d;
+//Duration models 	//don't need one for final stage, as it is determined by the other stages
+  vector[S-1] alpha_d;
+  matrix[S-1, K] beta_d;
+  vector[S-1] anchor_d;
 
-	real[S-1] alpha_dk1;
-	real[S-1] alpha_dkN;
-	matrix[S-1, C] beta_dk1;
-	matrix[S-1, C] beta_dkN;
+//Onset models	//onset 1 is at baseline 0
+  vector[S] alpha_o;
+  matrix[S, K] beta_o;
+  vector[S] anchor_o; //no stage 1 onset 
 
-	vector[S] sigma;
-	
-	// Transform parameters for duration increments and sigma to original scale
-	for (i in 1:S-1) {
-		for (c in 1:C) {
-			beta_d[i,c] = (T_range / range_X[c]) * beta_d_raw[i,c];
+  // Transform sigma
+  //vector[S] sigma; 	//one for each onset, stage 1 has sigma 0
+  real sigma = sd_t * sigma_std;
 
-			//Process extremes if flagged
-			if(process_extremes) {
-			beta_dk1[i,c] = beta_d[i,c];
-			beta_dkN[i,c] = beta_d[i,c];
-			}
+  for (s in 1:(S-1)) {
+    for (k in 1:K) {
 
-		//Transform anchor and intercept to original scale
-		anchor_d[i] = T_min + T_range * anchor_d_raw[i];
-		alpha_d[i] = anchor_d[i] - dot_product(row(beta_d,i), mean_X);
+	beta_d[s, k] = (sd_t / sd_X[k]) * beta_d_std[s,k];
 
-
-		//Transform sigma to original scale
-		sigma[i] = T_range * sigma_raw[i];
+	if(s==1) {
+        	beta_o[s, k] = 0.0;
 		}
+	else {
+        	beta_o[s, k] = beta_o[s-1,k] + beta_d[s-1,k];
 	}
-	
-	//Get the last sigma!
-	sigma[S] = T_range * sigma_raw[S];
+    }
 
-	if(process_extremes) {
-		for (i in 1:S-1) {
-			alpha_dk1[i] = alpha_d[i] + E_Kth_shift( n, sigma[i], 1);   //intercept on first
-			alpha_dkN[i] = alpha_d[i] + E_Kth_shift( n, sigma[i], n);   //intercept on last
-			anchor_dk1[i] = E_Kth_approx(n, anchor_d[i], sigma[i], 1);  //anchor on first
-			anchor_dkN[i] = E_Kth_approx(n, anchor_d[i], sigma[i], n);  //anchor on last
-		}
+	//sigma[s] = sd_t*sigma_std[s-1]
+	alpha_d[s] = sd_t * alpha_d_std[s] -  dot_product(beta_d[s,], mean_X) ;
+	anchor_d[s] = alpha_d[s];
+
+	if(s == 1) {
+		anchor_o[1] = 0.0;
+		alpha_o[1] = 0.0;
 	}
-
-	// Transform parameters for stage 1 to original scale
-	for (c in 1:C) {
-		beta1[c] = (T_range / range_X[c]) * beta1_raw[c];
-		if(process_extremes) {
-			beta1k1[c] = beta1[c];
-			beta1kn[c] = beta1[c];
-		}
+	else {
+		anchor_o[s] = anchor_o[s-1] + anchor_d[s-1];
+		alpha_o[s] = alpha_o[s-1] + alpha_d[s-1];
 	}
+  }
 
-	anchor1 = T_min + T_range * anchor1_raw;
-	alpha1 = anchor1 - dot_product(beta1, mean_X);
-
-	if(process_extremes) {
-		alpha1dk1 = alpha2 + E_Kth_shift( n, sigma[1], 1);   //intercept on first
-		alpha1dkN = alpha2 + E_Kth_shift( n, sigma[1], n);   //intercept on last
-		anchor1dk1 = E_Kth_approx(n, anchor1, sigma[1], 1);  //anchor on first
-		anchor1dkN = E_Kth_approx(n, anchor1, sigma[1], n);  //anchor on last
+	//sigma[S] = sd_t * sigma_std[S-1];
+	anchor_o[S] = anchor_o[S-1] + anchor_d[S-1];
+	alpha_o[S] = alpha_o[S-1] + alpha_d[S-1];
+	for (k in 1:K) {
+        	beta_o[S, k] = beta_o[S-1,k] + beta_d[S-1,k];
 	}
 }

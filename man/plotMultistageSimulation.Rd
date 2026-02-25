@@ -7,7 +7,20 @@
 plotMultistageSimulation(
   simulatedData = NULL,
   targetCovariateIndex = 1,
-  stageColors = NULL
+  stageColors = NULL,
+  drawIndividuals = FALSE,
+  drawObserved = TRUE,
+  drawLatentOnset = TRUE,
+  drawTrueModel = TRUE,
+  drawInferredModel = TRUE,
+  observedCex = 0.75,
+  onsetCex = 0.05,
+  observedPch = 4,
+  onsetPch = 17,
+  shadeStage = TRUE,
+  minResponse = 0,
+  maxResponse = 365,
+  nonCyclical = FALSE
 )
 }
 \arguments{
@@ -16,6 +29,30 @@ plotMultistageSimulation(
 \item{targetCovariateIndex}{The index number of the covariate to be plotted along the x-axis. (default: 1)}
 
 \item{stageColors}{A vector of colors, one per stage. (default: NULL)}
+
+\item{drawIndividuals}{Flag to draw horizontal line segments representing individuals through time. (default: FALSE)}
+
+\item{drawObserved}{Flag to draw observed collection times. (default: TRUE)}
+
+\item{drawLatentOnset}{Flag to draw the true, but latent (unobserved) individual onset times. (default: TRUE)}
+
+\item{drawTrueModel}{Flag to draw the true mean onset model as a function of the target covariate. (default: TRUE)}
+
+\item{drawInferredModel}{Flag to draw the inferred mean onset model as a function of the target covariate based on latent onset times. (default: TRUE)}
+
+\item{observedCex}{Set the plot point size of the observed collection times. (default: 0.75)}
+
+\item{onsetCex}{Set the plot point size of the latent onset times. (default: 0.05)}
+
+\item{observedPch}{Set the point display type of the observed collection times. (default: 4, an 'x')}
+
+\item{onsetPch}{Set the plot point display type of the latent onset times. (default: 17, a triangle)}
+
+\item{shadeStage}{Flag to shade the stages with transparent shade-specific color. (default: TRUE)}
+
+\item{minResponse}{The minimum response time for setting plot bounds. (default: 0)}
+
+\item{maxResponse}{The maximum response time for setting plot bounds. (default: 365)}
 }
 \value{
 A plot illustrating the simulated multistage data for one target covariate along the x-axis.

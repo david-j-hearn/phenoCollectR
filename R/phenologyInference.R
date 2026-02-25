@@ -747,7 +747,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'
 #' \bold{DATA TYPES}
 #' 
-#' There are two main types of datasets that can be analyzed. When only observation times of individuals in the stage of interest are available, these are presence-only data (PO). When observation times are available before, during, and after the stage of interest, these are before-during-after data (BDA). Theory for these two types of datasets differs builds on itself.
+#' There are two main types of datasets that can be analyzed. When only observation times of individuals in the stage of interest are available, these are presence-only data (PO). When observation times are available for multiple stages of interest, these are multistage data. Theory for these two types of datasets differs.
 #' 
 #' \bold{NOTATION}
 #' 
@@ -761,7 +761,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' 
 #' The model implemented in Stan is based on the properties of a degenerate Gaussian process that samples lines with intercepts whose values are normally distributed. When a line passes a first threshold at \eqn{\mu_O}, the process begins, and when that line passes a second threshold at \eqn{\mu_D}, the process ends. This process results in normally-distributed onsets: \eqn{O \sim N(\mu_O, \sigma^2_O)}, a constant duration \eqn{D}, and a normally-distribed cessation: \eqn{C \sim N(\mu_O + D, \sigma^2_O)}.
 #' 
-#' The process of interest occurs in a time period (TP), such as a year for cyclical annual processes, or a day for cyclical diel processes, that has a minimum time of \eqn{m} and a maximum time of \eqn{M}. For a year, the day of year time is between \eqn{m=0} and \eqn{M=365}. 
+#' The process of interest occurs in a time period (TP), such as a year for cyclical annual processes, or a day for cyclical diel processes, that has a minimum time of \eqn{m=0} and a maximum time of \eqn{M}. For a year, the day of year time is between \eqn{m=0} and \eqn{M=365}. 
 #' 
 #' The dataset consists of a population of individuals undergoing the process of interest contained within the TP. Onset and duration times can vary for each individual in the population. 
 #' 
@@ -773,19 +773,19 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' 
 #' For the theory, we simplify things by examining a time period (TP) starting at time 0 and of length 1 time unit. Data sampled from other length time periods can be translated to start at time 0 by subtracting \eqn{m} from all times and scaled to a length of 1 by dividing all sampled times by \eqn{M-m}. In what follows, we assume such transformations have already been made. These transformations are handled automatically by this runStanPhenology function. If users wish to transform their data in other ways prior to analysis, we leave this up to the user. 
 #' 
-#' \bold{THEORY: BEFORE-DURING-AFTER {BDA}}
-#' 
-#' For \bold{before-during-after (BDA)} data, all observed times are kept and the stage is recorded.
-#' 
-#' For the core theory, we need to determine the probabilities of each stage given the sampled time and model parameters \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. 
-#' 
-#' The probability that a time is before the onset is \deqn{P_{before}(O>t|\theta)=1-\Phi(\frac{t-\mu_O}{\sigma_O})} where \eqn{\Phi(z) \equiv P(Z<z)} is the cumulative distribution function of a standard normal random variable \eqn{Z}. 
-#' 
-#' With a duration \eqn{D}, the probability that a sampled time \eqn{t} occurs after the cessation \eqn{C=O+D} is \deqn{P_{after}(t \ge O+D | \theta) = P_{after}(O \le t-D | \theta) = \Phi(\frac{t-D-\mu_O}{\sigma_O})}
-#' 
-#' The "during event" is the complement of the "after event" unioned with the "before event", since before, after, and during are exhaustive and mutually exclusive events. So, the probability that the sampled time \eqn{t} occurs between onset \eqn{O} and cessation \eqn{O+D} follows from the complement rule of probability: \deqn{P_{during}(O \le t \lt O+D|\theta) = 1 - (P_{after}+P_{before})=\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O})}
-#' 
-#' For stages before, during, and after the process of interest, symbolized as 1, 2, and 3, respectively, the likelihood function for \eqn{n} randomly sampled times \eqn{\vec{t}} with associated stages \eqn{\vec{s}} is then \deqn{P(\vec{s}|\vec{t},\theta)=\prod_{i=1}^{i=n}P_{before}^{I(s_i=1)}P_{during}^{I(s_i=2)}P_{before}^{I(s_i=3)}} where the indicator function \eqn{I(s_i=j)} returns 1 whenever the stage for the \eqn{i^{th}} individual equals \eqn{j}.
+#'  
+#'  \bold{THEORY: MULTISTAGE}
+#'  
+#'  For \bold{multistage} data, all observed times are kept and the stage (e.g., flowering, fruiting, active growth, dormant) is recorded with an integer label.
+#'  For the core theory, we need to determine the probabilities of each stage given the sampled time and model parameters for each stage. The core parameters are the mean onset of the first full stage in the TP, the mean durations, and the variation in onset times. 
+#'  
+#'  The probability that an individual is in a stage that is before the first full stage begins (ie, stage 0) is \deqn{P_0(O_0>t|\theta)=1-\Phi(z_0)} where \eqn{\Phi(z) \equiv P(Z<z)} is the cumulative distribution function of a standard normal random variable \eqn{\Phi(z) \equiv P(Z<z)} and z values are the standardized times \eqn{z = \frac{t-\mu}{\sigma}}. 
+#'  
+#'  The probability that an individual is in stage \eqn{i} is the probability that the sampled time is after the onset of stage i and before the onset of the next stage i+1: \deqn{P_1(O_i \leq t, O_{i+1} > t) = \Phi(z_i)-\Phi(x_{i+1})}
+#'  
+#'  Last, the probability that an individual is in the last stage is the probability that the sampled time is after the onset of the last stage S: \deqn{P_S(O_S \leq t) = \Phi(z_S)}
+#'  
+#'  The likelihood follows a categorical random variable: \deqn{L(\theta) = \prod_{i=1}^{i=N}\prod_{j=0}^{j=S}P_j^{I(s_i = j)}} where the indicator function \eqn{I(s_i=j)} returns 1 whenever the stage for the \eqn{i^{th}} individual equals \eqn{j} and returns 0 otherwise.
 #' 
 #' \bold{THEORY: PRESENCE-ONLY (PO)}
 #' 
@@ -795,52 +795,52 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' 
 #' The distribution whose parameters we want to infer is the probability density of the observed times given the individual was sampled during the process of interest (state \eqn{s=1})and given the parameters of the onset distribution and duration: \deqn{p(t|s=1,D,\mu_O,\sigma_O)} For simplicity, let \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. Using Bayes rule, \deqn{p(t|s=1,\theta) = \frac{p(s=1|t,\theta)p(t|\theta)}{p(s=1|\theta)}}
 #' 
-#' The probability that the stage is during the process given the sampled time and parameters was derived above as \eqn{P_{during}}. 
+#' The probability that the stage is during the process, given the sampled time and parameters, was derived above as \eqn{P_{during}}. 
 #'
 #' The sampling strategy defines \eqn{p(t|\theta)}. In the current implementation, the sampling of times is at random and independent of \eqn{\theta}, i.e., \eqn{p(t|\theta)=\frac{1}{M-m}}. Since all observed times are scaled to a TP of length 1 already, \eqn{p(t|\theta)=1}. 
 #' 
-#' Finally, \eqn{p(s=1|\theta)} is the length of the process of interest when the TP is length 1 and the process occurs entirely within the TP. By the total law of probability this is \deqn{\int_0^1 p(s=1,t|\theta)dt=\int_0^1 p(s=1|t,\theta)p(t|\theta)dt=\int_0^1 p(s=1|\theta)dt=\int_0^1p_{present}dt=\int_0^1 (\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O}))dt} Hearn et al. (XXXX) in their Appendix 1 provide a closed form for this integral.
+#' Finally, \eqn{p(s=1|\theta)} is the length of the process of interest when the TP is length 1 and the process occurs entirely within the TP. By the total law of probability this is \deqn{\int_0^1 p(s=1,t|\theta)dt=\int_0^1 p(s=1|t,\theta)p(t|\theta)dt=\int_0^1 p(s=1|t,\theta)dt=\int_0^1p_{present}dt=\int_0^1 (\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O}))dt} Hearn et al. (XXXX) in their Appendix 1 provide a solution for this integral in terms of \eqn{\Phi} and \eqn{\phi}.
 #' 
 #' \bold{THEORY: MODELING COVARIATES}
 #' 
-#' In the current implementation, the mean onset time and the duration time are modeled as linear functions of covariates. Different covariates can be used for the onset model and for the duration model, but here, for simplicity, they are assumed to be the same for both models. If we let \eqn{\vec{X}} represent the vector of covariates and \eqn{\vec{\beta}} represent the vector of coefficients, then the following are the models for onset and duration: \deqn{O \sim N(\alpha_O + \vec{\beta_O} \cdot \vec{X}, \sigma_O^2)} and \deqn{D \equiv \mu_D = \alpha_D+\vec{\beta_D} \cdot \vec{X}}
+#' In the current implementation, the mean onset time and the duration times are modeled as linear functions of covariates. Different covariates can be used for the onset model and for the duration model(s), but for the multistage inference, they are the same for onset and duration model(s). If we let \eqn{\vec{X}} represent the vector of covariates and \eqn{\vec{\beta}} represent the vector of coefficients, then the following are the models for onset and duration: \deqn{O \sim N(\alpha_O + \vec{\beta_O} \cdot \vec{X}, \sigma_O^2)} and \deqn{D \equiv \mu_D = \alpha_D+\vec{\beta_D} \cdot \vec{X}}. For multistage inference, there are multiple duration models, one for each stage. 
 #' 
-#' These models of mean onset and duration make the model hierarchical, so that with the inclusion of covariates, everywhere in the likelihood function where \eqn{\mu_O} or \eqn{D} appear, they are replaced by the above linear functions. If there are \eqn{K_O} covariates for the onset model and \eqn{K_D} covariates for the duration model, along with the two \eqn{\alpha} intercepts and the \eqn{\sigma_O} standard deviation parameter, the fully specified model has \eqn{2 + 1 + K_O + K_D} estimable parameters.
+#' These models of mean onset and duration make the model hierarchical, so that with the inclusion of covariates, everywhere in the likelihood function where \eqn{\mu_O} or \eqn{D} appear, they are replaced by the above linear functions. If there are \eqn{K_O} covariates for the onset model and \eqn{K_D} (\eqn{K_D} = \eqn{K_O} for multistage models) covariates for the duration model(s), along with the two \eqn{\alpha} intercepts and the \eqn{\sigma_O} standard deviation parameter, the fully specified model has \eqn{2 + 1 + K_O + K_D} estimable parameters, or (S+1) + (S+1)K_O + 1 parameters for the multistage model.
 #' 
 #' \bold{THEORY: BAYESIAN ANALYSIS AND PRIORS}
 #' 
 #' In a Bayesian analysis the probability density of the parameters given the data, which is called the posterior distribution, is proportional to the product of the likelihood, which is the probability of the data given the parameters, and the prior distribution, which is the marginal probability of the parameters: \eqn{Posterior \propto Likehood * Prior}. 
 #' 
-#' The above sections provided derivations of the likelihood functions for both PO datasets and BDA datasets, so the only remaining thing needed to carry out a Bayesian analysis is to specify the prior distributions. The priors are defined for the \eqn{D,\beta_O,\alpha_O, \beta_D, \alpha_D, \sigma_O} parameters. In the current implementation, the priors can be flat, or they can be normally distributed. 
+#' The above sections provided derivations of the likelihood functions for both PO datasets and multistage datasets, so the only remaining thing needed to carry out a Bayesian analysis is to specify the prior distributions. The priors are defined for the \eqn{D,\beta_O,\alpha_O, \beta_D, \alpha_D, \sigma_O} parameters. In the current implementation, the priors can be flat, or they can be normally distributed. 
 #' 
-#' Set the \emph{priorLevel} function parameter (described below) to 0 for a flat prior. This is only recommended for use with BDA datasets, as identifiability for PO sets necessitates an informative prior. 
+#' Set the \emph{priorLevel} function parameter (described below) to 0 for a flat prior. Identifiability for PO sets necessitates an informative prior.  Priors for the multistage model are automatically set to weakly informative priors.
 #' 
-#' Set the \emph{priorLevel} to any value greater than 1 for normally distributed priors. A normally distributed prior requires two hyperparameters for each parameter: the mean of the parameter and the standard deviation of the parameter. Users can manually input these hyperparameter values or can use automated prior specification. 
+#' Set the \emph{priorLevel} to any value greater than or equal to 1 for normally distributed priors. A normally distributed prior requires two hyperparameters for each parameter: the mean of the parameter and the standard deviation of the parameter. Users can manually input these hyperparameter values or can use automated prior specification. 
 #' 
 #' Normal priors are used primarily for convenience and interpretability. Under standard regularity conditions, the Bernstein–von Mises theorem implies that as sample size increases, the posterior distribution becomes approximately multivariate normal, centered near the maximum likelihood estimate, with covariance given by the inverse Fisher information scaled by \eqn{1/n}. In this large-sample regime, posterior uncertainty is therefore well summarized by normal approximations and depends only weakly on the particular prior, provided the prior assigns positive density in a neighborhood of the true parameter value. This asymptotic behavior makes normal priors a natural default choice in many settings. Moreover, in sequential Bayesian analyses where researchers use a previous large-sample posterior as the prior for a subsequent analysis, the inherited prior will itself be approximately normal.
 #' 
 #'
-#' @param type The type of model to be implemented. Four options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, option 'interval-full' will model mean onset and mean duration as a linear function of covariates for before-during-after data, option 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data, and option 'interval' will model the distribution of onset times and durations with no consideration of covariates for before-during-after data. The Examples section below provides example usage of each scenario (default: intercept-only)
+#' @param type The type of model to be implemented. Five options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data. Option 'multistage-full' is the most general option, and includes randomly sampled times of individuals, their phenological stage, and covariate data, with one linear model per stage, including for the interval between the start of a time period and the first stage in that time period. There is no multistage option for no covariates, but if you want to run such a model, set up a dummy covariate with a constant value and ignore the parameters for the linear model in the output. The Examples section below provides example usage of each scenario (default: intercept-only)
 #' @param responseData A vector of the response data. The response data are simply the observed times of collection, often the day of year for biocollection data. This vector is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason to use preprocessing transformations. (default: NULL)
-#' @param stage Only for use when type is 'interval' or 'interval-full'. A vector of integers the same length as the number of observations. For each observation, the stage will be a 1 if the observation is before the phenophase, a 2 if it is during the phenophase, and a 3 if it is after the phenophase. Any other values will produce errors. (default: NULL)
-#' @param hyperparams_noCovariates For use with 'intercept-only' or 'interval' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order. Items in the vector can be named or unnamed. (default: NULL)
+#' @param stage Only for use when type 'multistage-full'. A vector of integers the same length as the number of observations. For each observation, the stage is the numeric value associated with each stage. The stage is 1 if the observation is in the interval between the start of the time period and before the first phenophase in the time period. (default: NULL)
+#' @param hyperparams_noCovariates For use with 'intercept-only' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order. Items in the vector can be named or unnamed. (default: NULL)
 #' @param onsetCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen observation. The number of rows must match the number of items in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate. (default: NULL)
-#' @param durationCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen observation. The number of rows must match the number of items in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate. (default: NULL)
+#' @param durationCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen observation. The number of rows must match the number of items in the responseData vector, and specimens are in the same order as they are in the response data vector. In the 'multistage-full' model, the same covariates are used for onset and duration models. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate. (default: NULL)
 #' @param onsetHyperBeta For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the onset model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (onsetCovariateData), the second row with the second covariate, and so forth. If there are \eqn{K_O} columns in the covariate data frame, there should be \eqn{K_O} rows in this data frame. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
 #' @param onsetHyperAnchor For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the marginal mean onset time value). Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
-#' @param durationHyperBeta For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the duration model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (durationCovariateData), the second row with the second covariate, and so forth. If there are \eqn{K_D} columns in the covariate data frame, there should be \eqn{K_D} rows in this data frame. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
-#' @param durationHyperAnchor For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the marginal mean phenophase duration value). Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
-#' @param sigmaHyper For use with '*full' models. A two-element vector with the mean and standard deviation of the prior distribution for the sigma parameter. Sigma is the standard deviation of the onset distribution and is also the standard deviation of the cessation distribution. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param durationHyperBeta For use with '*full' models. A data frame with two columns to provide hyperparameter values for the covariate slope coefficients for the duration model. The first column is the the mean hyperparameter, and the second is the standard deviation parameter, or for the 'multistage-full' model, a table with three columns, with the third indicating which stage the parameters are for. Each row corresponds with a separate covariate. The first row in the data frame corresponds to the covariate in the first column of the covariate data frame (durationCovariateData), the second row with the second covariate, and so forth. If there are \eqn{K_D} columns in the covariate data frame, there should be \eqn{K_D} rows in this data frame. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param durationHyperAnchor For use with '*full' models. A two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the marginal mean phenophase duration value), or for the 'multistage-full' model, a data frame with two columns, the first being the mean and the second being the standard deviation, as before, but each row is for a different stage. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
+#' @param sigmaHyper For use with '*full' models. A two-element vector with the mean and standard deviation of the prior distribution for the sigma parameter, or for the 'multistage-full' model, a data frame with two columns, the first being the mean and the second being the standard deviation, as before, but each row is for a different stage. Sigma is the standard deviation of the onset distribution and is also the standard deviation of the cessation distribution. Can be left at default when priorLevel is set to 0, in which case Stan default priors are used (not recommended). (default: NULL) 
 #' @param minResponse Minimum value of the response (e.g., day of year); must be set to 0 (i.e., at default) under current implementation (default = 0)
 #' @param maxResponse Maximum value of the response (e.g., day of year); typically 365 for Gregorian calendar (default = 365)
-#' @param keepScale Leave the response data at original scale during Stan run. Only implemented for type "interval". Default is usually fine. Use keepScale if you need the Stan sampler to initialize the sampling at the hyperparameter values and keep the original scale. Best to keep at default. (default: FALSE, which min-max scales the data)
+#' @param keepScale Do not use. (default: FALSE, which min-max scales the data)
 #' @param maxDiv The maximum number of divergences to be tolerated during the Stan posterior sampling. This should be 0 unless a biased sample from the posterior is acceptable. (default: 0)
 #' @param setStringent Boolean flag to indicate more stringent sampling during Stan runs. Specifically, adapt_delta = 0.99, max_treedepth = 15. Setting to TRUE reduces the chances of divergences, but run time is slower. Usually the difference in run time is not of practical concern, so the default is fine. (default: TRUE)
 #' @param runMAP Boolean flag to indicate if Stan should be used to estimate the maximum a posteriori (MAP) values. (default: TRUE)
 #' @param processExtremes Boolean flag to indicate if parameters for the phenological extreme distributions should be estimated during the analysis. If set to TRUE, asymptotic estimates of the expected first onset and expected last cessation are sampled. Because asymptotic estimates are provided, estimates are made very quickly. A limitation is that an estimate of the population size is needed for this analysis. (default: TRUE)
 #' @param N The population size. Needed when processExtremes is set to TRUE. (default: 500)
-#' @param partitionDataForPriors Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30% of the data are partitioned into a set to estimate the hyperparameters, and 70% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored. This is not recommended if accurate estimates of duration and onset parameters are needed, but estimates of covariate coefficients tend to be accurate. (default: FALSE)
-#' @param maximizeSampleSize Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis. When the sample size is very small, and no prior information is available, the error on the estimates may be unacceptably large unless the fuller dataset is used for inference. Recommended to keep at default. (default: FALSE)
+#' @param partitionDataForPriors Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30% of the data are partitioned into a set to estimate the hyperparameters, and 70% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored. This is *not* recommended if accurate estimates of duration and onset parameters are needed, but estimates of covariate coefficients tend to be accurate. (default: FALSE)
+#' @param maximizeSampleSize Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis. When the sample size is very small, and no prior information is available, the error on the estimates may be unacceptably large unless the fuller dataset is used for inference. Deprecated and no longer implemented. (default: FALSE)
 #' @param threshApprox An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NULL)
 #' @param byPassChecks Boolean flag indicating whether to bypass checks for Stan. If Stan is not located, an attempt will be made to install Stan. Recommended to keep at default. (default: FALSE)
 #' @param priorLevel Specifies types of priors by an integer. Setting to 0 will use flat priors. Above 0 will use the user-input prior hyperparameters with normally distributed priors. For presence-only data, leave at default. (default: 2)
@@ -884,7 +884,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'
 #' error_m: an error message, possibly indicating no error occurred.
 #'
-#' In the case of \bold{'intercept-only' or 'interval'} type, a list with the following items is returned:
+#' In the case of \bold{'intercept-only'} type, a list with the following items is returned:
 #'
 #' data: the data that were passed to Stan. These include the scaled and translated response and covariate data.
 #'
@@ -955,12 +955,13 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##
 #' ##
 #' ##########################################################################################################################################################
-#' ##Run more complicated examples, this time with SIMULATED PHENOLOGY and SIMULATED COVARIATES 
+#' ##Run more complicated examples, this time with SIMULATED PHENOLOGY and SIMULATED COVARIATES with MULTIPLE STAGES
 #' #
 #' #COVARIATE MODEL
-#' covariate_namesOnset = c("v1", "v2")
-#' covariate_namesDuration = c("v1", "v3")
+#' covariate_namesOnset = c("v1", "v2")	
+#' covariate_namesDuration = c("v1", "v3")	#Note that for presence-only data for one stage, different covariates can be used
 #' cov_all = union(covariate_namesOnset, covariate_namesDuration)
+#' #covariance matrix must have all variables (v1, v2, and v3 in this case)
 #' covarianceMatrix = matrix(c( 1.0, 0.5, 0.3,
 #' 				      0.5, 2.0, 0.4,
 #' 				      0.3, 0.4, 1.5), nrow = 3, byrow = TRUE)
@@ -984,6 +985,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' n=3000
 #' #
 #' #SIMULATE PHENOLOGY TIMES, OBSERVATION TIMES, AND COVARIATE DATA
+#' #	The function simulatePopulationLatentIntervalStates can handle different covariates for onset and for duration of the stage of interest
 #' simulated_data = simulatePopulationLatentIntervalStates(n=n,
 #'                        betaOnset=slopesOnset, betaDuration=slopesDuration,
 #'                covariateNamesOnset=covariate_namesOnset, covariateNamesDuration=covariate_namesDuration,
@@ -1000,37 +1002,6 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' durationHyperBeta = data.frame(slopesDuration,c(1,1))
 #' durationHyperAnchor = c(30, 3)
 #' sigmaHyper = c(3,1)
-#' #
-#' #_________________________________________________________________________________________________________________________________________________________
-#' #
-#' #BDA DATA (Before, during, after)
-#' responseDataBDA = simulated_data$observedTime
-#' onsetCovariateDataBDA = simulated_data[,covariate_namesOnset, drop=FALSE]
-#' durationCovariateDataBDA = simulated_data[,covariate_namesDuration, drop=FALSE]
-#' stageBDA = simulated_data$stage
-#' #
-#' \bold{#BDA STAN RUN - type 'interval-full'}
-#' stanResultBDA = runStanPhenology(
-#' 			type="interval-full",
-#' 			responseData=responseDataBDA,
-#' 			stage=stageBDA,
-#' 			onsetCovariateData=onsetCovariateDataBDA, durationCovariateData=durationCovariateDataBDA,
-#' 			onsetHyperBeta=onsetHyperBeta,onsetHyperAnchor=onsetHyperAnchor,
-#' 			durationHyperBeta=durationHyperBeta,durationHyperAnchor=durationHyperAnchor,
-#' 			sigmaHyper=sigmaHyper,
-#' 			minResponse=0,maxResponse=365,
-#' 			runMAP=TRUE,processExtremes=TRUE,N=500,
-#' 			partitionDataForPriors=FALSE,
-#' 			maxDiv=0,setStringent=TRUE,
-#' 			priorLevel=2
-#' 			)
-#' #
-#' ##SUMMARIZE
-#' stanSummaryBDA  =  summarizePhenologyResults(stanRunResult = stanResultBDA
-#'                                           , taxonName = "Simulated"
-#'                                           ,standardLinearModel = FALSE)
-#' ##WRITE BDA RESULTS 
-#' write.csv(stanSummaryBDA,"Simulated.BeforeDuringAfter.informativePriors.csv")
 #' #
 #' #_________________________________________________________________________________________________________________________________________________________
 #' #
@@ -1063,6 +1034,165 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
 #' ##
 #' ##
+#' ##########################################################################################################################################################
+#' ##Run a full multistage analysis with SIMULATION PARAMETERS themselves simulated and SIMULATED COVARIATES with MULTIPLE STAGES
+#' #
+#' library(dplyr)
+#' library(posterior)
+#'  #Set the parameters 
+#'  nStages = 4
+#'  nCovariates = 3
+#'  n = 500
+#'  minResponse = 0		#Needs to be 0
+#'  maxResponse = 365		#Days in the year for yearly cycles
+#'  #minStageVariance = 9
+#'  #maxStageVariance = 25
+#'  
+#'  #Onset / duration parameters - determines spread of stages - high, uniform numbers result in more equally separated stages
+#'  #minWeight = 10
+#'  #maxWeight = 50
+#'  #meanOnsetSpread = runif(nStages+1, minWeight, maxWeight)
+#'  
+#'  #Slopes - These are automatically set below
+#'  #         Here, we set them to reasonable values so that stages rarely overlap. If desired, uncomment these lines and comment out the lower simulatedData line.
+#'  #minSlope = -1
+#'  #maxSlope = 1
+#'  #stageDurationCovariateSlopes = as.matrix(data.frame(
+#'                      #cov1=runif(nStages-1, minSlope,maxSlope),
+#'                      #cov2=runif(nStages-1, minSlope,maxSlope),
+#'                      #cov3=runif(nStages-1, minSlope,maxSlope)))
+#'  #stage1OnsetCovariateSlopes = runif(nCovariates, minSlope,maxSlope)
+#'  
+#'          #Simulate data
+#'  #simulatedData = simulateMultistageData(n=n,
+#'                    #nonCyclical=TRUE,		#multistage is structured as nonCyclical
+#'                    #nStages=nStages,
+#'                    #stageNames=stageNames,
+#'                    #minStageVariance=minStageVariance,
+#'                    #maxStageVariance=maxStageVariance,
+#'                    #meanOnsetSpread=meanOnsetSpread,
+#'                    #stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes,
+#'                    #stageDurationCovariateSlopes=stageDurationCovariateSlopes,
+#'                    #nCovariates=nCovariates,
+#'                    #minResponse=minResponse,
+#'                    #maxResponse=maxResponse
+#'                    #)
+#' 
+#'  #Automated - uncomment the above for more control
+#'  simulatedData = simulateMultistageData(n=n, nonCyclical=TRUE, nStages=nStages,nCovariates=nCovariates)
+#'  
+#'  #Plotting 
+#'  	#Set which covariate is the x-axis in the plot
+#'  targetCovariateIndex = 1
+#'  
+#'      #Set colors
+#'  stageColors = viridisLite::viridis(nStages+1)
+#'  
+#'  plotMultistageSimulation(simulatedData=simulatedData,
+#'                   nonCyclical=TRUE,
+#'                   targetCovariateIndex=targetCovariateIndex,
+#'                   stageColors=stageColors,
+#'                   drawLatentOnset=FALSE,
+#'                   drawObserved=TRUE,
+#'                   drawTrueModel=FALSE,
+#'                   drawInferredModel=FALSE,
+#'                   shadeStage=TRUE,
+#'                   minResponse=minResponse, maxResponse=maxResponse)
+#'  
+#'  #Set priors - the current implementation does not use user-supplied hyperparameters yet, but still expects the hyperparameter objects to be provided
+#'  
+#'  #mean and sd of onset time of first stage
+#'  onsetHyperAnchor=c(50,0)	
+#'  #covariate slopes for the onset model
+#'  onsetHyperBeta = data.frame(mean=rep(0,nCovariates), sd=rep(0,nCovariates)) 
+#'  #mean and sd of durations for each stage, not including the last stage
+#'  durationHyperAnchor = data.frame(mean = rep(20,nStages-1), sd=rep(3,nStages-1)) 
+#'  #mean slopes for all covariates and stages for the duration models
+#'  durationHyperBetaMean=matrix(rep(0,(nStages-1)*nCovariates), nrow=nStages-1) 
+#'  #sd of slopes for all covariates and stages for the duration models; in real life, these are positive
+#'  durationHyperBetaSD=matrix(rep(1,(nStages-1)*nCovariates), nrow=nStages-1)
+#'  #mean and sd of single sigma parameter (data frame for future generalizations of model); in real life, these are positive
+#'  sigmaHyper=data.frame(mean=rep(0,nStages),sd=rep(0.1,nStages))
+#'  
+#'  #Run inference with Stan
+#'  stanResults =runStanPhenology(
+#'      type="multistage-full",                             #model with many stages and covariates
+#'      minResponse=minResponse,                            #minimum possible collection time
+#'      maxResponse=maxResponse,                            #maximum possible collection time
+#'      responseData=simulatedData$outputData$sampledTime,  #observed collection times
+#'      stage=simulatedData$outputData$sampledStage,        #observed stage at collection time
+#'      onsetCovariateData=simulatedData$X,                 #covariate data (same as for duration)
+#'      durationCovariateData=simulatedData$X,              #covariate data (same as for onset)
+#'      onsetHyperAnchor=onsetHyperAnchor,                  #prior, onset stage 1
+#'      onsetHyperBeta=onsetHyperBeta,                      #prior, stage 1 coefficients
+#'      durationHyperAnchor=durationHyperAnchor,            #prior, durations, no last stage
+#'      durationHyperBetaMean=durationHyperBetaMean,        #prior, duration slopes, no last stage
+#'      durationHyperBetaSD=durationHyperBetaSD,            #prior, duration sd slopes, no last stage
+#'      sigmaHyper=sigmaHyper,
+#'      setStringent=TRUE,
+#'      maxDiv=4000
+#'  )
+#'  
+#'  #Extract basic summary data
+#'  probs = c(2.5, 97.5)
+#'  measures=c("mean", "median", "sd", "mad")
+#'  
+#'  summary = print(
+#'    stanResults$result$summary(
+#'      variables = c(
+#'        "sigma","anchor_d", "beta_d", "alpha_d", "anchor_o", "beta_o", "alpha_o"
+#'       ),
+#'      quantiles = ~ quantile2(., probs=probs/100),
+#'      measures
+#'    ),
+#'    n = Inf
+#'  ) %>% as.data.frame()
+#'  
+#'  #Set up vectors to store mean durations (means) and mean onsets (means_o) with low and high bounds of credible intervals.
+#'  means_o = rep(0,nStages+1)
+#'  mean_o_low = rep(0,nStages+1)
+#'  mean_o_high= rep(0,nStages+1)
+#'  means = rep(0,nStages+1)
+#'  mean_low = rep(0,nStages)
+#'  mean_high = rep(0,nStages)
+#'  
+#'  #Extract slopes and intercepts (anchors) and overlay the inferred lines onto earlier plot
+#'  for(j in 1:(nStages+1)) {
+#'          beta = rep(0,nCovariates)
+#'          beta_low = rep(0,nCovariates)
+#'          beta_high = rep(0,nCovariates)
+#'          varO = paste0("anchor_o[", j, "]")
+#'          mean_o_low[j] = summary[summary$variable==varO, paste0("q",probs[1])]
+#'          mean_o_high[j] = summary[summary$variable==varO, paste0("q", probs[2])]
+#'          if(j<=nStages) {
+#'                  varD = paste0("anchor_d[", j, "]")
+#'                  means[j] = summary[summary$variable==varD, "mean"]
+#'                  mean_low[j] = summary[summary$variable==varD, paste0("q",probs[1])]
+#'                  mean_high[j] = summary[summary$variable==varD, paste0("q",probs[2])]
+#'          }
+#'          alpha = summary[summary$variable==varO, "mean"]
+#'          alpha_low = summary[summary$variable==varO, paste0("q",probs[1])]
+#'          alpha_high = summary[summary$variable==varO, paste0("q",probs[2])]
+#'          means_o[j] = alpha
+#'  
+#'         for(i in 1:nCovariates) {
+#'                  varO = paste0("beta_o[", j, ",", i, "]")
+#'                  beta[i] = summary[summary$variable==varO, "mean"]
+#'                  beta_low[i] = summary[summary$variable==varO, paste0("q",probs[1])]
+#'                  beta_high[i] = summary[summary$variable==varO, paste0("q",probs[2])]
+#'          }
+#'         model = phenoCollectR:::true_marginal_line(alpha=alpha, beta=beta, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
+#'         model_low = phenoCollectR:::true_marginal_line(alpha=alpha_low, beta=beta_low, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
+#'         model_high = phenoCollectR:::true_marginal_line(alpha=alpha_high, beta=beta_high, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
+#'         abline(a=model$intercept, b=model$slope, col="black", lwd=1, lty="dotted") #col=stageColors[j]
+#'         abline(a=model_low$intercept, b=model_low$slope, col="yellow")
+#'         abline(a=model_high$intercept, b=model_high$slope, col="yellow")
+#'  }
+#'  
+#'  
+#'  
+#' ##
+#' ##
 #' ##
 #' ##########################################################################################################################################################
 #' ##Conduct an analysis with NO COVARIATES (NC) using SIMULATED DATA
@@ -1079,37 +1209,24 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' simulated_data = simulatePopulationLatentIntervalStates(n=n,
 #'                meanOnset = mean_responseOnset, meanDuration = mean_responseDuration,
 #'                sigmaOnset = sdOnset)
+#' simulated_data = simulatePopulation(N=n, mu_O=mean_responseOnset, sigma_O=sdOnset, mu_D_raw=mean_responseDuration) 
+#' #
 #' #
 #' #_________________________________________________________________________________________________________________________________________________________
 #' #
-#' #HYPERPARAMETERS (biased): mean meanOnset, sd meanOnset, mean meanDuration, sd meanDuration, mean sigma, sd sigma)
-#' hyperparameters = c(120, 30, 35, 5, 5, 2)
-#' #
-#' #_________________________________________________________________________________________________________________________________________________________
-#' #
-#' #BDA DATA
-#' responseDataBDA.NC = simulated_data$observedTime
-#' stageBDA.NC = simulated_data$stage
-#' \bold{#STAN RUN BDA - type 'interval'}
-#' stanResultBDA.NC = runStanPhenology(
-#' 			type="interval",
-#' 			responseData=responseDataBDA.NC,
-#' 			stage=stageBDA.NC,
-#'			hyperparams_noCovariates=hyperparameters,
-#' 			minResponse=0,maxResponse=365,
-#' 			runMAP=TRUE,processExtremes=TRUE,N=500,
-#' 			partitionDataForPriors=FALSE,
-#' 			maxDiv=0,setStringent=TRUE,
-#' 			priorLevel=2
-#' 			)
-#' #
-#' #SUMMARIZE BDA RUN
-#' print(stanResultBDA.NC$sample, max_rows = 15)
+#' #HYPERPARAMETERS (biased): 
+#' hyperparameters = c(
+#'  		#mean onset, sd mean onset
+#'  		120, 30, 
+#'  		#mean duration, sd mean duration
+#'  		35, 5, 
+#'  		#mean sigma, sd mean sigma
+#'  		5, 2)
 #' #
 #' #_________________________________________________________________________________________________________________________________________________________
 #' #
 #' #PO DATA
-#' responseData.NC = simulated_data$observedTime[simulated_data$stage==2]
+#' responseData.NC = simulated_data$Ts
 #' #
 #' \bold{#STAN RUN PO - type 'intercept-only'}
 #' stanResult.NC = runStanPhenology(
@@ -1127,7 +1244,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' print(stanResult.NC$sample, max_rows = 15)
 #' ##########################################################################################################################################################
 #' }
-runStanPhenology = function(type=c("intercept-only","interval","interval-full","full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, ...) {
+runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, debug=0, ...) {
 
   ## ###########################################################################
 	## CHECK STAN BLOCK
@@ -1145,14 +1262,14 @@ runStanPhenology = function(type=c("intercept-only","interval","interval-full","
 	cat("Running a Stan analysis.\n")
 
 	if(!is.vector(responseData)) {
-		stop("Expecting a vector of real numeric values of the collection times (e.g., day of year (DOY) of specimens in the phenophase.")
+		stop("Expecting a vector of real numeric values of the collection times (e.g., day of year (DOY) of when specimens were collected).")
 	}
 	if(length(responseData)<10) {
 		warning("Ten or fewer data items is a very small sample size and will likely result in inaccurate inferences and a high divergence rate during Bayesian inference. The sample size should be at least 60, especially when covariates are used.")
 	}
 
-	if(!(type=="intercept-only" || type=="full" || type=="interval-full" || type=="interval") ) {
-		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'interval' or 'full' or 'interval-full'.\n"))
+	if(!(type=="intercept-only" || type=="full" || type=="multistage-full" )) {
+		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'full' or 'multistage-full'.\n"))
 		stop("Unsupported type error.")
 	}
 
@@ -1170,90 +1287,107 @@ runStanPhenology = function(type=c("intercept-only","interval","interval-full","
 			hyperparams_noCovariates = getHyperparametersViaQuantiles(responseDataForPrior = partition$dataForPrior, scale = scale)
 			}
 		}
-		else if(type=="interval-full" || type=="interval") {
+		else if(type=="multistage-full" ) {
 			if(partitionDataForPriors) {
-				stop("Partitioning data for priors is not supported for interval estimation.")
+				stop("Partitioning data for priors is not supported for multistage estimation.")
 			}
 		}
 		else if(type=="full") {
 			if(partitionDataForPriors) {
-			#partition data
-			partition = partitionResponseCovariateData(responseData=responseData, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, prop=prop)
+				#partition data
+				partition = partitionResponseCovariateData(responseData=responseData, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, prop=prop)
 
-			#get the data for inference
-			#if(length(partition$responseDataForInference)<150 && maximizeSampleSize) {
-			if(maximizeSampleSize) {
-				   #don't reduce the amount of data - this is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates will be unacceptably large unless a fuller dataset is used.
+				#get the data for inference
+				#if(length(partition$responseDataForInference)<150 && maximizeSampleSize) {
+				if(maximizeSampleSize) {
+					stop("The 'maximizeSampleSize' option is no longer implemented due to statistical invalidity.")
+				   	#don't reduce the amount of data - this is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis, but when the sample size is too small, the error on the estimates will be unacceptably large unless a fuller dataset is used.
+				}
+				else {
+					responseData = partition$responseDataForInference
+					onsetCovariateData = partition$onsetCovariateDataForInference
+					durationCovariateData = partition$durationCovariateDataForInference
+				}
+	
+				#get the data for prior and set the prior hyperparameters
+				prior = getHyperparametersViaQuantileRegression(responseDataForPrior=partition$responseDataForPrior, onsetCovariateDataForPrior=partition$onsetCovariateDataForPrior, durationCovariateDataForPrior=partition$durationCovariateDataForPrior, lowerQuantile=0.1, upperQuantile=0.9)
+	
+				#set the prior hyperparameters
+				onsetHyperBeta = prior$onsetHyperBeta
+				onsetHyperAnchor = prior$onsetHyperAnchor
+				durationHyperBeta = prior$durationHyperBeta
+				durationHyperAnchor = prior$durationHyperAnchor
+				#cessationHyperAnchor = prior$cessationHyperAnchor
+				sigmaHyper = prior$sigmaHyper
 			}
-		else {
-			responseData = partition$responseDataForInference
-			onsetCovariateData = partition$onsetCovariateDataForInference
-			durationCovariateData = partition$durationCovariateDataForInference
-		}
-
-			#get the data for prior and set the prior hyperparameters
-			prior = getHyperparametersViaQuantileRegression(responseDataForPrior=partition$responseDataForPrior, onsetCovariateDataForPrior=partition$onsetCovariateDataForPrior, durationCovariateDataForPrior=partition$durationCovariateDataForPrior, lowerQuantile=0.1, upperQuantile=0.9)
-
-			#set the prior hyperparameters
-			onsetHyperBeta = prior$onsetHyperBeta
-			onsetHyperAnchor = prior$onsetHyperAnchor
-			durationHyperBeta = prior$durationHyperBeta
-			durationHyperAnchor = prior$durationHyperAnchor
-			#cessationHyperAnchor = prior$cessationHyperAnchor
-			sigmaHyper = prior$sigmaHyper
-		}
 		}
 	}
 
-	if(type == "intercept-only" || type == "interval") {
+	if(type == "intercept-only") {
 		cat("No covariates will be included in this analysis.\n")
-		if(sum(is.na(hyperparams_noCovariates)) || length(hyperparams_noCovariates) != 6) stop("Expecting six hyperparameter values (mean and sd for mean onset, mean and sd for mean duration, mean and sd for sigma. Or, if you want hyperparameter values to be estimated for you, set 'partitionDataForPriors' to TRUE.")
+		if(sum(is.na(hyperparams_noCovariates)) || length(hyperparams_noCovariates) != 6) stop("Expecting six hyperparameter values (mean and sd for mean onset, mean and sd for mean duration, mean and sd for sigma. Or, if you want hyperparameter values to be estimated for you, set 'partitionDataForPriors' to TRUE. Automated hyperparameter estimation is not recommended for these model types.")
 		if(type == "intercept-only") {
 			return(runStan.NoCovariates.T.GP(fileOrData=responseData, minResponse=minResponse, maxResponse=maxResponse, hyperparameters = hyperparams_noCovariates, dataProvided=TRUE, runMAP=runMAP, setStringent=setStringent, maxDiv=maxDiv, processExtremes=processExtremes, N=N, threshApprox=threshApprox, ...))
 		}
-		else if(type=="interval") {
-			if(keepScale) {
-				return(runStan.NoCovariates.Interval.T.GP(responseData=responseData,stage=stage, minResponse=minResponse, maxResponse=maxResponse, hyperparameters = hyperparams_noCovariates, dataProvided=TRUE, runMAP=runMAP, keepScale=TRUE, setStringent=setStringent, maxDiv=maxDiv, processExtremes=processExtremes, N=N, threshApprox=threshApprox, ...))
-			}
-			else {
-				return(runStan.NoCovariates.Interval.T.GP(responseData=responseData,stage=stage, minResponse=minResponse, maxResponse=maxResponse, hyperparameters = hyperparams_noCovariates, dataProvided=TRUE, runMAP=runMAP, keepScale=FALSE, setStringent=setStringent, maxDiv=maxDiv, processExtremes=processExtremes, N=N, threshApprox=threshApprox, ...))
-			}
-		}
 	}
-	else if(type == "full" || type == "interval-full") {
+	else if(type == "full" || type == "multistage-full") {
 		#cat("Checking conditions to run a Stan analysis with covariates A.\n")
 		if(sum(is.na(onsetCovariateData)) || !is.data.frame(onsetCovariateData) ) {
 			cat("Please remove all NA values, and provide a data frame of the onset model covariate (predictor variable) data. \nThese might be temperature or precipitation data at the specimen collection sites, for example.\nEach column of the data frame should be named with the predictor variable name (e.g. 'meanAnnualTemperature').\nThe order of the rows should correspond to the order of the elements in the response variable data vector (i.e., the first element in the response vector corresponds with the first row in the onset covariate data frame, the second element with the second row, and so forth).\nPlease see documentation for additional information and examples.")
 			stop("Please provide appropriate inputs")
 		}
-		#cat("Checking conditions to run a Stan analysis with covariates B.\n")
 		if(sum(is.na(durationCovariateData)) || !is.data.frame(durationCovariateData) ) {
 			cat("Please remove all NA values, and provide a data frame of the duration model covariate (predictor variable) data. \nThese might be temperature or precipitation data at the specimen collection sites, for example.\nEach column of the data frame should be named with the predictor variable name (e.g. 'meanAnnualTemperature').\nThe order of the rows should correspond to the order of the elements in the response variable data vector (i.e., the first element in the response vector corresponds with the first row in the duration covariate data frame, the second element with the second row, and so forth).\nPlease see documentation for additional information and examples.")
 			stop("Please provide appropriate inputs")
 		}
-		#cat("Checking conditions to run a Stan analysis with covariates C.\n")
-		if(!is.data.frame(onsetHyperBeta) || !is.data.frame(durationHyperBeta) || !is.vector(onsetHyperAnchor) || !is.vector(durationHyperAnchor) || !is.vector(sigmaHyper)) {
-			cat("Expecting the following:\n\tonsetHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the onset slope coefficient for each covariate. The second column is the standard deviation of the onset slope coefficient for each covariate. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \n\tdurationHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the duration slope coefficient for each covariate. The second column is the standard deviation of the duration slope coefficient for each covariate. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \nonsetHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the mean onset value when no covariate data are included).\n\tdurationHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the mean duration value when no covariate data are included).\n\tsigmaHyper:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the sigma model parameter (variation in onset times and variation in cessation times).\nSee documentation for additional information and examples")
-			stop("Please provide appropriate inputs")
+		if(type == "full" ) {
+			if(!is.data.frame(onsetHyperBeta) || !is.data.frame(durationHyperBeta) || !is.vector(onsetHyperAnchor) || !is.vector(durationHyperAnchor) || !is.vector(sigmaHyper)) {
+				cat("Expecting the following:\n\tonsetHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the onset slope coefficient for each covariate. The second column is the standard deviation of the onset slope coefficient for each covariate. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \n\tdurationHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the duration slope coefficient for each covariate. The second column is the standard deviation of the duration slope coefficient for each covariate. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \nonsetHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the mean onset value when no covariate data are included).\n\tdurationHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the mean duration value when no covariate data are included).\n\tsigmaHyper:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the sigma model parameter (variation in onset times and variation in cessation times).\nSee documentation for additional information and examples")
+				stop("Please provide appropriate inputs")
+			}
+		}
+		else if(type == "multistage-full") {
+			if(!identical(onsetCovariateData, durationCovariateData)) {
+				stop("The covariate data for duration models must be the same as the covariate data for the onset model when applying type 'multistage-full'.")
+			}
+			if(!is.data.frame(onsetHyperBeta) || !is.matrix(durationHyperBetaMean) || !is.matrix(durationHyperBetaSD) || !is.vector(onsetHyperAnchor) || !is.data.frame(durationHyperAnchor) || !is.data.frame(sigmaHyper)) {
+				cat("Expecting the following:\n\tonsetHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the onset slope coefficient for each covariate of the first stage. The second column is the standard deviation of the onset slope coefficient for each covariate of the first stage. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \n\tdurationHyperBetaMean:\n\t\tA matrix with dimensions (number of stages -1) X (number of covariates). The expected slope value for each stage X covariate combination goes in the matrix cells. \n\tdurationHyperBetaSD:\n\t\tA matrix with dimensions (number of stages -1) X (number of covariates). The SD of each slope value for each stage X covariate combination goes in the matrix cells. \n\tonsetHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the mean onset value when no covariate data are included) of the model for the first stage.\n\tdurationHyperAnchor:\n\t\tA data frame with two columns, with the mean of the prior and the standard deviation of the prior for the duration anchor (the mean duration value when no covariate data are included) in respective columns. Each row is for the duration model for each stage except for the last stage.\n\tsigmaHyper:\n\t\tA data frame with two columns, the first with the mean of the prior and the second with the standard deviation of the prior for the sigma model parameter (variation in onset times and variation in cessation times). Each row is for different stages, one row for each stage. \nSee documentation for additional information and examples")
+				stop("Please provide appropriate inputs")
+			}
 		}
 		cat(paste0(ncol(onsetCovariateData), " onset covariates and ", ncol(durationCovariateData), " duration covariates will be included in this analysis. Continuing.\n"))
 		if(type=="full") {
-			#if(!is.vector(cessationHyperAnchor)) {
-				#cat("Cessation anchor mean and standard deviation hyperparameter values are needed for the full model and should be provided as a two-element vector.\n")
-				#stop("Please provide appropriate inputs")
-			#}
 			cat("Calling specialized runStan functions for presence-only data.\n")
 		  ## DANIEL: Changed argument response to responseData in runStan.WithCovariates.T.GP
-		return(runStan.WithCovariates.T.GP(responseData=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel))
+		return(runStan.WithCovariates.T.GP(responseData=responseData, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBetaMean=durationHyperBetaMean, durationHyperBetaSD=durationHyperBetaSD, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel))
 		}
-		else if(type == "interval-full") {
-			cat("Calling specialized runStan functions for presence-absence data.\n")
+		else if(type == "multistage-full") {
+			cat("Calling specialized runStan functions for multistage data.\n")
 			if(length(stage) != length(responseData))
 			{
-				stop("The vector of stages must be the same length as the vector of response data. For each individual sampled, there should be a response time and there should be a stage associated with the time. If the time is before the phenophase started, the stage is 1, if during the phenophase, the stage is 2, and if after the phenophase ended, the stage is 3.")
+				stop("The vector of stages must be the same length as the vector of response data. For each individual sampled, there should be a response time and there should be a stage associated with the time. If the sampled time is before the first stage of the time period, the stage should be labeled as the last stage, since it spans the 'start' of the cyclical time period. ")
 			}
 
-			return(runStan.WithCovariates.Interval.T.GP(responseData=responseData,stage=stage, minResponse=minResponse, maxResponse=maxResponse, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, onsetHyperBeta=onsetHyperBeta, onsetHyperAnchor=onsetHyperAnchor, durationHyperBeta=durationHyperBeta, durationHyperAnchor=durationHyperAnchor, sigmaHyper=sigmaHyper, setStringent=setStringent, dataProvided=TRUE, priorLevel=priorLevel))
+			return(
+				runStan.WithCovariates.Multistage.durations.GP(
+			      responseData=responseData,
+			      stage=stage,
+			      minResponse=minResponse,
+			      maxResponse=maxResponse,
+			      covariateData=onsetCovariateData,
+			      onsetHyperBeta=onsetHyperBeta,
+			      onsetHyperAnchor=onsetHyperAnchor,
+			      durationHyperBetaMean=durationHyperBetaMean,
+			      durationHyperBetaSD=durationHyperBetaSD,
+			      durationHyperAnchor=durationHyperAnchor,
+			      sigmaHyper=sigmaHyper,
+			      setStringent=setStringent,
+			      priorLevel=priorLevel,
+			      processExtremes=processExtremes,
+			      maxDiv=maxDiv,
+			      N=N
+			      )
+			)
 		}
 	}
 }

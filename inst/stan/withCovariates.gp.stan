@@ -135,8 +135,8 @@ transformed data {
 	real<lower=2> alpha_invGammaD;
 	real beta_invGammaD;
 
-	real<lower=2> alpha_invGammaS;
-	real beta_invGammaS;
+	//real<lower=2> alpha_invGammaS;
+	//real beta_invGammaS;
 
 	alpha_invGammaO = get_alpha_inv_gamma(anchorOnsetMean , anchorOnsetSD) ;
 	beta_invGammaO = get_beta_inv_gamma(anchorOnsetMean , anchorOnsetSD) ;
@@ -151,8 +151,8 @@ transformed data {
 	print("alphas: ", [alpha_invGammaO, alpha_invGammaD]);
 	print("betas: ", [beta_invGammaO,beta_invGammaD]);
 
-	alpha_invGammaS = get_alpha_inv_gamma(sigmaMean, sigmaSD) ;
-	beta_invGammaS = get_beta_inv_gamma(sigmaMean, sigmaSD) ;
+	//alpha_invGammaS = get_alpha_inv_gamma(sigmaMean, sigmaSD) ;
+	//beta_invGammaS = get_beta_inv_gamma(sigmaMean, sigmaSD) ;
 
 	real<lower=0> T_range = T_max - T_min;
 
