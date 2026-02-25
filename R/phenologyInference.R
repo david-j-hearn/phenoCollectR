@@ -1086,7 +1086,8 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'  targetCovariateIndex = 1
 #'  
 #'      #Set colors
-#'  stageColors = viridisLite::viridis(nStages+1)
+#'  #stageColors = viridisLite::viridis(nStages+1)
+#'  stageColors = RColorBrewer::brewer.pal(nStages+1, "Set1")
 #'  
 #'  plotMultistageSimulation(simulatedData=simulatedData,
 #'                   nonCyclical=TRUE,

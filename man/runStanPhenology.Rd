@@ -383,7 +383,7 @@ library(posterior)
  nStages = 4
  nCovariates = 3
  n = 500
- minResponse = 0		#Needs to be 0
+ minResponse = 0 		#The minimum observed time should always be at least 0
  maxResponse = 365		#Days in the year for yearly cycles
  #minStageVariance = 9
  #maxStageVariance = 25
@@ -426,7 +426,8 @@ library(posterior)
  targetCovariateIndex = 1
  
      #Set colors
- stageColors = viridisLite::viridis(nStages+1)
+ #stageColors = viridisLite::viridis(nStages+1)
+ stageColors = RColorBrewer::brewer.pal(nStages+1, "Set1")
  
  plotMultistageSimulation(simulatedData=simulatedData,
                   nonCyclical=TRUE,
