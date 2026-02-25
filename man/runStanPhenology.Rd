@@ -186,7 +186,7 @@ A summary of the Stan run is available through the helper function 'summarizePhe
 
 \bold{DATA TYPES}
 
-There are two main types of datasets that can be analyzed. When only observation times of individuals in the stage of interest are available, these are presence-only data (PO). When observation times are available before, during, and after the stage of interest, these are before-during-after data (BDA). Theory for these two types of datasets differs builds on itself.
+There are two main types of datasets that can be analyzed. When only observation times of individuals in the stage of interest are available, these are presence-only data (PO). When observation times are available for multiple stages of interest, these are multistage data. Theory for these two types of datasets differs.
 
 \bold{NOTATION}
 
@@ -249,11 +249,11 @@ These models of mean onset and duration make the model hierarchical, so that wit
 
 In a Bayesian analysis the probability density of the parameters given the data, which is called the posterior distribution, is proportional to the product of the likelihood, which is the probability of the data given the parameters, and the prior distribution, which is the marginal probability of the parameters: \eqn{Posterior \propto Likehood * Prior}.
 
-The above sections provided derivations of the likelihood functions for both PO datasets and BDA datasets, so the only remaining thing needed to carry out a Bayesian analysis is to specify the prior distributions. The priors are defined for the \eqn{D,\beta_O,\alpha_O, \beta_D, \alpha_D, \sigma_O} parameters. In the current implementation, the priors can be flat, or they can be normally distributed.
+The above sections provided derivations of the likelihood functions for both PO datasets and multistage datasets, so the only remaining thing needed to carry out a Bayesian analysis is to specify the prior distributions. The priors are defined for the \eqn{D,\beta_O,\alpha_O, \beta_D, \alpha_D, \sigma_O} parameters. In the current implementation, the priors can be flat, or they can be normally distributed.
 
-Set the \emph{priorLevel} function parameter (described below) to 0 for a flat prior. This is only recommended for use with BDA datasets, as identifiability for PO sets necessitates an informative prior.
+Set the \emph{priorLevel} function parameter (described below) to 0 for a flat prior. Identifiability for PO sets necessitates an informative prior.  Priors for the multistage model are automatically set to weakly informative priors.
 
-Set the \emph{priorLevel} to any value greater than 1 for normally distributed priors. A normally distributed prior requires two hyperparameters for each parameter: the mean of the parameter and the standard deviation of the parameter. Users can manually input these hyperparameter values or can use automated prior specification.
+Set the \emph{priorLevel} to any value greater than or equal to 1 for normally distributed priors. A normally distributed prior requires two hyperparameters for each parameter: the mean of the parameter and the standard deviation of the parameter. Users can manually input these hyperparameter values or can use automated prior specification.
 
 Normal priors are used primarily for convenience and interpretability. Under standard regularity conditions, the Bernstein–von Mises theorem implies that as sample size increases, the posterior distribution becomes approximately multivariate normal, centered near the maximum likelihood estimate, with covariance given by the inverse Fisher information scaled by \eqn{1/n}. In this large-sample regime, posterior uncertainty is therefore well summarized by normal approximations and depends only weakly on the particular prior, provided the prior assigns positive density in a neighborhood of the true parameter value. This asymptotic behavior makes normal priors a natural default choice in many settings. Moreover, in sequential Bayesian analyses where researchers use a previous large-sample posterior as the prior for a subsequent analysis, the inherited prior will itself be approximately normal.
 }
@@ -377,12 +377,14 @@ write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
 ##########################################################################################################################################################
 ##Run a full multistage analysis with SIMULATION PARAMETERS themselves simulated and SIMULATED COVARIATES with MULTIPLE STAGES
 #
+library(dplyr)
+library(posterior)
  #Set the parameters 
  nStages = 4
  nCovariates = 3
  n = 500
- #minResponse = 0		#Needs to be 0
- #maxResponse = 365
+ minResponse = 0		#Needs to be 0
+ maxResponse = 365		#Days in the year for yearly cycles
  #minStageVariance = 9
  #maxStageVariance = 25
  
@@ -403,7 +405,7 @@ write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
  
          #Simulate data
  #simulatedData = simulateMultistageData(n=n,
-                   #nonCyclical=TRUE,
+                   #nonCyclical=TRUE,		#multistage is structured as nonCyclical
                    #nStages=nStages,
                    #stageNames=stageNames,
                    #minStageVariance=minStageVariance,
@@ -440,17 +442,17 @@ write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
  #Set priors - the current implementation does not use user-supplied hyperparameters yet, but still expects the hyperparameter objects to be provided
  
  #mean and sd of onset time of first stage
- onsetHyperAnchor=c(0,0)	
+ onsetHyperAnchor=c(50,0)	
  #covariate slopes for the onset model
  onsetHyperBeta = data.frame(mean=rep(0,nCovariates), sd=rep(0,nCovariates)) 
  #mean and sd of durations for each stage, not including the last stage
- durationHyperAnchor = data.frame(mean = rep(0,nStages-1), sd=rep(0,nStages-1)) 
+ durationHyperAnchor = data.frame(mean = rep(20,nStages-1), sd=rep(3,nStages-1)) 
  #mean slopes for all covariates and stages for the duration models
  durationHyperBetaMean=matrix(rep(0,(nStages-1)*nCovariates), nrow=nStages-1) 
  #sd of slopes for all covariates and stages for the duration models; in real life, these are positive
- durationHyperBetaSD=matrix(rep(0,(nStages-1)*nCovariates), nrow=nStages-1)
+ durationHyperBetaSD=matrix(rep(1,(nStages-1)*nCovariates), nrow=nStages-1)
  #mean and sd of single sigma parameter (data frame for future generalizations of model); in real life, these are positive
- sigmaHyper=data.frame(mean=rep(0,nStages),sd=rep(0,nStages))
+ sigmaHyper=data.frame(mean=rep(0,nStages),sd=rep(0.1,nStages))
  
  #Run inference with Stan
  stanResults =runStanPhenology(

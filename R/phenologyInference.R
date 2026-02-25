@@ -1043,7 +1043,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'  nStages = 4
 #'  nCovariates = 3
 #'  n = 500
-#'  minResponse = 0		#Needs to be 0
+#'  minResponse = 0 		#The minimum observed time should always be at least 0
 #'  maxResponse = 365		#Days in the year for yearly cycles
 #'  #minStageVariance = 9
 #'  #maxStageVariance = 25

@@ -22,21 +22,8 @@ runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, sta
 
 
 	cat("Processing data.\n")
-	#observed = (responseData - minResponse ) / (maxResponse - minResponse)
 	observed = responseData
 	covariates = processCovariates(covariateData)
-
-	        #output = list(
-                                  #mins = mins,
-                                  #maxs = maxs,
-                                  #means = means,
-                                  #scaledMeans = scaledMeans,
-                                  #SDs = SDs,
-                                  #scaledSD = scaledSDs,
-                                  #covariates = covariates,
-                                  #scaledCovariates = scaledCovariates,
-                                  #K = ncol(covariates)
-        #)
 
 	if(nrow(durationHyperBetaSD) != nrow(durationHyperBetaMean)) {
 		stop("The number of stages (rows) in the durationHyperBetaSD and durationHyperBetaMean matrices need to be the same.")

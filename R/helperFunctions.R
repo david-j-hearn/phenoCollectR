@@ -686,9 +686,9 @@ processCovariates = function(covariates) {
 	SDs = apply(covariates,2,sd)
 	scaledSDs = SDs / (maxs - mins)
 
-	if(any(maxs-mins==0)) {
-		stop("Constant covariate data is not allowed.")
-	}
+	#if(any(maxs-mins==0)) {
+		#stop("Constant covariate data is not allowed.")
+	#}
 
 	scaledCovariates = as.data.frame(lapply(names(covariates), function(col_name) {
 												(covariates[[col_name]] - mins[col_name]) / (maxs[col_name] - mins[col_name])
