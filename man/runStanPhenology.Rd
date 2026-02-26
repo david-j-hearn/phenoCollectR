@@ -8,9 +8,12 @@ runStanPhenology(
   type = c("intercept-only", "full", "multistage-full"),
   responseData = NULL,
   stage = NULL,
+  nStages = NULL,
   hyperparams_noCovariates = NULL,
   onsetCovariateData = NULL,
+  nOnsetCovariates = NULL,
   durationCovariateData = NULL,
+  nDurationCovariates = NULL,
   onsetHyperBeta = NULL,
   onsetHyperBetaMean = NULL,
   onsetHyperBetaSD = NULL,
@@ -27,12 +30,9 @@ runStanPhenology(
   runMAP = TRUE,
   processExtremes = TRUE,
   N = 500,
-  keepScale = FALSE,
   partitionDataForPriors = FALSE,
-  maximizeSampleSize = FALSE,
   byPassChecks = FALSE,
   priorLevel = 2,
-  threshApprox = NULL,
   debug = 0,
   ...
 )
@@ -74,19 +74,15 @@ runStanPhenology(
 
 \item{N}{The population size. Needed when processExtremes is set to TRUE. (default: 500)}
 
-\item{keepScale}{Do not use. (default: FALSE, which min-max scales the data)}
-
 \item{partitionDataForPriors}{Boolean flag to indicate if methods to automate the specification of prior hyperparameters should be used. In particular, 30\% of the data are partitioned into a set to estimate the hyperparameters, and 70\% of the data are used for the Bayesian analysis using Stan. If set to TRUE, all other user-provided hyperparameter values (e.g., hyperparams_noCovariates, onsetHyperBeta, onsetHyperAnchor, etc.) are ignored. This is \emph{not} recommended if accurate estimates of duration and onset parameters are needed, but estimates of covariate coefficients tend to be accurate. (default: FALSE)}
-
-\item{maximizeSampleSize}{Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100\% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis. When the sample size is very small, and no prior information is available, the error on the estimates may be unacceptably large unless the fuller dataset is used for inference. Deprecated and no longer implemented. (default: FALSE)}
 
 \item{byPassChecks}{Boolean flag indicating whether to bypass checks for Stan. If Stan is not located, an attempt will be made to install Stan. Recommended to keep at default. (default: FALSE)}
 
 \item{priorLevel}{Specifies types of priors by an integer. Setting to 0 will use flat priors. Above 0 will use the user-input prior hyperparameters with normally distributed priors. For presence-only data, leave at default. (default: 2)}
 
-\item{threshApprox}{An error threshold set to use approximation schemes when numerical integration fails. Safe to leave at default. (default: NULL)}
-
 \item{...}{Parameters to be input into the Stan sample function. Not currently implemented. Do not use.}
+
+\item{maximizeSampleSize}{Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100\% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis. When the sample size is very small, and no prior information is available, the error on the estimates may be unacceptably large unless the fuller dataset is used for inference. Deprecated and no longer implemented. (default: FALSE)}
 }
 \value{
 Details of what is returned will depend on which 'type' of model is used. See 'type' parameter.
@@ -156,8 +152,6 @@ maxDiv: the maximum allowed number of divergences for the run
 error: whether an error was caught during the Stan run.
 
 error_m: an error message, possibly indicating no error occurred.
-
-threshApprox: error threshold value for integration
 }
 \description{
 This function is the core of the phenoCollectR package. It wraps many other functions to make the Bayesian analysis of phenological events using biocollection data as streamlined as possible, yet flexible if need be. In particular, it aims to connect variation in life history timing to environmental variation.
@@ -215,35 +209,37 @@ For the theory, we simplify things by examining a time period (TP) starting at t
 \bold{THEORY: MULTISTAGE}
 
 For \bold{multistage} data, all observed times are kept and the stage (e.g., flowering, fruiting, active growth, dormant) is recorded with an integer label.
-For the core theory, we need to determine the probabilities of each stage given the sampled time and model parameters for each stage. The core parameters are the mean onset of the first full stage in the TP, the mean durations, and the variation in onset times.
+For the core theory, we need to determine the probabilities of each stage given the sampled time and model parameters. The core parameters are the mean onset of the first full stage in the TP, the mean durations, and the variation in onset times.
 
-The probability that an individual is in a stage that is before the first full stage begins (ie, stage 0) is \deqn{P_0(O_0>t|\theta)=1-\Phi(z_0)} where \eqn{\Phi(z) \equiv P(Z<z)} is the cumulative distribution function of a standard normal random variable \eqn{\Phi(z) \equiv P(Z<z)} and z values are the standardized times \eqn{z = \frac{t-\mu}{\sigma}}.
+The probability that an individual is in a stage that is before the first full stage begins (ie, stage 1) is \deqn{P_{1|j}(O_1>t_j|\theta)=1-\Phi(z_{1|j})} where \eqn{t_j} is the observed time of collection of the \eqn{j^{th}} individual, \eqn{\Phi(z) \equiv P(Z<z)} is the cumulative distribution function of a standard normal random variable \eqn{\Phi(z) \equiv P(Z<z)}, and z values are the standardized times \eqn{z = \frac{t-\mu}{\sigma}}.
 
-The probability that an individual is in stage \eqn{i} is the probability that the sampled time is after the onset of stage i and before the onset of the next stage i+1: \deqn{P_1(O_i \leq t, O_{i+1} > t) = \Phi(z_i)-\Phi(x_{i+1})}
+The probability that an individual \eqn{j} is in stage \eqn{s} is the probability that the sampled time is after the onset of stage \eqn{s} and before the onset of the next stage \eqn{s+1}: \deqn{P_{s|j}(O_s \leq t_j, O_{s+1} > t_j|\theta) = \Phi(z_{s|j})-\Phi(z_{s+1|j})}
 
-Last, the probability that an individual is in the last stage is the probability that the sampled time is after the onset of the last stage S: \deqn{P_S(O_S \leq t) = \Phi(z_S)}
+Last, the probability that an individual is in the last stage is the probability that the sampled time is after the onset of the last stage S: \deqn{P_{S|j}(O_S \leq t_j|\theta) = \Phi(z_{S|j})}
 
-The likelihood follows a categorical random variable: \deqn{L(\theta) = \prod_{i=1}^{i=N}\prod_{j=0}^{j=S}P_j^{I(s_i = j)}} where the indicator function \eqn{I(s_i=j)} returns 1 whenever the stage for the \eqn{i^{th}} individual equals \eqn{j} and returns 0 otherwise.
+The likelihood follows a categorical random variable: \deqn{L(\theta) = \prod_{j=1}^{j=N}\prod_{s=1}^{s=S}P_{s|j}^{I(s_j = s)}} where the indicator function \eqn{I(s_j=s)} returns 1 whenever the stage for the \eqn{j^{th}} individual equals \eqn{s} and returns 0 otherwise.
 
 \bold{THEORY: PRESENCE-ONLY (PO)}
 
 For \bold{presence-only (PO)} data, only the observed times \emph{during} the process of interest are recorded and all other times are discarded.
 
-The theory for presence only is a bit more complicated than the theory for before-during-after data. The ultimate goal for PO analysis is to infer the parameters that describe the distribution of observed sampled times. The other distributions of interest, including extremes, onsets, peak, and cessation, are functions of these parameters with a caveat for extremes.
+The theory for presence only is a bit more complicated than the theory for multistage data because marginalization is required to normalize the probability of being in a stage. The ultimate goal for PO analysis is to infer the parameters that describe the distribution of observed sampled times. The other distributions of interest, including extremes, onsets, peak, and cessation, are functions of these parameters with a caveat for extremes.
 
-The distribution whose parameters we want to infer is the probability density of the observed times given the individual was sampled during the process of interest (state \eqn{s=1})and given the parameters of the onset distribution and duration: \deqn{p(t|s=1,D,\mu_O,\sigma_O)} For simplicity, let \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. Using Bayes rule, \deqn{p(t|s=1,\theta) = \frac{p(s=1|t,\theta)p(t|\theta)}{p(s=1|\theta)}}
+The distribution whose parameters we want to infer is the probability density of the observed times given the individual was sampled during the process of interest (state \eqn{s_j=s})and given the parameters of the onset distribution and duration: \deqn{p_{j|s} \equiv p(t_j|s_j=s,D,\mu_O,\sigma_O)} For simplicity, let \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. Using Bayes rule, \deqn{p(t_j|s_j=s,\theta) = \frac{P(s_j=s|t_j,\theta)p(t_j|\theta)}{P(s_j=s|\theta)}}
 
-The probability that the stage is during the process, given the sampled time and parameters, was derived above as \eqn{P_{during}}.
+The probability that a sampled individual \eqn{j} is in the focal stage of interest, \eqn{s}, given the sampled time and parameters for individual \eqn{j}, was defined above as \eqn{P_{s|j}}.
 
-The sampling strategy defines \eqn{p(t|\theta)}. In the current implementation, the sampling of times is at random and independent of \eqn{\theta}, i.e., \eqn{p(t|\theta)=\frac{1}{M-m}}. Since all observed times are scaled to a TP of length 1 already, \eqn{p(t|\theta)=1}.
+The sampling strategy defines \eqn{p(t_j|\theta)}. In the current implementation, the sample of times is assumed to be a random sample and independent of \eqn{\theta}, i.e., \eqn{p(t_j|\theta)=\frac{1}{M-m}}. Since all observed times are scaled to a TP of length 1 already, \eqn{p(t_j|\theta)=1}.
 
-Finally, \eqn{p(s=1|\theta)} is the length of the process of interest when the TP is length 1 and the process occurs entirely within the TP. By the total law of probability this is \deqn{\int_0^1 p(s=1,t|\theta)dt=\int_0^1 p(s=1|t,\theta)p(t|\theta)dt=\int_0^1 p(s=1|t,\theta)dt=\int_0^1p_{present}dt=\int_0^1 (\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O}))dt} Hearn et al. (XXXX) in their Appendix 1 provide a solution for this integral in terms of \eqn{\Phi} and \eqn{\phi}.
+Finally, \eqn{P(s_j=s|\theta)} is the expected length of the process of interest when the TP is length 1 and the process occurs entirely within the TP. By the law of total probability, this is \deqn{\int_0^1 P(s_j=s,t_j|\theta)dt_j=\int_0^1 P(s_j=s|t_j,\theta)p(t_j|\theta)dt_j=\int_0^1 P(s_j=s|t_j,\theta)dt_j=\int_0^1P_{s|j}dt_j=\int_0^1 (\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O}))dt_j} Hearn et al. (XXXX) in their Supporting Information Methods S1 provide a solution for this integral in terms of \eqn{\Phi} and \eqn{\phi} (the density function for the standard normal).
+
+Defining the normalization constant, \eqn{c_j}, as \eqn{\frac{P(s_j=s|\theta)}{p(t_j|\theta)} = P(s_j=s|\theta)}, then the likelihood function for presence-only data is: \deqn{\prod_{j=1}^{j=N} \frac{p_{j|s}}{c_j}} In this case, the normalization constant is different for each individual once predictors for mean onset and duration are defined in terms of covariates, as each individual has different covariate values. So, it doesn't cancel. The next section develops this aspect of the model.
 
 \bold{THEORY: MODELING COVARIATES}
 
-In the current implementation, the mean onset time and the duration times are modeled as linear functions of covariates. Different covariates can be used for the onset model and for the duration model(s), but for the multistage inference, they are the same for onset and duration model(s). If we let \eqn{\vec{X}} represent the vector of covariates and \eqn{\vec{\beta}} represent the vector of coefficients, then the following are the models for onset and duration: \deqn{O \sim N(\alpha_O + \vec{\beta_O} \cdot \vec{X}, \sigma_O^2)} and \deqn{D \equiv \mu_D = \alpha_D+\vec{\beta_D} \cdot \vec{X}}. For multistage inference, there are multiple duration models, one for each stage.
+In the current implementation, the mean onset time and the duration times are modeled as linear functions of covariates. Different covariates can be used for the onset model and for the duration model(s), but for the multistage inference, they are the same for onset and duration model(s). If we let \eqn{\vec{X}} represent the vector of covariates and \eqn{\vec{\beta}} represent the vector of coefficients, then the following are the models for mean onset and mean duration: \deqn{O \sim N(\alpha_O + \vec{\beta_O} \cdot \vec{X}, \sigma_O^2)} and \deqn{D \equiv \mu_D = \alpha_D+\vec{\beta_D} \cdot \vec{X}}. For multistage inference, there are multiple duration models, one for each stage, each with a different intercept \eqn{\alpha} and coefficients \eqn{\vec{\beta}}.
 
-These models of mean onset and duration make the model hierarchical, so that with the inclusion of covariates, everywhere in the likelihood function where \eqn{\mu_O} or \eqn{D} appear, they are replaced by the above linear functions. If there are \eqn{K_O} covariates for the onset model and \eqn{K_D} (\eqn{K_D} = \eqn{K_O} for multistage models) covariates for the duration model(s), along with the two \eqn{\alpha} intercepts and the \eqn{\sigma_O} standard deviation parameter, the fully specified model has \eqn{2 + 1 + K_O + K_D} estimable parameters, or (S+1) + (S+1)K_O + 1 parameters for the multistage model.
+These models of mean onset and duration make the model hierarchical, so that with the inclusion of covariates, everywhere in the likelihood function where \eqn{\mu_O} or \eqn{D} appear, they are replaced by the above linear functions. If there are \eqn{K_O} covariates for the onset model and \eqn{K_D} (\eqn{K_D} = \eqn{K_O} for multistage models) covariates for the duration model(s), along with the two \eqn{\alpha} intercepts and the \eqn{\sigma_O} standard deviation parameter, the fully specified model has \eqn{2 + K_O + K_D + 1} estimable parameters, or S + S*K_O + 1 parameters for the multistage model.
 
 \bold{THEORY: BAYESIAN ANALYSIS AND PRIORS}
 
@@ -289,7 +285,7 @@ stanResult  =  runStanPhenology(type="full", responseData = data$responseData
 #SUMMARIZE 
 stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
                                           , taxonName = "Sanguinaria_canadensis"
-                                          ,standardLinearModel = TRUE)
+                                          )
 #WRITE EMPIRICAL RESULTS
 write.csv(stanSummary,"SCanadensis.Empirical.wCovariates.csv")
 ##
@@ -369,7 +365,7 @@ stanResultPO = runStanPhenology(
 ##summarize the Stan run
 stanSummaryPO  =  summarizePhenologyResults(stanRunResult = stanResultPO
                                           , taxonName = "Simulated"
-                                          ,standardLinearModel = FALSE)
+                                          )
 ##write results to file
 write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
 ##
@@ -440,38 +436,17 @@ library(posterior)
                   shadeStage=TRUE,
                   minResponse=minResponse, maxResponse=maxResponse)
  
- #Set priors - the current implementation does not use user-supplied hyperparameters yet, but still expects the hyperparameter objects to be provided
- 
- #mean and sd of onset time of first stage
- onsetHyperAnchor=c(50,0)	
- #covariate slopes for the onset model
- onsetHyperBeta = data.frame(mean=rep(0,nCovariates), sd=rep(0,nCovariates)) 
- #mean and sd of durations for each stage, not including the last stage
- durationHyperAnchor = data.frame(mean = rep(20,nStages-1), sd=rep(3,nStages-1)) 
- #mean slopes for all covariates and stages for the duration models
- durationHyperBetaMean=matrix(rep(0,(nStages-1)*nCovariates), nrow=nStages-1) 
- #sd of slopes for all covariates and stages for the duration models; in real life, these are positive
- durationHyperBetaSD=matrix(rep(1,(nStages-1)*nCovariates), nrow=nStages-1)
- #mean and sd of single sigma parameter (data frame for future generalizations of model); in real life, these are positive
- sigmaHyper=data.frame(mean=rep(0,nStages),sd=rep(0.1,nStages))
- 
  #Run inference with Stan
  stanResults =runStanPhenology(
      type="multistage-full",                             #model with many stages and covariates
-     minResponse=minResponse,                            #minimum possible collection time
-     maxResponse=maxResponse,                            #maximum possible collection time
      responseData=simulatedData$outputData$sampledTime,  #observed collection times
      stage=simulatedData$outputData$sampledStage,        #observed stage at collection time
+nStages=nStages,				            #number of stages
+     nOnsetCovariates=nCovariates,			    #number of onset covariates (same as duration)
+     nDurationCovariates=nCovariates,                     #number of duration covariates (same as onset)
      onsetCovariateData=simulatedData$X,                 #covariate data (same as for duration)
      durationCovariateData=simulatedData$X,              #covariate data (same as for onset)
-     onsetHyperAnchor=onsetHyperAnchor,                  #prior, onset stage 1
-     onsetHyperBeta=onsetHyperBeta,                      #prior, stage 1 coefficients
-     durationHyperAnchor=durationHyperAnchor,            #prior, durations, no last stage
-     durationHyperBetaMean=durationHyperBetaMean,        #prior, duration slopes, no last stage
-     durationHyperBetaSD=durationHyperBetaSD,            #prior, duration sd slopes, no last stage
-     sigmaHyper=sigmaHyper,
-     setStringent=TRUE,
-     maxDiv=4000
+     maxDiv=4000					    #should be set to 0, but in case of the stray divergence, set high for this example
  )
  
  #Extract basic summary data

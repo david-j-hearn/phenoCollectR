@@ -57,9 +57,9 @@ stanResult  =  runStanPhenology(type="full", responseData = data$responseData
                                 , durationCovariateData = data$durationCovariateData
                                 , partitionDataForPriors = TRUE)
 ##summarize the Stan run
-stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
-                                          , taxonName = "Sanguinaria_canadensis"
-                                          ,standardLinearModel = TRUE)
+stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult,
+                                          taxonName = "Sanguinaria_canadensis"
+                                          )
 stanSummary
 }
 }

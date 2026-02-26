@@ -8,53 +8,53 @@ rdirichlet <- function(n, alpha) {
 softplus <- function(x) ifelse(x > 30, x, log1p(exp(x)))
 
 true_marginal_line <- function(alpha, beta, mu, j,
-                               Sigma = NULL,
-                               R = NULL,
-                               sd_x = NULL) {
+			       Sigma = NULL,
+			       R = NULL,
+			       sd_x = NULL) {
 
-  C <- length(beta)
-  stopifnot(length(mu) == C)
-  stopifnot(j >= 1 && j <= C)
+	C <- length(beta)
+	stopifnot(length(mu) == C)
+	stopifnot(j >= 1 && j <= C)
 
-  # --- Build Sigma if needed ---
-  if (is.null(Sigma)) {
+	# --- Build Sigma if needed ---
+	if (is.null(Sigma)) {
 
-    # Must have R and sd_x
-    if (is.null(R) || is.null(sd_x)) {
-      stop("Provide either Sigma, OR (R and sd_x).")
-    }
+		# Must have R and sd_x
+		if (is.null(R) || is.null(sd_x)) {
+			stop("Provide either Sigma, OR (R and sd_x).")
+		}
 
-    stopifnot(all(dim(R) == c(C, C)))
-    stopifnot(length(sd_x) == C)
+		stopifnot(all(dim(R) == c(C, C)))
+		stopifnot(length(sd_x) == C)
 
-    # Convert correlation + SDs to covariance
-    Sigma <- diag(sd_x) %*% R %*% diag(sd_x)
+		# Convert correlation + SDs to covariance
+		Sigma <- diag(sd_x) %*% R %*% diag(sd_x)
 
-  } else {
-    stopifnot(all(dim(Sigma) == c(C, C)))
-  }
+	} else {
+		stopifnot(all(dim(Sigma) == c(C, C)))
+	}
 
-  # --- Partition indices ---
-  idx_other <- setdiff(seq_len(C), j)
+	# --- Partition indices ---
+	idx_other <- setdiff(seq_len(C), j)
 
-  beta_j    <- beta[j]
-  beta_rest <- beta[idx_other]
+	beta_j    <- beta[j]
+	beta_rest <- beta[idx_other]
 
-  mu_j      <- mu[j]
-  mu_rest   <- mu[idx_other]
+	mu_j      <- mu[j]
+	mu_rest   <- mu[idx_other]
 
-  # --- Covariance blocks ---
-  Sigma_jj      <- Sigma[j, j]             # scalar
-  Sigma_rest_j  <- Sigma[idx_other, j]     # (C-1) x 1 vector
+	# --- Covariance blocks ---
+	Sigma_jj      <- Sigma[j, j]             # scalar
+	Sigma_rest_j  <- Sigma[idx_other, j]     # (C-1) x 1 vector
 
-  # --- Marginal line parameters ---
-  slope <- beta_j + as.numeric(t(beta_rest) %*% Sigma_rest_j / Sigma_jj)
+	# --- Marginal line parameters ---
+	slope <- beta_j + as.numeric(t(beta_rest) %*% Sigma_rest_j / Sigma_jj)
 
-  intercept <- alpha + as.numeric(
-    t(beta_rest) %*% (mu_rest - Sigma_rest_j * mu_j / Sigma_jj)
-  )
+	intercept <- alpha + as.numeric(
+					t(beta_rest) %*% (mu_rest - Sigma_rest_j * mu_j / Sigma_jj)
+	)
 
-  list(intercept = intercept, slope = slope, Sigma = Sigma)
+	list(intercept = intercept, slope = slope, Sigma = Sigma)
 }
 
 
@@ -161,13 +161,13 @@ generate_summary_table  =  function(data, columns, output_file = "summary_table.
 
 	# Compute summary statistics for each column
 	summary_stats  =  data.frame(
-								Variable = columns,
-								N = sapply(selected_data, function(x) sum(!is.na(x))),
-								Min = sapply(selected_data, min, na.rm = TRUE),
-								Max = sapply(selected_data, max, na.rm = TRUE),
-								Mean = sapply(selected_data, mean, na.rm = TRUE),
-								SD = sapply(selected_data, sd, na.rm = TRUE),
-								stringsAsFactors = FALSE
+				     Variable = columns,
+				     N = sapply(selected_data, function(x) sum(!is.na(x))),
+				     Min = sapply(selected_data, min, na.rm = TRUE),
+				     Max = sapply(selected_data, max, na.rm = TRUE),
+				     Mean = sapply(selected_data, mean, na.rm = TRUE),
+				     SD = sapply(selected_data, sd, na.rm = TRUE),
+				     stringsAsFactors = FALSE
 	)
 
 	# Add additional descriptive data
@@ -175,42 +175,42 @@ generate_summary_table  =  function(data, columns, output_file = "summary_table.
 	attr(summary_stats, "OriginalDataFile")  =  originalFile
 
 	total_row  =  data.frame(
-							Variable = "PostCleanN",
-							N = nrow(data),
-							Min = NA, Max = NA, Mean = NA, SD = NA,
-							stringsAsFactors = FALSE
+				 Variable = "PostCleanN",
+				 N = nrow(data),
+				 Min = NA, Max = NA, Mean = NA, SD = NA,
+				 stringsAsFactors = FALSE
 	)
 	summary_stats  =  rbind(summary_stats, total_row)
 
 	originalN  =  data.frame(
-							Variable = "ReproductiveN",
-							N = originalN,
-							Min = NA, Max = NA, Mean = NA, SD = NA,
-							stringsAsFactors = FALSE
+				 Variable = "ReproductiveN",
+				 N = originalN,
+				 Min = NA, Max = NA, Mean = NA, SD = NA,
+				 stringsAsFactors = FALSE
 	)
 	summary_stats  =  rbind(summary_stats, originalN)
 
 	taxonName  =  data.frame(
-							Variable = "TaxonName",
-							N = taxonName,
-							Min = NA, Max = NA, Mean = NA, SD = NA,
-							stringsAsFactors = FALSE
+				 Variable = "TaxonName",
+				 N = taxonName,
+				 Min = NA, Max = NA, Mean = NA, SD = NA,
+				 stringsAsFactors = FALSE
 	)
 	summary_stats  =  rbind(summary_stats, taxonName)
 
 	originalFile  =  data.frame(
-							   Variable = "DataFile",
-							   N = originalFile,
-							   Min = NA, Max = NA, Mean = NA, SD = NA,
-							   stringsAsFactors = FALSE
+				    Variable = "DataFile",
+				    N = originalFile,
+				    Min = NA, Max = NA, Mean = NA, SD = NA,
+				    stringsAsFactors = FALSE
 	)
 	summary_stats  =  rbind(summary_stats, originalFile)
 
 	rawN  =  data.frame(
-					   Variable = "AllSpecimenN",
-					   N = rawN,
-					   Min = NA, Max = NA, Mean = NA, SD = NA,
-					   stringsAsFactors = FALSE
+			    Variable = "AllSpecimenN",
+			    N = rawN,
+			    Min = NA, Max = NA, Mean = NA, SD = NA,
+			    stringsAsFactors = FALSE
 	)
 	summary_stats  =  rbind(summary_stats, rawN)
 
@@ -223,19 +223,19 @@ generate_summary_table  =  function(data, columns, output_file = "summary_table.
 
 #' @importFrom stats model.frame mahalanobis cov qchisq lm rstudent cooks.distance model.matrix dist
 remove_outliers_lm = function(data, response, predictors,
-#mahalanobis: Outlier Analysis 2017 Aggarwal (section 2.3.4)
-#residuals: Generalized Linear Model Diagnostics Using the Deviance and Single Case Deletions
-#Cook 1977
-							  mahal_p = 0.975,
-							  residual_cutoff = 3,
-							  cooks_cutoff = NULL) {
+			      #mahalanobis: Outlier Analysis 2017 Aggarwal (section 2.3.4)
+			      #residuals: Generalized Linear Model Diagnostics Using the Deviance and Single Case Deletions
+			      #Cook 1977
+			      mahal_p = 0.975,
+			      residual_cutoff = 3,
+			      cooks_cutoff = NULL) {
 	# Extract model frame
 	# formula = as.formula(paste(response, "~", paste(predictors, collapse = "+")))
-  ## DANIEL: Fix warning with having the response among predictors:
-  if( response %in% predictors ){
-    predictors <- predictors[!predictors == response]
-  }
-  formula = as.formula(paste(response, "~", paste(predictors, collapse = "+")))
+	## DANIEL: Fix warning with having the response among predictors:
+	if( response %in% predictors ){
+		predictors <- predictors[!predictors == response]
+	}
+	formula = as.formula(paste(response, "~", paste(predictors, collapse = "+")))
 	model_data = model.frame(formula, data)
 
 	y = model_data[[response]]
@@ -272,17 +272,17 @@ remove_outliers_lm = function(data, response, predictors,
 	final_model = lm(formula, data = cleaned_data)
 
 	return(list(
-				cleaned_data = cleaned_data,
-				final_model = final_model,
-				removed_rows = setdiff(rownames(model_data), rownames(cleaned_data)),
-				diagnostics = list(
-								   mahalanobis = md,
-								   mahalanobis_cutoff = md_cutoff,
-								   studentized_residuals = rstud,
-								   cooks_distance = cooks,
-								   cooks_cutoff = cooks_cutoff
-				)
-				))
+		    cleaned_data = cleaned_data,
+		    final_model = final_model,
+		    removed_rows = setdiff(rownames(model_data), rownames(cleaned_data)),
+		    diagnostics = list(
+				       mahalanobis = md,
+				       mahalanobis_cutoff = md_cutoff,
+				       studentized_residuals = rstud,
+				       cooks_distance = cooks,
+				       cooks_cutoff = cooks_cutoff
+		    )
+		    ))
 }
 
 scaled_dbeta = function(y, shape1, shape2, minResponse = 0, maxResponse = 1) {
@@ -385,10 +385,10 @@ preparePhenologyData = function(dataFile, responseVariableName, onsetCovariateNa
 	durationCovariates = data[, durationCovariateNames, drop = FALSE]
 
 	out = list(
-			   originalData = dataOrig,
-			   responseData = responseData,
-			   onsetCovariateData = onsetCovariates,
-			   durationCovariateData = durationCovariates
+		   originalData = dataOrig,
+		   responseData = responseData,
+		   onsetCovariateData = onsetCovariates,
+		   durationCovariateData = durationCovariates
 	)
 	return(out)
 }
@@ -419,13 +419,13 @@ preparePhenologyData = function(dataFile, responseVariableName, onsetCovariateNa
 #' @importFrom quantreg rq
 #' @importFrom stats as.formula coef quantile
 getHyperparametersViaQuantileRegression = function(responseDataForPrior,
-												   onsetCovariateDataForPrior,
-												   durationCovariateDataForPrior,
-												   lowerQuantile = 0.1,
-												   upperQuantile = 0.9,
-												   confidence = 2,
-												   scale = 1
-												   ) {
+						   onsetCovariateDataForPrior,
+						   durationCovariateDataForPrior,
+						   lowerQuantile = 0.1,
+						   upperQuantile = 0.9,
+						   confidence = 2,
+						   scale = 1
+						   ) {
 
 	if (!identical(names(onsetCovariateDataForPrior), names(durationCovariateDataForPrior))) {
 		stop("To set hyperparameter values automatically, the covariates for onset must be the same as the covariates for duration.")
@@ -483,12 +483,12 @@ getHyperparametersViaQuantileRegression = function(responseDataForPrior,
 	sigmaHyper = c(7*scale,3.5*scale)
 
 	out = list(
-			   onsetHyperAnchor = onsetHyperAnchor,
-			   onsetHyperBeta = onsetHyperBeta,
-			   durationHyperAnchor = durationHyperAnchor,
-			   durationHyperBeta = durationHyperBeta,
-			   cessationHyperAnchor = cessationHyperAnchor,
-			   sigmaHyper = sigmaHyper
+		   onsetHyperAnchor = onsetHyperAnchor,
+		   onsetHyperBeta = onsetHyperBeta,
+		   durationHyperAnchor = durationHyperAnchor,
+		   durationHyperBeta = durationHyperBeta,
+		   cessationHyperAnchor = cessationHyperAnchor,
+		   sigmaHyper = sigmaHyper
 	)
 
 	return(out)
@@ -579,22 +579,19 @@ partitionResponseCovariateData = function(responseData, onsetCovariateData, dura
 	durationCovariateDataForPrior = durationCovariateData[train_indices,,drop=FALSE]
 
 	if(!is.data.frame(onsetCovariateDataForPrior)) {
-		print(onsetCovariateDataForPrior)
-		if(is.data.frame(onsetCovariateData)) { print("started with a data frame in onsetCovariateData") }
-		stop("Partitioning didn't create a data frame. ug")
+		if(is.data.frame(onsetCovariateData)) { print("started with a data frame in onsetCovariateData. This should not be set if using automatic priors.") }
+		stop("Partitioning didn't create a data frame.")
 	}
 
 	out = list(
-			   responseDataForInference = responseDataForInference,
-			   onsetCovariateDataForInference = onsetCovariateDataForInference,
-			   durationCovariateDataForInference = durationCovariateDataForInference,
+		   responseDataForInference = responseDataForInference,
+		   onsetCovariateDataForInference = onsetCovariateDataForInference,
+		   durationCovariateDataForInference = durationCovariateDataForInference,
 
-			   responseDataForPrior = responseDataForPrior,
-			   onsetCovariateDataForPrior = onsetCovariateDataForPrior,
-			   durationCovariateDataForPrior = durationCovariateDataForPrior
+		   responseDataForPrior = responseDataForPrior,
+		   onsetCovariateDataForPrior = onsetCovariateDataForPrior,
+		   durationCovariateDataForPrior = durationCovariateDataForPrior
 	)
-
-
 	return(out)
 }
 
@@ -615,8 +612,8 @@ partitionResponseData = function(responseData, prop=0.3) {
 	dataForInference = responseData[-train_indices]
 
 	out = list(
-			   dataForPrior = dataForPrior,
-			   dataForInference = dataForInference
+		   dataForPrior = dataForPrior,
+		   dataForInference = dataForInference
 	)
 	return(out)
 }
@@ -687,26 +684,26 @@ processCovariates = function(covariates) {
 	scaledSDs = SDs / (maxs - mins)
 
 	#if(any(maxs-mins==0)) {
-		#stop("Constant covariate data is not allowed.")
+	#stop("Constant covariate data is not allowed.")
 	#}
 
 	scaledCovariates = as.data.frame(lapply(names(covariates), function(col_name) {
-												(covariates[[col_name]] - mins[col_name]) / (maxs[col_name] - mins[col_name])
-				}))
+							(covariates[[col_name]] - mins[col_name]) / (maxs[col_name] - mins[col_name])
+		    }))
 
 	colnames(scaledCovariates) = names(covariates)
 
 
 	output = list(
-				  mins = mins,
-				  maxs = maxs,
-				  means = means,
-				  scaledMeans = scaledMeans,
-				  SDs = SDs,
-				  scaledSD = scaledSDs,
-				  covariates = covariates,
-				  scaledCovariates = scaledCovariates,
-				  K = ncol(covariates)
+		      mins = mins,
+		      maxs = maxs,
+		      means = means,
+		      scaledMeans = scaledMeans,
+		      SDs = SDs,
+		      scaledSD = scaledSDs,
+		      covariates = covariates,
+		      scaledCovariates = scaledCovariates,
+		      K = ncol(covariates)
 	)
 
 	return(output)
@@ -797,7 +794,7 @@ dbeta_safe = function(x, shape1, shape2) {
 #' @importFrom stats pbeta
 pbeta_safe = function(q, shape1, shape2) {
 	ifelse(q <= 0, 0,
-		   ifelse(q >= 1, 1, pbeta(q, shape1, shape2)))
+	       ifelse(q >= 1, 1, pbeta(q, shape1, shape2)))
 }
 
 
@@ -826,10 +823,10 @@ summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=
 	c = ncol(summary)
 
 	summary = data.frame(
-						 taxon.name = taxonName,
-						 n.total = NTotal,
-						 n.inference = stanRunResult$data$N,
-						 as.data.frame(t(colMeans(summary)))
+			     taxon.name = taxonName,
+			     n.total = NTotal,
+			     n.inference = stanRunResult$data$N,
+			     as.data.frame(t(colMeans(summary)))
 	)
 
 	return(summary)
@@ -849,18 +846,18 @@ summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=
 #' @return The fit linear model object that is the output of the R lm function.
 #' @export
 runStandardLinearModel = function(responseData, onsetCovariateData, durationCovariateData) {
-        # Combine response and predictors into one data frame
-        merged = merge_df_by_column(onsetCovariateData, durationCovariateData)
-        df <- data.frame(response = responseData, merged)
+	# Combine response and predictors into one data frame
+	merged = merge_df_by_column(onsetCovariateData, durationCovariateData)
+	df <- data.frame(response = responseData, merged)
 
-        # Dynamically construct formula
-        formula <- as.formula(paste("response ~", paste(colnames(merged), collapse = " + ")))
+	# Dynamically construct formula
+	formula <- as.formula(paste("response ~", paste(colnames(merged), collapse = " + ")))
 
-        # Fit the model
-        fit <- lm(formula, data = df)
+	# Fit the model
+	fit <- lm(formula, data = df)
 
-        print(summary(fit))
-        return(fit)
+	print(summary(fit))
+	return(fit)
 }
 
 
@@ -901,9 +898,9 @@ runStandardLinearModel = function(responseData, onsetCovariateData, durationCova
 #'                                 , durationCovariateData = data$durationCovariateData
 #'                                 , partitionDataForPriors = TRUE)
 #' ##summarize the Stan run
-#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult
-#'                                           , taxonName = "Sanguinaria_canadensis"
-#'                                           ,standardLinearModel = TRUE)
+#' stanSummary  =  summarizePhenologyResults(stanRunResult = stanResult,
+#'                                           taxonName = "Sanguinaria_canadensis"
+#'                                           )
 #' stanSummary
 #' }
 summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean", "median", "sd", "mad"), quantiles=c(2.5, 97.5), convergence=c("rhat","ess_bulk", "ess_tail"), standardLinearModel=FALSE, processExtremes=TRUE, N=500) {
@@ -947,7 +944,7 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 		standardLinearModel = runStandardLinearModel(stanRunResult$responseData, stanRunResult$onsetCovariateData, stanRunResult$durationCovariateData) 
 	}
 
-	
+
 	# if(class(standardLinearModel)=="lm") {
 	# DANIEL: Changing to inherits because it is safer:
 	if( inherits(x = standardLinearModel, what = "lm") ) {
@@ -955,14 +952,14 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	}
 
 	summary = data.frame(
-						 taxon.name = taxon.name,
-						 summary[1],
-						 type = type,
-						 covariate = covariate,
-						 posterior.prob.neg.slope = posterior.prob.neg.slope,
-						 standard.linear.model = standard.linear.model,
-						 in.95CI = in.95CI,
-						 summary[2:ncol(summary)]
+			     taxon.name = taxon.name,
+			     summary[1],
+			     type = type,
+			     covariate = covariate,
+			     posterior.prob.neg.slope = posterior.prob.neg.slope,
+			     standard.linear.model = standard.linear.model,
+			     in.95CI = in.95CI,
+			     summary[2:ncol(summary)]
 	)
 
 
@@ -1040,7 +1037,7 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	# DANIEL: Changing to inherits because it is safer:
 	if( inherits(x = standardLinearModel, what = "lm") ) {
 		summary[summary$variable == "alpha_T", "standard.linear.model"] = coefs[1]
-			summary[summary$variable == "alpha_T", "in.95CI"] = (summary[summary$variable=="alpha_T",]$q2.5<coefs[1] & summary[summary$variable=="alpha_T",]$q97.5>coefs[1])
+		summary[summary$variable == "alpha_T", "in.95CI"] = (summary[summary$variable=="alpha_T",]$q2.5<coefs[1] & summary[summary$variable=="alpha_T",]$q97.5>coefs[1])
 	}
 
 	summary[summary$variable=="alpha_D", "variable"] = "intercept"
@@ -1058,3 +1055,312 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	return(summary)
 }
 
+checkInput = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, stage=NULL, nStages=NULL, nOnsetCovariates=NULL, nDurationCovariates=NULL, minResponse, maxResponse, maxDiv, N, processExtremes) {
+
+	type = match.arg(type)
+	N = length(responseData)
+	N_C = nrow(onsetCovariateData)
+	K = ncol(onsetCovariateData)
+	N_O = nrow(onsetCovariateData)
+	N_D = nrow(durationCovariateData)
+
+	if(!(type=="intercept-only" || type=="full" || type=="multistage-full" )) {
+		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'full' or 'multistage-full'.\n"))
+		stop("Unsupported type error.")
+	}
+
+	if(processExtremes && N<0) {
+		stop("A positive population size, N, must be supplied when processing extremes.")
+	}
+
+	if(maxDiv > 0) {
+		warning("The maximum number of divergences tolerated is greater than 0. This can result in biased estimates.")
+	}
+
+	if(minResponse != 0){
+		stop("Under current implementations, the minimum response time (minResponse) must be set to 0, which is the default.")
+	}
+
+	if(maxResponse <= minResponse) {
+		stop("The maximum possible response time must be larger than the minimum response time of 0.")
+	}
+
+	if(!is.vector(responseData)) {
+		stop("Expecting a vector of real numeric values of the collection times (e.g., day of year (DOY) of when specimens were collected).")
+	}
+
+	if(length(responseData)<10) {
+		warning("Ten or fewer data items is a very small sample size and will likely result in inaccurate inferences and a high divergence rate during Bayesian inference. The sample size should be at least 60, especially when covariates are used.")
+	}
+
+	if(type=="multistage-full") {
+		#check that stage values match
+		N_S = length(stage)
+		S = nStages
+		if(N != N_S) {
+			stop("Make sure that there is a stage for each observation, and vice versa.")
+
+			#return(list(error=TRUE, error_m="When running the multistage model, please include a vector of stages of the individuals that were observed. The vector of stages should be the same length as the vector of response data. For each individual sampled, there should be a response time and there should be a stage associated with the time. If the time is before the fist phenophase of the time period, the stage is the last stage, if during the first phenophase, the stage is 1, and so forth."))
+		}
+		if(nStages < nlevels(factor(stage))-1) {
+			stop("The number of input stages (nStages) is less than the number of different stages in 'stage'. Data can be missing for a stage, but there cannot be more actual stages than reported stages.")
+		}
+		if(max(stage)-1 > nStages) {
+			stop("The input maximum stage is more than the reported number of stages (nStages).")
+		}
+		if(length(responseData) != length(stage)) {
+			stop("The stage data vector must be the same length as the response data vector so that each time in the response data corresponds to a stage. Stages should be coded with integer values starting with 1 and increasing consecutively.")
+		}
+
+		if(!identical(onsetCovariateData, durationCovariateData)) {
+			stop("The covariate data for duration models must be the same as the covariate data for the onset model when applying type 'multistage-full'.")
+		}
+
+		if(nOnsetCovariates != ncol(onsetCovariateData)) {
+			stop("Input number of onset covariates does not match.")
+		}
+
+		if(nDurationCovariates != ncol(durationCovariateData)) {
+			stop("Input number of duration covariates does not match.")
+		}
+	}
+
+	if(type=="full" || type=="multistage-full") {
+		if(sum(is.na(onsetCovariateData)) || !is.data.frame(onsetCovariateData) ) {
+			cat("Please remove all NA values, and provide a data frame of the onset model covariate (predictor variable) data. \nThese might be temperature or precipitation data at the specimen collection sites, for example.\nEach column of the data frame should be named with the predictor variable name (e.g. 'meanAnnualTemperature').\nThe order of the rows should correspond to the order of the elements in the response variable data vector (i.e., the first element in the response vector corresponds with the first row in the onset covariate data frame, the second element with the second row, and so forth).\nPlease see documentation for additional information and examples.")
+			stop("Please provide appropriate inputs")
+		}
+		if(sum(is.na(durationCovariateData)) || !is.data.frame(durationCovariateData) ) {
+			cat("Please remove all NA values, and provide a data frame of the duration model covariate (predictor variable) data. \nThese might be temperature or precipitation data at the specimen collection sites, for example.\nEach column of the data frame should be named with the predictor variable name (e.g. 'meanAnnualTemperature').\nThe order of the rows should correspond to the order of the elements in the response variable data vector (i.e., the first element in the response vector corresponds with the first row in the duration covariate data frame, the second element with the second row, and so forth).\nPlease see documentation for additional information and examples.")
+			stop("Please provide appropriate inputs")
+		}
+		cat("Checking data compatibility.\n")
+		#check data dimensions
+		if(N != N_O || N != N_D) {
+			return(list(error=TRUE, error_m="Be sure the sample size is the the same for the response (observed) values, for the covariate values for the onset, and for the covariate values for the duration. Rows should be parallel. Row 1 in the response data vector should correspond to the same individual in row 1 of each covariate data frame. If files names are input, corresponding files should be text formatted with tab-separated columns which should have headers. If data frames are input, these should have column names."))
+		}
+
+		#check data dimensions
+		if(N != N_C) {
+			stop("Make sure that each covariate value is present for each observation, and vice versa.")
+			#return(list(error=TRUE, error_m="Be sure the sample size is the the same for the response (observed) values and for the covariate values. Rows should be parallel. Row 1 in the response data vector should correspond to the same individual in row 1 of the covariate data frame. The input data frames should have column names."))
+		}
+	}
+	return(TRUE)
+}
+
+checkPriors = function(type=c("intercept-only","full","multistage-full"), nStages, responseData=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, partitionDataForPriors=FALSE, minResponse, maxResponse) {
+
+	if(partitionDataForPriors) {
+		cat("The data will be partitioned into two sets with 30% and 70% of the data. \n\n30% will be used to carry out a preliminary analysis using quantiles to estimate the prior distribution hyperparameter values. \n\n70% of the data will be used to carry out a Stan Bayesian analysis to obtain the posterior distributions of parameters.\n\nIf other hyperparameter information was provided as input, it will be ignored. \n\nThe calculated values based on quantiles are approximate; you may need to use other sources of data to get better estimates of prior hyperparameter values, especially if the Stan run results in divergences or other poor diagnostics.\n\n")
+		prop = 0.3
+		scale = (maxResponse-minResponse) / (365 - 0) 	#setting scale relative to parameters for annual variation
+
+
+		if(type=="multistage-full") {
+			stop("Automatic partitioning of data for prior hyperparameter estimation is not available for multistage analysis.")
+		}
+
+		if(type=="intercept-only") {
+			warning("Automated hyperparameters are not recommended for data without covariates. Estimates of duration are likely to be inaccurate.")
+			partition = partitionResponseData(responseData = responseData, prop = prop)
+			responseData = partition$dataForInference
+			hyperparams_noCovariates = getHyperparametersViaQuantiles(responseDataForPrior = partition$dataForPrior, scale = scale)
+			return( list(
+				     responseData=responseData,
+				     hyperparams_noCovariates=hyperparams_noCovariates, 
+				     onsetCovariateData=onsetCovariateData,
+				     durationCovariateData=durationCovariateData,
+				     onsetHyperBeta=onsetHyperBeta,
+				     onsetHyperBetaMean=onsetHyperBetaMean,
+				     onsetHyperBetaSD=onsetHyperBetaSD,
+				     onsetHyperAnchor=onsetHyperAnchor,
+				     durationHyperBeta=durationHyperBeta,
+				     durationHyperBetaMean=durationHyperBetaMean,
+				     durationHyperBetaSD=durationHyperBetaSD,
+				     durationHyperAnchor=durationHyperAnchor,
+				     sigmaHyper=sigmaHyper
+	)
+			)
+		}
+		else if(type=="full") {
+			#partition data
+			partition = partitionResponseCovariateData(responseData=responseData, onsetCovariateData=onsetCovariateData, durationCovariateData=durationCovariateData, prop=prop)
+
+			responseData = partition$responseDataForInference
+			onsetCovariateData = partition$onsetCovariateDataForInference
+			durationCovariateData = partition$durationCovariateDataForInference
+
+			#get the data for prior and set the prior hyperparameters
+			prior = getHyperparametersViaQuantileRegression(responseDataForPrior=partition$responseDataForPrior, onsetCovariateDataForPrior=partition$onsetCovariateDataForPrior, durationCovariateDataForPrior=partition$durationCovariateDataForPrior, lowerQuantile=0.1, upperQuantile=0.9)
+
+			#set the prior hyperparameters
+			onsetHyperBeta = prior$onsetHyperBeta
+			onsetHyperAnchor = prior$onsetHyperAnchor
+			durationHyperBeta = prior$durationHyperBeta
+			durationHyperAnchor = prior$durationHyperAnchor
+			sigmaHyper = prior$sigmaHyper
+
+			return( list(
+				     responseData=responseData,
+				     hyperparams_noCovariates=hyperparams_noCovariates, 
+				     onsetCovariateData=onsetCovariateData,
+				     durationCovariateData=durationCovariateData,
+				     onsetHyperAnchor=onsetHyperAnchor,
+				     onsetHyperBeta=onsetHyperBeta,
+				     onsetHyperBetaMean=onsetHyperBetaMean,
+				     onsetHyperBetaSD=onsetHyperBetaSD,
+				     durationHyperAnchor=durationHyperAnchor,
+				     durationHyperBeta=durationHyperBeta,
+				     durationHyperBetaMean=durationHyperBetaMean,
+				     durationHyperBetaSD=durationHyperBetaSD,
+				     sigmaHyper=sigmaHyper
+			)
+			)
+		}
+	}
+
+	if(type=="multistage-full") {
+		nCovariates = ncol(onsetCovariateData)
+		range = (maxResponse-minResponse)
+		mr = mean(responseData)
+		sdr = sd(responseData)
+		oa = range/(nStages+1) 
+		da = range/(nStages+1)
+		sdx = rep(0,nCovariates)
+		for(i in 1:nCovariates) {
+			sdx[i] = sd(onsetCovariateData[,i])
+		}
+		#fill in default values if not set
+		if(is.null(onsetHyperBeta)) { 
+			cat("Automatically setting prior for onset model slope and SD.\n")
+			onsetHyperBeta = data.frame(mean=rep(0,nCovariates), sd=1*sdr/sdx)
+		}
+		if(is.null(onsetHyperAnchor)) {
+			cat("Automatically setting prior for onset model anchor.\n")
+			onsetHyperAnchor=c(oa,1*sdr)	#sd arbitrarily set to 1/10 of expected duration
+		}
+		if(is.null(durationHyperBetaMean)) {
+			cat("Automatically setting prior for duration model slope means.\n")
+			durationHyperBetaMean=matrix(rep(0,(nStages-1)*nCovariates), nrow=nStages-1)
+		}
+		if(is.null(durationHyperBetaSD)) {
+			cat("Automatically setting prior for duration model slope SDs.\n")
+			durationHyperBetaSD=t(matrix(rep(1*sdr/sdx,(nStages-1)), nrow=nStages-1))
+		}
+		if(is.null(durationHyperAnchor)) {
+			cat("Automatically setting prior for duration model anchors.\n")
+			durationHyperAnchor = data.frame(mean = rep(da,nStages-1), sd=rep(1*sdr,nStages-1))	#sd arbitrarily set to 1/10 of expected duration
+		}
+		if(is.null(sigmaHyper)) {
+			cat("Automatically setting prior for sigma.\n")
+			sigmaHyper=c(0,0.1*sdr)
+			#sigmaHyper=data.frame(mean=rep(0,nStages),sd=rep(0.1 * mr/sdr,nStages)) #half normal always positive (except for measure 0)
+		}
+
+		print("Hyperparameters: sd response data, oa, ob, da, db_m, db_sd, s")
+		print(sdr)
+		print(onsetHyperAnchor)
+		print(onsetHyperBeta)
+		print(durationHyperAnchor)
+		print(durationHyperBetaMean)
+		print(durationHyperBetaSD)
+		print(sigmaHyper)
+
+		if(nrow(durationHyperBetaSD) != nrow(durationHyperBetaMean)) {
+			stop("The number of stages (rows) in the durationHyperBetaSD and durationHyperBetaMean matrices need to be the same.")
+		}
+
+		K = nCovariates
+		S = nStages
+
+		#check hyperparameter specifications
+		if(nrow(onsetHyperBeta) != K || ncol(onsetHyperBeta) != 2 || nrow(durationHyperBetaMean) != (S-1) || ncol(durationHyperBetaMean) != K || nrow(durationHyperBetaSD) != (S-1) || ncol(durationHyperBetaSD) != K || length(onsetHyperAnchor) != 2 || nrow(durationHyperAnchor) != S-1 || ncol(durationHyperAnchor) != 2 || length(sigmaHyper) != 2) {
+			cat("Hyperparameters should be as follows:\n onsetHyperAnchor: a 2-element vector with mean and sd of the onset time;\n onsetHyperBeta: a data frame with two columns (mean and sd of each covariate slope of the onset model), one covariate per row;\n durationHyperAnchor: a data frame with two columns (mean and sd of the duration), one pair for each stage(rows), excluding the last stage (S-1 rows);\n durationHyperBetaMean: a matrix with S-1 rows and K columns with each stage X covariate mean slope in cells;\n durationHyperBetaSD: a matrix with S-1 rows and K columns with each stage X covariate slope sd in cells;\n sigmaHyper: a data frame with two colums (mean and sd of each model sigma) and S rows, one for each stage.")
+			stop("Please adjust hyperparameter inputs.")
+		}
+
+		#NULL's should all be set now. Checking datatypes
+		if(!is.data.frame(onsetHyperBeta) || !is.matrix(durationHyperBetaMean) || !is.matrix(durationHyperBetaSD) || !is.vector(onsetHyperAnchor) || !is.data.frame(durationHyperAnchor) || !is.vector(sigmaHyper)) {
+			cat("Expecting the following:\n\tonsetHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the onset slope coefficient for each covariate of the first stage. The second column is the standard deviation of the onset slope coefficient for each covariate of the first stage. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \n\tdurationHyperBetaMean:\n\t\tA matrix with dimensions (number of stages -1) X (number of covariates). The expected slope value for each stage X covariate combination goes in the matrix cells. \n\tdurationHyperBetaSD:\n\t\tA matrix with dimensions (number of stages -1) X (number of covariates). The SD of each slope value for each stage X covariate combination goes in the matrix cells. \n\tonsetHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the mean onset value when no covariate data are included) of the model for the first stage.\n\tdurationHyperAnchor:\n\t\tA data frame with two columns, with the mean of the prior and the standard deviation of the prior for the duration anchor (the mean duration value when no covariate data are included) in respective columns. Each row is for the duration model for each stage except for the last stage.\n\tsigmaHyper:\n\t\tA vector with two items, theman and the standard deviation of the onset sigma. \nSee documentation for additional information and examples")
+			stop("Please provide appropriate inputs")
+		}
+		#all is good - return the information
+		return( list(
+			     responseData=responseData,
+			     hyperparams_noCovariates=hyperparams_noCovariates, 
+			     onsetCovariateData=onsetCovariateData,
+			     durationCovariateData=durationCovariateData,
+			     onsetHyperBeta=onsetHyperBeta,
+			     onsetHyperBetaMean=onsetHyperBetaMean,
+			     onsetHyperBetaSD=onsetHyperBetaSD,
+			     onsetHyperAnchor=onsetHyperAnchor,
+			     durationHyperBeta=durationHyperBeta,
+			     durationHyperBetaMean=durationHyperBetaMean,
+			     durationHyperBetaSD=durationHyperBetaSD,
+			     durationHyperAnchor=durationHyperAnchor,
+			     sigmaHyper=sigmaHyper
+			)
+		)
+	}
+
+	if(type=="full") {
+		if(!is.data.frame(onsetHyperBeta) || !is.data.frame(durationHyperBeta) || !is.vector(onsetHyperAnchor) || !is.vector(durationHyperAnchor) || !is.vector(sigmaHyper)) {
+			cat("Expecting the following:\n\tonsetHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the onset slope coefficient for each covariate. The second column is the standard deviation of the onset slope coefficient for each covariate. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \n\tdurationHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the duration slope coefficient for each covariate. The second column is the standard deviation of the duration slope coefficient for each covariate. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \nonsetHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the mean onset value when no covariate data are included).\n\tdurationHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the duration anchor (the mean duration value when no covariate data are included).\n\tsigmaHyper:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the sigma model parameter (variation in onset times and variation in cessation times).\nSee documentation for additional information and examples")
+			stop("Please provide appropriate inputs")
+		}
+		K_O = ncol(onsetCovariateData)
+		K_D = ncol(durationCovariateData)
+		#check hyperparameter specifications
+		if(nrow(onsetHyperBeta) != K_O || ncol(onsetHyperBeta) != 2 || nrow(durationHyperBeta) != K_D || ncol(durationHyperBeta) != 2 || length(onsetHyperAnchor) != 2 || length(durationHyperAnchor) != 2 || length(sigmaHyper) != 2) {
+			return(list(error=TRUE, error_m="The input hyperparameter information should be a data frame with one row for each covariate, or provide a file name with corresponding file having the data frame as a text, tab-separated table. Each row should have two columns. The first column provides the mean value of the parameter's prior distribution, and the second column provides the SD of the parameter's prior distribution. The covariates in rows, top to bottom, should match the covariates in columns, left to right, in the input covariate data frames. Values should be in the original scale (e.g., units of days, or for slopes, total days changed over range of the covariate) of the observations. If files names are input, corresponding files should have headers. If data frames are input, these should have column labels of 'mean
+				    and 'sd'."))
+
+		}
+
+		#all is good - return the information
+		return( list(
+			     responseData=responseData,
+			     hyperparams_noCovariates=hyperparams_noCovariates, 
+			     onsetCovariateData=onsetCovariateData,
+			     durationCovariateData=durationCovariateData,
+			     onsetHyperBeta=onsetHyperBeta,
+			     onsetHyperBetaMean=onsetHyperBetaMean,
+			     onsetHyperBetaSD=onsetHyperBetaSD,
+			     onsetHyperAnchor=onsetHyperAnchor,
+			     durationHyperBeta=durationHyperBeta,
+			     durationHyperBetaMean=durationHyperBetaMean,
+			     durationHyperBetaSD=durationHyperBetaSD,
+			     durationHyperAnchor=durationHyperAnchor,
+			     sigmaHyper=sigmaHyper
+		    )
+		)
+	}
+
+	if(type=="intercept-only") {
+		if(sum(is.na(hyperparams_noCovariates)) || length(hyperparams_noCovariates) != 6) {
+			stop("Expecting six hyperparameter values (mean and sd for mean onset, mean and sd for mean duration, mean and sd for sigma. Or, if you want hyperparameter values to be estimated for you, set 'partitionDataForPriors' to TRUE. Automated hyperparameter estimation is not recommended for these model types.")
+		}
+		if(hyperparams_noCovariates[2] < 0 || hyperparams_noCovariates[4] < 0 || hyperparams_noCovariates[6] < 0) {
+			stop("SD hyperparameter values should be positive. Non-positive values detected in hyperparams_noCovariates.")
+		}
+		#all is good - return the information
+		return( list(
+			     responseData=responseData,
+			     hyperparams_noCovariates=hyperparams_noCovariates, 
+			     onsetCovariateData=onsetCovariateData,
+			     durationCovariateData=durationCovariateData,
+			     onsetHyperBeta=onsetHyperBeta,
+			     onsetHyperBetaMean=onsetHyperBetaMean,
+			     onsetHyperBetaSD=onsetHyperBetaSD,
+			     onsetHyperAnchor=onsetHyperAnchor,
+			     durationHyperBeta=durationHyperBeta,
+			     durationHyperBetaMean=durationHyperBetaMean,
+			     durationHyperBetaSD=durationHyperBetaSD,
+			     durationHyperAnchor=durationHyperAnchor,
+			     sigmaHyper=sigmaHyper
+		)
+		)
+	}
+	stop("Checking hyperparameters failed for unknown reason.")
+}
