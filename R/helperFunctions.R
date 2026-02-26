@@ -1246,7 +1246,7 @@ checkPriors = function(type=c("intercept-only","full","multistage-full"), nStage
 		}
 		if(is.null(durationHyperBetaSD)) {
 			cat("Automatically setting prior for duration model slope SDs.\n")
-			durationHyperBetaSD=t(matrix(rep(1*sdr/sdx,(nStages-1)), nrow=nStages-1))
+			durationHyperBetaSD=matrix(1*sdr/sdx,nrow=nStages-1, ncol=length(sdx), byrow=TRUE)
 		}
 		if(is.null(durationHyperAnchor)) {
 			cat("Automatically setting prior for duration model anchors.\n")
