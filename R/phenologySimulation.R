@@ -447,13 +447,21 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 #' @param seed The random number generator seed. (default: NULL)
 #'
 #' @return A list with the following: 
-#'		Data frame of sampled data for simulated individuals: covariate data, stage onsets, sampled times, sampled stages
+#'
+#'		Data frame of sampled data for simulated individuals (outputData): covariate data (X), stage onsets (by name), sampled times (sampledTime), sampled stages (sampledStage)
+#'
 #'		Parameters for simulation: 
+#'
 #'			Covariate correlation structure: R, Sigma 
+#'
 #'			Covariate descriptive statistics: covariateSDs, covariateMeans
+#'
 #'			Covariate data: X
+#'
 #'			Stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes
+#'
 #'			Duration models for all but the last stage: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
+#'
 #' @export
 #'
 #' @examples

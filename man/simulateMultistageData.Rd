@@ -100,13 +100,21 @@ simulateMultistageData(
 }
 \value{
 A list with the following:
-Data frame of sampled data for simulated individuals: covariate data, stage onsets, sampled times, sampled stages
-Parameters for simulation:
-Covariate correlation structure: R, Sigma
-Covariate descriptive statistics: covariateSDs, covariateMeans
-Covariate data: X
-Stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes
-Duration models for all but the last stage: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{Data frame of sampled data for simulated individuals (outputData): covariate data (X), stage onsets (by name), sampled times (sampledTime), sampled stages (sampledStage)
+
+Parameters for simulation: 
+
+	Covariate correlation structure: R, Sigma 
+
+	Covariate descriptive statistics: covariateSDs, covariateMeans
+
+	Covariate data: X
+
+	Stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes
+
+	Duration models for all but the last stage: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
+}\if{html}{\out{</div>}}
 }
 \description{
 Simulate covariate data, phenological stage onset times, sample times, and sampled stage data.
