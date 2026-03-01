@@ -67,6 +67,10 @@ data {
 	real<lower=0> sigmaMean;
 	real<lower=0> sigmaSD;
 
+	int<lower=0,upper=1> ppd;
+	int<lower=1> nXs;
+	int<lower=1> nReps;
+	matrix[nXs*nReps,K] xPPD;
 }
 
 transformed data {
@@ -93,8 +97,9 @@ transformed data {
 		mean_X[k] = mean(col(X_raw, k));
 		sd_X[k]   = sd(col(X_raw, k));
 
-		for (n in 1:N)
+		for (n in 1:N) {
 			X_std[n, k] = (X_raw[n, k] - mean_X[k]) / sd_X[k];
+		}
 	}
 
 	// Standardize hyperparameters
@@ -200,6 +205,8 @@ generated quantities {
 	//vector[S] sigma; 	//one for each onset, stage 1 has sigma 0
 	real sigma = sd_t * sigma_std;
 
+	matrix[nXs*nReps, S] y_pred = rep_matrix(0.0, nXs*nReps, S); 
+
 	for (s in 1:(S-1)) {
 		for (k in 1:K) {
 
@@ -232,5 +239,18 @@ generated quantities {
 	alpha_o[S] = alpha_o[S-1] + alpha_d[S-1];
 	for (k in 1:K) {
 		beta_o[S, k] = beta_o[S-1,k] + beta_d[S-1,k];
+	}
+
+	if(ppd == 1) {
+		for (n in 1:(nXs*nReps) ) {
+			for(s in 1:S) {
+				if(s == 1) {
+					//y_pred[n,s] = alpha_o[s] + dot_product(beta_o[s,], xPPD[n,]);
+				}
+				else {
+					y_pred[n,s] = normal_rng(alpha_o[s] + dot_product(beta_o[s,], xPPD[n,]),sigma);
+				}
+			}
+		}
 	}
 }

@@ -34,6 +34,8 @@ runStanPhenology(
   byPassChecks = FALSE,
   priorLevel = 2,
   debug = 0,
+  nXs = 101,
+  nReps = 100,
   ...
 )
 }

@@ -1226,7 +1226,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##########################################################################################################################################################
 #' }
 #runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, debug=0, ...) {
-runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, ...) {
+runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, ...) {
 
 	## ###########################################################################
 	## CHECK STAN BLOCK
@@ -1298,16 +1298,16 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full"), r
 		cat("No covariates will be included in this analysis.\n")
 		cat("Calling specialized runStan function for presence-only data with no covariates.\n")
 		return(runStan.NoCovariates.T.GP(fileOrData=responseData,
-						 minResponse=minResponse,
-						 maxResponse=maxResponse,
-						 hyperparameters = hyperparams_noCovariates,
-						 dataProvided=TRUE,
-						 runMAP=runMAP,
-						 setStringent=setStringent,
-						 maxDiv=maxDiv,
-						 processExtremes=processExtremes,
-						 N=N,
-						 ...))
+			 minResponse=minResponse,
+			 maxResponse=maxResponse,
+			 hyperparameters = hyperparams_noCovariates,
+			 dataProvided=TRUE,
+			 runMAP=runMAP,
+			 setStringent=setStringent,
+			 maxDiv=maxDiv,
+			 processExtremes=processExtremes,
+			 N=N,
+			 ...))
 	}
 
 	#Analyses with covariate data
@@ -1317,41 +1317,43 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full"), r
 		cat("Calling specialized runStan functions for presence-only data with covariates.\n")
 		## DANIEL: Changed argument response to responseData in runStan.WithCovariates.T.GP
 		return(runStan.WithCovariates.T.GP(responseData=responseData,
-						   minResponse=minResponse,
-						   maxResponse=maxResponse,
-						   onsetCovariateData=onsetCovariateData,
-						   durationCovariateData=durationCovariateData,
-						   onsetHyperAnchor=onsetHyperAnchor,
-						   onsetHyperBeta=onsetHyperBeta,
-						   durationHyperAnchor=durationHyperAnchor,
-						   durationHyperBeta=durationHyperBeta,
-						   sigmaHyper=sigmaHyper,
-						   setStringent=setStringent,
-						   dataProvided=TRUE,
-						   priorLevel=priorLevel))
+			   minResponse=minResponse,
+			   maxResponse=maxResponse,
+			   onsetCovariateData=onsetCovariateData,
+			   durationCovariateData=durationCovariateData,
+			   onsetHyperAnchor=onsetHyperAnchor,
+			   onsetHyperBeta=onsetHyperBeta,
+			   durationHyperAnchor=durationHyperAnchor,
+			   durationHyperBeta=durationHyperBeta,
+			   sigmaHyper=sigmaHyper,
+			   setStringent=setStringent,
+			   dataProvided=TRUE,
+			   priorLevel=priorLevel))
 	}
 	else if(type == "multistage-full") {
 		cat("Calling specialized runStan functions for multistage data.\n")
 		return(
 		       runStan.WithCovariates.Multistage.durations.GP(
-								      responseData=responseData,
-								      stage=stage,
-								      nStages=nStages,
-								      minResponse=minResponse,
-								      maxResponse=maxResponse,
-								      covariateData=onsetCovariateData,
-								      nCovariates=nOnsetCovariates,
-								      onsetHyperAnchor=onsetHyperAnchor,
-								      onsetHyperBeta=onsetHyperBeta,
-								      durationHyperAnchor=durationHyperAnchor,
-								      durationHyperBetaMean=durationHyperBetaMean,
-								      durationHyperBetaSD=durationHyperBetaSD,
-								      sigmaHyper=sigmaHyper,
-								      setStringent=setStringent,
-								      priorLevel=priorLevel,
-								      processExtremes=processExtremes,
-								      maxDiv=maxDiv,
-								      N=N
+			      responseData=responseData,
+			      stage=stage,
+			      nStages=nStages,
+			      minResponse=minResponse,
+			      maxResponse=maxResponse,
+			      covariateData=onsetCovariateData,
+			      nCovariates=nOnsetCovariates,
+			      onsetHyperAnchor=onsetHyperAnchor,
+			      onsetHyperBeta=onsetHyperBeta,
+			      durationHyperAnchor=durationHyperAnchor,
+			      durationHyperBetaMean=durationHyperBetaMean,
+			      durationHyperBetaSD=durationHyperBetaSD,
+			      sigmaHyper=sigmaHyper,
+			      setStringent=setStringent,
+			      maxDiv=maxDiv,
+			      nXs=nXs,
+			      nReps=nReps
+			      #priorLevel=priorLevel,
+			      #processExtremes=processExtremes,
+			      #N=N,
 		       )
 		)
 	}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologyVisualization.R
 \name{makePosteriorPredictivePlot}
 \alias{makePosteriorPredictivePlot}
-\title{Make a posterior predictive plot focussed on one covariate and marginalized across the other covariates}
+\title{Make a posterior predictive plot from a "full" presence-only dataset analysis focused on one covariate and marginalized across the other covariates}
 \usage{
 makePosteriorPredictivePlot(
   stanResult,
@@ -31,7 +31,7 @@ makePosteriorPredictivePlot(
 
 \item{responseData}{A vector of the response data}
 
-\item{responseVariableName}{A vector of the names of the covariates}
+\item{responseVariableName}{The name of the response variable (default: DOY)}
 
 \item{targetCovariateName}{A string with the name of the target covariate to be graphed on the x-axis of the output plot}
 

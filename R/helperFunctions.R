@@ -7,6 +7,47 @@ rdirichlet <- function(n, alpha) {
 
 softplus <- function(x) ifelse(x > 30, x, log1p(exp(x)))
 
+#' @importFrom copula getSigma
+#' @importFrom MASS mvrnorm
+#' @importFrom stats ecdf
+sample_conditional_covariates = function(x_target, x_column = 1, covars, copula_fit, n_samples = 1000) {
+  Sigma = getSigma(copula_fit@copula)
+  K = ncol(Sigma)
+  all_names = colnames(covars)
+
+  # Empirical CDF of the target covariate
+  ecdf_target = ecdf(covars[[x_column]])
+  u_x = ecdf_target(x_target)
+  z_x = qnorm(u_x)
+
+  # Partition correlation matrix
+  idx_y = setdiff(1:K, x_column)
+  Sigma_xx = Sigma[x_column, x_column]
+  Sigma_yy = Sigma[idx_y, idx_y]
+  Sigma_yx = Sigma[idx_y, x_column]
+
+  # Conditional normal parameters
+  mu_y = Sigma_yx / Sigma_xx * z_x
+  Sigma_cond = Sigma_yy - tcrossprod(Sigma_yx) / Sigma_xx
+
+  # Simulate latent Z_{2:K}
+  z_y = mvrnorm(n_samples, mu = mu_y, Sigma = Sigma_cond)
+
+  # Inverse probit and quantile transform
+  u_y = pnorm(z_y)
+  x_y = matrix(NA, nrow = n_samples, ncol = length(idx_y))
+  for (j in seq_along(idx_y)) {
+    x_y[, j] = quantile(covars[[idx_y[j]]], u_y[, j], type = 8)
+  }
+
+  df = as.data.frame(x_y)
+  colnames(df) = all_names[idx_y]
+  df[[all_names[x_column]]] = x_target
+  df = df[all_names]  # order columns
+  return(df)
+}
+
+
 true_marginal_line <- function(alpha, beta, mu, j,
 			       Sigma = NULL,
 			       R = NULL,
@@ -1074,7 +1115,7 @@ checkInput = function(type=c("intercept-only","full","multistage-full"), respons
 	}
 
 	if(maxDiv > 0) {
-		warning("The maximum number of divergences tolerated is greater than 0. This can result in biased estimates.")
+		warning("The maximum number of divergences tolerated is set to greater than 0. This can result in biased estimates.")
 	}
 
 	if(minResponse != 0){
@@ -1258,14 +1299,14 @@ checkPriors = function(type=c("intercept-only","full","multistage-full"), nStage
 			#sigmaHyper=data.frame(mean=rep(0,nStages),sd=rep(0.1 * mr/sdr,nStages)) #half normal always positive (except for measure 0)
 		}
 
-		print("Hyperparameters: sd response data, oa, ob, da, db_m, db_sd, s")
-		print(sdr)
-		print(onsetHyperAnchor)
-		print(onsetHyperBeta)
-		print(durationHyperAnchor)
-		print(durationHyperBetaMean)
-		print(durationHyperBetaSD)
-		print(sigmaHyper)
+		#print("Hyperparameters: sd response data, oa, ob, da, db_m, db_sd, s")
+		#print(sdr)
+		#print(onsetHyperAnchor)
+		#print(onsetHyperBeta)
+		#print(durationHyperAnchor)
+		#print(durationHyperBetaMean)
+		#print(durationHyperBetaSD)
+		#print(sigmaHyper)
 
 		if(nrow(durationHyperBetaSD) != nrow(durationHyperBetaMean)) {
 			stop("The number of stages (rows) in the durationHyperBetaSD and durationHyperBetaMean matrices need to be the same.")
