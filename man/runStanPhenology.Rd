@@ -213,6 +213,8 @@ For the theory, we simplify things by examining a time period (TP) starting at t
 For \bold{multistage} data, all observed times are kept and the stage (e.g., flowering, fruiting, active growth, dormant) is recorded with an integer label.
 For the core theory, we need to determine the probabilities of each stage given the sampled time and model parameters. The core parameters are the mean onset of the first full stage in the TP, the mean durations, and the variation in onset times.
 
+If you are interested in doing an analysis of data before a phenophase of interest, during a phenophase of interest, and after a phenophase of interest (BDA analysis), code the data with the following stages: 1 = before, 2 = during, and 3 = after.
+
 The probability that an individual is in a stage that is before the first full stage begins (ie, stage 1) is \deqn{P_{1|j}(O_1>t_j|\theta)=1-\Phi(z_{1|j})} where \eqn{t_j} is the observed time of collection of the \eqn{j^{th}} individual, \eqn{\Phi(z) \equiv P(Z<z)} is the cumulative distribution function of a standard normal random variable \eqn{\Phi(z) \equiv P(Z<z)}, and z values are the standardized times \eqn{z = \frac{t-\mu}{\sigma}}.
 
 The probability that an individual \eqn{j} is in stage \eqn{s} is the probability that the sampled time is after the onset of stage \eqn{s} and before the onset of the next stage \eqn{s+1}: \deqn{P_{s|j}(O_s \leq t_j, O_{s+1} > t_j|\theta) = \Phi(z_{s|j})-\Phi(z_{s+1|j})}

@@ -246,6 +246,7 @@ generated quantities {
 			for(s in 1:S) {
 				if(s == 1) {
 					//y_pred[n,s] = alpha_o[s] + dot_product(beta_o[s,], xPPD[n,]);
+					y_pred[n,s] = 0.0;	//Should be identically 0
 				}
 				else {
 					y_pred[n,s] = normal_rng(alpha_o[s] + dot_product(beta_o[s,], xPPD[n,]),sigma);

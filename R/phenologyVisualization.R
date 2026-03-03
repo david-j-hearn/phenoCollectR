@@ -99,20 +99,19 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 #' #    create the plot
 #' plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 #' }
-plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL, drawIndividuals=FALSE, drawObserved=TRUE, drawLatentOnset=TRUE, drawTrueModel=TRUE, drawInferredModel=TRUE, observedCex=0.75, onsetCex=0.05, observedPch=4, onsetPch=17, shadeStage=TRUE, minResponse=0, maxResponse=365, nonCyclical=FALSE) {
+plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL, drawIndividuals=FALSE, drawObserved=TRUE, drawLatentOnset=TRUE, drawTrueModel=TRUE, drawInferredModel=TRUE, observedCex=0.75, onsetCex=0.05, observedPch=4, onsetPch=17, shadeStage=TRUE, minResponse=0, maxResponse=365, nonCyclical=TRUE, main=NULL) {
 
 	if(!drawLatentOnset && !drawObserved) {
 		stop("Nothing to plot in plotMultistageSimulation. Quitting.")
 	}
-
 
 	#Extract information
 	if(is.null(simulatedData)) { stop("As input, provide the simulated data from the function simulateMultistageData.") }
 	if(is.null(targetCovariateIndex) || targetCovariateIndex<1) { stop("As input, provide the covariate number you wish to plot. Covariates are indexed from 1 to the number of covariates.") }
 	if(is.null(stageColors)) { stop("Provide a vector with a named color for each stage in your multistage model.") }
 
-	numberStages = 1 + length(simulatedData$stageDurationMeans)
-	numberCovariates = length(simulatedData$covariateSDs)
+	numberStages = 1 + length(simulatedData$nStages)
+	numberCovariates = length(simulatedData$nCovariates)
 	trueSlopes = rep(0,numberStages)		#one slope per stage for the target covariate
 	trueIntercepts = rep(0,numberStages)		#one intercept per stage for the target covariate
 	if(targetCovariateIndex>numberCovariates) { stop("Please provide the index number of the covariate you wish to plot between 1 and the number of covariates, inclusive.") }
@@ -171,11 +170,11 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 	for(i in 1:numberStages) {
 		if(i == 1) {
 			if(!drawLatentOnset) {
-				plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=stageColors[simulatedData$outputData$sampledStage], ylim=c(minResponse,maxResponse), pch=observedPch, cex=observedCex)
+				plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=stageColors[simulatedData$outputData$sampledStage], ylim=c(minResponse,maxResponse), pch=observedPch, cex=observedCex, main=main)
 
 			}
 			if(drawLatentOnset) {
-				plot(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+1],col=stageColors[1+colInc],ylim=c(minResponse,maxResponse),pch=onsetPch,cex=observedCex)
+				plot(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+1],col=stageColors[1+colInc],ylim=c(minResponse,maxResponse),pch=onsetPch,cex=observedCex, main=main)
 			}
 			if(shadeStage) {
 				y1 = c(0,0)
@@ -980,9 +979,9 @@ makeSimulatedAndTheoreticalOverlayGraph= function(mu_O, mu_C, sigma, n_hist, N, 
 makeMultistagePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, covariateData, stageData, nReps=10, nXs=100, nStages, slice = 0.25, minResponse=0, maxResponse=365, y_pred=TRUE, nChains=4, nIts=1000, smooth=c("GAM", "LOESS", "SPLINE", "NONE")) {
 
 	stageNames = paste0("stage", 1:(nStages))
-	onsetMeans = as.data.frame( matrix(NA_real_, nrow = nXs, ncol = (nStages+1)))
-	onsetQ2.5 = as.data.frame( matrix(NA_real_, nrow = nXs, ncol = (nStages+1)))
-	onsetQ97.5 = as.data.frame( matrix(NA_real_, nrow = nXs, ncol = (nStages+1)))
+	onsetMeans = as.data.frame( matrix(NA_real_, nrow = nXs-1, ncol = (nStages+1)))		#copula / smoothing doesn't do well with last x coordinate
+	onsetQ2.5 = as.data.frame( matrix(NA_real_, nrow = nXs-1, ncol = (nStages+1)))		#copula / smoothing doesn't do well with last x coordinate
+	onsetQ97.5 = as.data.frame( matrix(NA_real_, nrow = nXs-1, ncol = (nStages+1)))		#copula / smoothing doesn't do well with last x coordinate
 	names(onsetMeans) <- c("x",stageNames)
 	names(onsetQ2.5) <- c("x",stageNames)
 	names(onsetQ97.5) <- c("x",stageNames)
@@ -1017,7 +1016,7 @@ makeMultistagePosteriorPredictivePlot = function(stanResult, responseData, respo
 		totIts = nReps * nChains * nIts
 		stageVals = numeric(totIts)
 		for(i in 1:(nXs-1)) {
-			low = (i-1)*nReps +1
+			low = (i-1)*nReps+1
 			high = i*nReps
 			for(s in 1:nStages) {
 				predInds = paste0("y_pred[",low:high , ",", (s) , "]")
@@ -1175,7 +1174,7 @@ make_multistage_PPD_plot = function(onsetMeans, onsetQ2.5, onsetQ97.5, stageCols
 		print("Reorganized data for plotting")
 		print(df_long)
 
-		df_data = data.frame(x=covariateData, onset=responseData, stage = stageData)
+		df_data = data.frame(x=covariateData, observed=responseData, stage = stageData)
 		names(df_data)[1] = "x"
 		df_data$stage = paste0("stage", df_data$stage)
 
@@ -1187,11 +1186,11 @@ make_multistage_PPD_plot = function(onsetMeans, onsetQ2.5, onsetQ97.5, stageCols
 			geom_ribbon(aes(ymin = q2.5, ymax = q97.5), alpha = 0.2, color = NA) +
 			geom_line(size = 1) +
 			# Raw data points
-			geom_point( data = df_data, aes(x = x, y = onset, color = stage), alpha = 0.7) +
+			geom_point( data = df_data, aes(x = x, y = observed, color = stage), alpha = 0.7) +
 			coord_cartesian(ylim = c(minResponse, maxResponse)) +
 			labs(y = "Onset", x = "x") +
+			scale_color_brewer(palette = "Set1") +
+			scale_fill_brewer(palette = "Set1") +
 			theme_minimal()
-
 		return(p)
 }
-

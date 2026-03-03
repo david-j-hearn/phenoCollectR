@@ -20,7 +20,8 @@ plotMultistageSimulation(
   shadeStage = TRUE,
   minResponse = 0,
   maxResponse = 365,
-  nonCyclical = FALSE
+  nonCyclical = TRUE,
+  main = NULL
 )
 }
 \arguments{

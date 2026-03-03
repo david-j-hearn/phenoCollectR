@@ -411,13 +411,195 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 	return(runif(1,-Bmax,Bmax))
 }
 
+#nSD number of standard deviations of the mean to use for normal distribution sampling
+#nBin number of bins to use to approximate the normal distribution for sampling
+resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal=FALSE, overlapOnly=FALSE, excludeLastStage=FALSE, newSampleSize=1, nSDNormal=1, nSDOverlap=3, minResponse=0, maxResponse=365) {
+	if(is.null(simulatedData)) {
+		stop("Please provide the output from simulateMultistageData and a bias type as input")
+	}
+	if(minResponse != 0) {
+		stop("minResponse must be kept at 0.")
+	}
+	if(maxResponse <= 0) {
+		stop("maxResponse must be greater than 0.")
+	}
+	if(newSampleSize < 1) {
+		stop("The new sample size must be at least 1.")
+	}
+	if(nSDNormal <= 0 || nSDOverlap <= 0) {
+		stop("The number of standard deviation units must be positive.")
+	}
+	if(!simulatedData$nonCyclical) {
+		stop("Please renumber your stages so that the times between 0 and your first stage are labeled 1, stage 1 times are labeled 2, and so forth so that after the start of the last stage up to the end of the time period is nStages + 1")
+	}
+
+	nOrig = length(simulatedData$outputData$sampledTime)
+	if(nOrig < newSampleSize) {
+		stop("The new sample size must be smaller than or equal to the original sample size.")
+	}
+
+	nStages = simulatedData$nStages+1	#Non cyclical, so that times between 0 and the first stage are labeled 1...
+
+	meanX = colMeans(simulatedData$outputData[,paste0("cov", 1:simulatedData$nCovariates)])
+
+	onsets = numeric(nStages)
+	sigmas = numeric(nStages)
+	slopes = matrix(rep(0, nStages*nCovariates), nrow=nStages, ncol=nCovariates)
+	for(i in 1:nStages) {
+		if(i==1) {
+			onsets[i] = 0
+			sigmas[i] = 0
+			slopes[i,] = rep(0,nCovariates)
+		}
+		else if(i==2) {
+			onsets[i] = simulatedData$stage1OnsetMean
+			sigmas[i] = simulatedData$stage1OnsetSD
+			slopes[i,] = simulatedData$stage1OnsetCovariateSlopes
+		}
+		else {
+			onsets[i] = onsets[i-1] + simulatedData$stageDurationMeans[i-2]
+			sigmas[i] = simulatedData$stageDurationSDs[i-2]
+			slopes[i,] = simulatedData$stageDurationCovariateSlopes[i-2]
+		}
+		print(onsets[i])
+	}
+
+	if(centeredNormal) {	#Normally distributed bias centered over middle stage - regenerate data
+		print("Centered normal sampling")
+		meanInd = nStages/2
+		mean = (onsets[meanInd] + onsets[meanInd+1]) / 2
+		sd = (onsets[nStages] - onsets[2]) / (2*nSDNormal) 	#start of "second" stage and start of "last" stage are mean +/- nSD
+		print(mean)
+		print(sd)
+		simulatedData$outputData$sampledTime = rnorm(n=nOrig, mean=mean, sd=sd)
+
+		#Wrap times that looped over the start of the cycle - assumes not more than 1 looping 
+		simulatedData$outputData$sampledTime[simulatedData$outputData$sampledTime<0] = maxResponse + simulatedData$outputData$sampledTime[simulatedData$outputData$sampledTime<0] 
+		simulatedData$outputData$sampledTime = simulatedData$outputData$sampledTime %% maxResponse
+
+		for(i in 1:nOrig) {
+			for(s in 1:(nStages)) {
+				if(s==1) {
+					if(simulatedData$outputData$sampledTime[i]>=0 && 
+					   simulatedData$outputData$sampledTime[i]<=simulatedData$outputData[i, nCovariates+s]) {
+						simulatedData$outputData$sampledStage[i]=s
+					}
+				}
+				else if(s<nStages) {
+					if(simulatedData$outputData$sampledTime[i]>=simulatedData$outputData[i,nCovariates+s-1] && 	#output doesn't store 0 as first stage
+					   simulatedData$outputData$sampledTime[i]<=simulatedData$outputData[i, nCovariates+s]) {
+						simulatedData$outputData$sampledStage[i]=s
+					}
+				}
+				else if(s==nStages) {
+					if(simulatedData$outputData$sampledTime[i]>=simulatedData$outputData[i,nCovariates+s-1] && 
+					   simulatedData$outputData$sampledTime[i]<=maxResponse) {
+						simulatedData$outputData$sampledStage[i]=s
+					}
+				}
+			}
+		}
+		#hist(simulatedData$outputData$sampledTime)
+		#hist(simulatedData$outputData$sampledStage)
+		#print(length(simulatedData$outputData$sampledTime))
+	}
+
+	if(overlapOnly) {	#Overlapping onset / cessation regions only
+		print("Sampling only overlapping regions")
+		temp <- as.data.frame(matrix(numeric(0), ncol = ncol(simulatedData$outputData)))
+		colnames(temp) = colnames(simulatedData$outputData)
+
+		nOO = nrow(simulatedData$outputData)
+		for(i in 1:(nStages)) {
+				shiftI = onsets[i] +  (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[i,])
+				if(i == nStages) {
+					shiftII = onsets[2] + (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[2,])
+				}
+				else {
+					shiftII = onsets[i+1] + (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[i+1,])
+				}
+			for(j in 1:nOO) {
+				if(i==1) {
+					ll = 0
+					lu = 0
+					ul = shiftII[j] - nSDOverlap * sigmas[i+1]
+					uu = shiftII[j] + nSDOverlap * sigmas[i+1]
+				}
+				else if(i>1 && i<nStages) {
+					ll = shiftI[j] - nSDOverlap * sigmas[i]
+					lu = shiftI[j] + nSDOverlap * sigmas[i]
+					ul = shiftII[j] - nSDOverlap * sigmas[i+1]
+					uu = shiftII[j] + nSDOverlap * sigmas[i+1]
+        			}
+        			else if(i==nStages) {
+					ll = shiftI[j] - nSDOverlap * sigmas[i]
+					lu = shiftI[j] + nSDOverlap * sigmas[i]
+					ul = shiftII[j] - nSDOverlap * sigmas[2]
+					uu = shiftII[j] + nSDOverlap * sigmas[2]
+        			}
+				t = simulatedData$outputData$sampledTime[j] 
+				#print(paste0(t, " ", ll, " ", lu, " ", ul, " ", uu))
+				if(simulatedData$outputData$sampledStage[j] == i &&
+				   ((t > ll &&
+				   t < lu) ||
+				    (t > ul &&
+				     t < uu))) {
+					temp[nrow(temp) + 1, ] = simulatedData$outputData[j,]
+					#print("MATCHED")
+					#print(nrow(temp))
+				}
+
+		 #temp = rbind(temp, simulatedData$outputData[ 
+                          #simulatedData$outputData$sampledStage == i &
+                          #(
+                           #(simulatedData$outputData$sampledTime > ll- &
+                            #simulatedData$outputData$sampledTime < lu ) |
+                           #(simulatedData$outputData$sampledTime > ul &
+                            #simulatedData$outputData$sampledTime < uu)
+                           #),
+                          #]) 
+		 	}
+        	}
+		#print("FINAL")
+		#print(nrow(temp))
+		#print(temp[nrow(temp),])
+		temp = unique(temp)
+
+		simulatedData$outputData = temp
+		#simulatedData$outputData = unique(simulatedData$outputData)	#if overlap, there is possibility of duplicated rows
+		print(length(simulatedData$outputData$sampledTime))
+	}
+
+	if(excludeLastStage) {
+		print("Excluding last stage")
+		simulatedData$outputData = simulatedData$outputData[ 
+                          (simulatedData$outputData$sampledStage != nStages &
+                          simulatedData$outputData$sampledStage != 1 ),]
+		print(length(simulatedData$outputData$sampledTime))
+	}
+
+	if(resample) {	#Resampled original data
+		nOrig = length(simulatedData$outputData$sampledTime)
+		cat(paste("Resampling from ", nOrig, " original individuals."))
+		if(nOrig < newSampleSize) {
+			fact = 2*newSampleSize/nOrig
+			stop(paste("The new sample size must be smaller than or equal to the original sample size. Please increase the original sample size by at least ", fact, " times more."))
+		}
+		inds = sample(1:nOrig, newSampleSize, replace=FALSE)
+		simulatedData$outputData = simulatedData$outputData[inds,]
+		print(length(simulatedData$outputData$sampledTime))
+	}
+
+	return(simulatedData)
+}
+
 #' Simulate covariate data, phenological stage onset times, sample times, and sampled stage data
 #'
 #' @description Simulate covariate data, phenological stage onset times, sample times, and sampled stage data.
 #' 
 #' @param n The sample size. (default: 1000)
 #' @param nStages The number of stages to simulate. Not optional. (default: 2)
-#' @param nonCyclical Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: FALSE)
+#' @param nonCyclical Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: TRUE)
 #' @param stageNames A vector of the names of stages. (default: NULL)
 #' @param stage1OnsetMean The mean value of the first stage's onset. (default: NULL)
 #' @param stage1OnsetSD The standard deviation of the first stage's onset. (default: NULL)
@@ -484,7 +666,7 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 #' }
 simulateMultistageData = function(n=1000, 
 				  nStages=2, 
-				  nonCyclical=FALSE,
+				  nonCyclical=TRUE,
 				  stageNames=NULL,
 				  stage1OnsetMean=NULL,
 				  stage1OnsetSD=NULL,
@@ -514,6 +696,14 @@ simulateMultistageData = function(n=1000,
 				  seed=NULL) {
 
 
+	#if(nonCyclical) {
+		#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages+1))
+		#colnames(individuals) = paste0("stage", 1:(nStages+1))
+	#}
+	#else {
+		#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages))
+		#colnames(individuals) = paste0("stage", 1:nStages)
+	#}
 	#Basic checks
 	if(minResponse!=0) {
 		stop("Minimum responses other than 0 are not supported.")
@@ -614,7 +804,7 @@ simulateMultistageData = function(n=1000,
 	}
 	#	simulate stage duration covariate slopes, if needed
 	if(!is.null(stageDurationCovariateSlopes) && (ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-1)) {
-		stop("Duration Covariate Slopes are provided, but the dimensions do no match: nStages-1 X nCovariates")
+		stop("Duration Covariate Slopes are provided, but the dimensions do no match: should be nStages-1 X nCovariates")
 	}
 	if(is.null(stageDurationCovariateSlopes) || ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-1) {
 		#print(stageDurationCovariateSlopes)
@@ -653,6 +843,7 @@ simulateMultistageData = function(n=1000,
 	#
 	#simulate the onset times for each stage and simulate sampling each individual in the population
 	times = runif(n,minResponse,maxResponse)
+
 	stages = rep(0,n)
 	onsets = matrix(0,nrow=n,ncol=nStages)
 	colnames(onsets) = stageNames
@@ -738,6 +929,9 @@ simulateMultistageData = function(n=1000,
 	outputData$sampledStage = stages
 
 	return(list(outputData=outputData, 
+		    nStages = nStages,
+		    nCovariates = nCovariates,
+		    nonCyclical = nonCyclical,
 		    R=R,
 		    Sigma=Sigma,
 		    covariateSDs=covariateSDs,
@@ -749,7 +943,6 @@ simulateMultistageData = function(n=1000,
 		    stageDurationMeans=stageDurationMeans,
 		    stageDurationSDs=stageDurationSDs,
 		    stageDurationCovariateSlopes=stageDurationCovariateSlopes))
-
 }
 
 

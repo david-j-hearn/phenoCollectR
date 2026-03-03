@@ -7,7 +7,7 @@
 simulateMultistageData(
   n = 1000,
   nStages = 2,
-  nonCyclical = FALSE,
+  nonCyclical = TRUE,
   stageNames = NULL,
   stage1OnsetMean = NULL,
   stage1OnsetSD = NULL,
@@ -42,7 +42,7 @@ simulateMultistageData(
 
 \item{nStages}{The number of stages to simulate. Not optional. (default: 2)}
 
-\item{nonCyclical}{Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: FALSE)}
+\item{nonCyclical}{Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: TRUE)}
 
 \item{stageNames}{A vector of the names of stages. (default: NULL)}
 

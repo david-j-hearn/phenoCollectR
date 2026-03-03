@@ -1405,3 +1405,81 @@ checkPriors = function(type=c("intercept-only","full","multistage-full"), nStage
 	}
 	stop("Checking hyperparameters failed for unknown reason.")
 }
+
+#' @importFrom posterior quantile2
+#' @importFrom dplyr %>%
+getMultistageSummary = function(stanResults, nCovariates, nStages, probs=c(2.5, 97.5)) {
+
+	measures=c("mean", "median", "sd", "mad")
+
+	#Extract basic summary data
+summary = print(
+  stanResults$result$summary(
+    variables = c(
+      #"sigma","anchor_d", "beta_d", "alpha_d", "anchor_o", "beta_o", "alpha_o"
+      "sigma", "anchor_o", "beta_o", "alpha_o"
+     ),
+    quantiles = ~ quantile2(., probs=probs/100),
+    measures
+  ),
+  n = Inf
+) %>% as.data.frame()
+
+#Set up vectors to store mean durations (means) and mean onsets (means_o) with low and high bounds of credible intervals.
+mean_o = rep(0,nStages)
+mean_o_low = rep(0,nStages)
+mean_o_high= rep(0,nStages)
+
+beta = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
+beta_low = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
+beta_high = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
+
+alpha = rep(0, nStages)
+alpha_low = rep(0, nStages)
+alpha_high = rep(0, nStages)
+
+sigma = 0
+sigma_low = 0
+sigma_high = 0
+
+#Extract slopes and intercepts (anchors) and overlay the inferred lines onto earlier plot
+varO = paste0("sigma")
+sigma = summary[summary$variable==varO, "mean"]
+sigma_low = summary[summary$variable==varO, paste0("q",probs[1])]
+sigma_high = summary[summary$variable==varO, paste0("q",probs[2])]
+
+#Skip the baseline stage 1, which is identically 0
+for(j in 2:(nStages+1)) {
+        varO = paste0("anchor_o[", j, "]")
+        mean_o_low[j-1] = summary[summary$variable==varO, paste0("q",probs[1])]
+        mean_o_high[j-1] = summary[summary$variable==varO, paste0("q", probs[2])]
+        mean_o[j-1] = summary[summary$variable==varO, "mean"]
+        varO = paste0("alpha_o[", j, "]")
+        alpha[j-1] = summary[summary$variable==varO, "mean"]
+        alpha_low[j-1] = summary[summary$variable==varO, paste0("q",probs[1])]
+        alpha_high[j-1] = summary[summary$variable==varO, paste0("q",probs[2])]
+
+       for(i in 1:nCovariates) {
+                varO = paste0("beta_o[", j, ",", i, "]")
+                beta[j-1,i] = summary[summary$variable==varO, "mean"]
+                beta_low[j-1,i] = summary[summary$variable==varO, paste0("q",probs[1])]
+                beta_high[j-1,i] = summary[summary$variable==varO, paste0("q",probs[2])]
+        }
+}
+
+return( list(mean_o_low = mean_o_low,
+	     mean_o_high = mean_o_high,
+	     mean_o = mean_o,
+	     alpha = alpha,
+	     alpha_low = alpha_low,
+	     alpha_high = alpha_high,
+	     beta = beta,
+	     beta_low = beta_low,
+	     beta_high = beta_high,
+	     sigma = sigma,
+	     sigma_low = sigma_low,
+	     sigma_high = sigma_high
+	     )
+)
+}
+
