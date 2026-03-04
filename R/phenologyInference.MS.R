@@ -1,5 +1,5 @@
 #' @importFrom copula pobs normalCopula fitCopula 
-runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, stage=NULL, nStages, nCovariates, minResponse=0, maxResponse=365, covariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, setStringent=TRUE, priorLevel=1, maxDiv=0, calculatePPD=TRUE, nXs=100, nReps=10, targetCovariateName="cov1", debug=FALSE, ...) {
+runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, stage=NULL, nStages, nCovariates, minResponse=0, maxResponse=365, covariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, setStringent=TRUE, priorLevel=1, maxDiv=0, calculatePPD=FALSE, nXs=100, nReps=10, targetCovariateName="cov1", debug=FALSE, ...) {
 
 	#checkInput and checkPriors should have already been called from runStanPhenology
 
@@ -48,6 +48,7 @@ runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, sta
 	else if(!calculatePPD){
 		nReps=1
 		nXs=1
+		xPPD <- as.data.frame(matrix(rep(0,nReps*nXs*nCovariates), nrow = nReps*nXs , ncol = nCovariates))
 	}
 
 	options(mc.cores = 4)
@@ -88,12 +89,10 @@ runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, sta
 			 S = S+1,					#Number of stages (scalar) - no wraparound -> S+1
 			 X_raw = as.matrix(covariates$covariates, ncol=K),	#The scaled covariate data (N X K matrix)
 			 K = K,					#Number of covariates (scalar)
-
 			 ppd = calculatePPD,			#Boolean to calculate posterior predictive data
 			 nXs = nXs,				#number of x iterations of target covariate for PPD
 			 nReps = nReps,				#number of replicates per Stan sample per stage per nXs iterations
 			 xPPD = as.matrix(xPPD, ncol=K),	#the data over which to calculate PPD
-
 			 betaMeans = betaMeans,			#joined onset and duration model slope coefficients
 			 betaSDs = betaSDs, 			#joined onset and duration model sd on slope coefficients
 			 anchorMeans = anchorMeans, 		#joined onset and duration model anchors (with standardized data these are the marginal mean responses)

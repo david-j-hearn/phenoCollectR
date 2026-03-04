@@ -36,6 +36,7 @@ runStanPhenology(
   debug = 0,
   nXs = 101,
   nReps = 100,
+  calculatePPD = FALSE,
   ...
 )
 }

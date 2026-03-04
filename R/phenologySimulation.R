@@ -435,10 +435,13 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 
 	nOrig = length(simulatedData$outputData$sampledTime)
 	if(nOrig < newSampleSize) {
+		print(nOrig)
+		print(newSampleSize)
 		stop("The new sample size must be smaller than or equal to the original sample size.")
 	}
 
 	nStages = simulatedData$nStages+1	#Non cyclical, so that times between 0 and the first stage are labeled 1...
+	nCovariates = simulatedData$nCovariates
 
 	meanX = colMeans(simulatedData$outputData[,paste0("cov", 1:simulatedData$nCovariates)])
 
@@ -464,7 +467,7 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 		print(onsets[i])
 	}
 
-	if(centeredNormal) {	#Normally distributed bias centered over middle stage - regenerate data
+	if(centeredNormal) {	#Normally distributed bias centered over middle stage - resample times, but stages still based on previous covariate values
 		print("Centered normal sampling")
 		meanInd = nStages/2
 		mean = (onsets[meanInd] + onsets[meanInd+1]) / 2
@@ -691,8 +694,8 @@ simulateMultistageData = function(n=1000,
 				  hiddenFactorStrength=0.7, 
 				  minCovariateVariance=16.0,
 				  maxCovariateVariance=100.0,
-				  minCovariateMean=-10.0,
-				  maxCovariateMean=10.0,
+				  minCovariateMean=-5.0,
+				  maxCovariateMean=5.0,
 				  seed=NULL) {
 
 

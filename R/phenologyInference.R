@@ -1228,7 +1228,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##########################################################################################################################################################
 #' }
 #runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, debug=0, ...) {
-runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, ...) {
+runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, calculatePPD=FALSE, ...) {
 
 	## ###########################################################################
 	## CHECK STAN BLOCK
@@ -1352,7 +1352,8 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full"), r
 			      setStringent=setStringent,
 			      maxDiv=maxDiv,
 			      nXs=nXs,
-			      nReps=nReps
+			      nReps=nReps,
+			      calculatePPD=calculatePPD
 			      #priorLevel=priorLevel,
 			      #processExtremes=processExtremes,
 			      #N=N,

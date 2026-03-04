@@ -110,8 +110,8 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 	if(is.null(targetCovariateIndex) || targetCovariateIndex<1) { stop("As input, provide the covariate number you wish to plot. Covariates are indexed from 1 to the number of covariates.") }
 	if(is.null(stageColors)) { stop("Provide a vector with a named color for each stage in your multistage model.") }
 
-	numberStages = 1 + length(simulatedData$nStages)
-	numberCovariates = length(simulatedData$nCovariates)
+	numberStages = simulatedData$nStages
+	numberCovariates = simulatedData$nCovariates
 	trueSlopes = rep(0,numberStages)		#one slope per stage for the target covariate
 	trueIntercepts = rep(0,numberStages)		#one intercept per stage for the target covariate
 	if(targetCovariateIndex>numberCovariates) { stop("Please provide the index number of the covariate you wish to plot between 1 and the number of covariates, inclusive.") }

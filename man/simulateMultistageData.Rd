@@ -32,8 +32,8 @@ simulateMultistageData(
   hiddenFactorStrength = 0.7,
   minCovariateVariance = 16,
   maxCovariateVariance = 100,
-  minCovariateMean = -10,
-  maxCovariateMean = 10,
+  minCovariateMean = -5,
+  maxCovariateMean = 5,
   seed = NULL
 )
 }
