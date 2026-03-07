@@ -976,7 +976,7 @@ makeSimulatedAndTheoreticalOverlayGraph= function(mu_O, mu_C, sigma, n_hist, N, 
 #'  }
 #' print(p)
 #' }
-makeMultistagePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, covariateData, stageData, nReps=10, nXs=100, nStages, slice = 0.25, minResponse=0, maxResponse=365, y_pred=TRUE, nChains=4, nIts=1000, smooth=c("GAM", "LOESS", "SPLINE", "NONE")) {
+makeMultistagePosteriorPredictivePlot = function(stanResult, responseData, responseVariableName="DOY", targetCovariateName, covariateData, stageData, nReps=10, nXs=100, nStages, slice = 0.25, minResponse=0, maxResponse=365, y_pred=FALSE, nChains=4, nIts=1000, smooth=c("GAM", "LOESS", "SPLINE", "NONE")) {
 
 	stageNames = paste0("stage", 1:(nStages))
 	onsetMeans = as.data.frame( matrix(NA_real_, nrow = nXs-1, ncol = (nStages+1)))		#copula / smoothing doesn't do well with last x coordinate

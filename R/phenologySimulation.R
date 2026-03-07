@@ -411,9 +411,10 @@ simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-
 	return(runif(1,-Bmax,Bmax))
 }
 
-#nSD number of standard deviations of the mean to use for normal distribution sampling
-#nBin number of bins to use to approximate the normal distribution for sampling
-resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal=FALSE, overlapOnly=FALSE, excludeLastStage=FALSE, newSampleSize=1, nSDNormal=1, nSDOverlap=3, minResponse=0, maxResponse=365) {
+#nSDNormal number of standard deviations of the mean to use for normal distribution sampling
+#nSDOverlap number of standard deviations of the mean onset for each stage used to determine region of overlap
+resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal=FALSE, overlapOnly=FALSE, excludeLastStage=FALSE, replace=FALSE, newSampleSize=1, nSDNormal=1, nSDOverlap=3, minResponse=0, maxResponse=365) {
+	#simulatedDataOrig = simulatedData
 	if(is.null(simulatedData)) {
 		stop("Please provide the output from simulateMultistageData and a bias type as input")
 	}
@@ -423,18 +424,18 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 	if(maxResponse <= 0) {
 		stop("maxResponse must be greater than 0.")
 	}
-	if(newSampleSize < 1) {
+	if(newSampleSize < 1 && resample) {
 		stop("The new sample size must be at least 1.")
 	}
-	if(nSDNormal <= 0 || nSDOverlap <= 0) {
+	if( (nSDNormal <= 0 && centeredNormal) || (nSDOverlap <= 0 && overlapOnly) ) {
 		stop("The number of standard deviation units must be positive.")
 	}
 	if(!simulatedData$nonCyclical) {
-		stop("Please renumber your stages so that the times between 0 and your first stage are labeled 1, stage 1 times are labeled 2, and so forth so that after the start of the last stage up to the end of the time period is nStages + 1")
+		stop("Please renumber your stages so that the times between 0 and your first stage are labeled 1, stage 1 times are labeled 2, and so forth so that after the start of the last stage up to the end of the time period is nStages + 1. This function will still treat times as cyclical, especially if centeredNormal is set to TRUE or excludeLastStage is set to TRUE. In both cases, the samples from the last stage wrap around the 'start' point.")
 	}
 
 	nOrig = length(simulatedData$outputData$sampledTime)
-	if(nOrig < newSampleSize) {
+	if(nOrig < newSampleSize && !replace && resample) {
 		print(nOrig)
 		print(newSampleSize)
 		stop("The new sample size must be smaller than or equal to the original sample size.")
@@ -443,7 +444,7 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 	nStages = simulatedData$nStages+1	#Non cyclical, so that times between 0 and the first stage are labeled 1...
 	nCovariates = simulatedData$nCovariates
 
-	meanX = colMeans(simulatedData$outputData[,paste0("cov", 1:simulatedData$nCovariates)])
+	meanX = colMeans(simulatedData$outputData[,paste0("cov", 1:simulatedData$nCovariates)])		#estimate covariate means from data
 
 	onsets = numeric(nStages)
 	sigmas = numeric(nStages)
@@ -467,16 +468,17 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 		print(onsets[i])
 	}
 
-	if(centeredNormal) {	#Normally distributed bias centered over middle stage - resample times, but stages still based on previous covariate values
+	if(centeredNormal) {	#Normally distributed bias centered over middle stage - resample times, but stages still based on previous onset times for the individual
 		print("Centered normal sampling")
-		meanInd = nStages/2
+		nOrig = length(simulatedData$outputData$sampledTime)		#redundant, but safer if code ever reorganized
+		meanInd = nStages/2					#determine where to center the normal distribution
 		mean = (onsets[meanInd] + onsets[meanInd+1]) / 2
 		sd = (onsets[nStages] - onsets[2]) / (2*nSDNormal) 	#start of "second" stage and start of "last" stage are mean +/- nSD
 		print(mean)
 		print(sd)
 		simulatedData$outputData$sampledTime = rnorm(n=nOrig, mean=mean, sd=sd)
 
-		#Wrap times that looped over the start of the cycle - assumes not more than 1 looping 
+		#Wrap times that looped over the start of the cycle - assumes not more than 1 looping, which should be very rare, since the SDs of the normal distributions are much smaller than the range of response times 
 		simulatedData$outputData$sampledTime[simulatedData$outputData$sampledTime<0] = maxResponse + simulatedData$outputData$sampledTime[simulatedData$outputData$sampledTime<0] 
 		simulatedData$outputData$sampledTime = simulatedData$outputData$sampledTime %% maxResponse
 
@@ -502,29 +504,49 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 				}
 			}
 		}
-		#hist(simulatedData$outputData$sampledTime)
-		#hist(simulatedData$outputData$sampledStage)
-		#print(length(simulatedData$outputData$sampledTime))
 	}
 
+	if(excludeLastStage) {
+		print("Excluding last stage")
+		simulatedData$outputData = simulatedData$outputData[ 
+								    (simulatedData$outputData$sampledStage != nStages &
+								     simulatedData$outputData$sampledStage != 1 ),]
+		print(length(simulatedData$outputData$sampledTime))
+	}
+
+
+	stageCenter = numeric(nStages)
+	stageLowerOverlap = numeric(nStages)
+	stageUpperOverlap = numeric(nStages)
 	if(overlapOnly) {	#Overlapping onset / cessation regions only
-		print("Sampling only overlapping regions")
+
+		nOO = nrow(simulatedData$outputData)
+
+		position = rep(0,nOO)
+		simulatedData$outputData$position = position
+
 		temp <- as.data.frame(matrix(numeric(0), ncol = ncol(simulatedData$outputData)))
 		colnames(temp) = colnames(simulatedData$outputData)
 
-		nOO = nrow(simulatedData$outputData)
-		for(i in 1:(nStages)) {
+		print("Sampling only overlapping regions")
+		print(nOO)
+		for(i in 1:nStages) {
+			if(i == 1) {
+				#shiftI = minResponse	#doesn't matter
+			}
+			else {
 				shiftI = onsets[i] +  (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[i,])
-				if(i == nStages) {
-					shiftII = onsets[2] + (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[2,])
-				}
-				else {
-					shiftII = onsets[i+1] + (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[i+1,])
-				}
-			for(j in 1:nOO) {
+			}
+			if(i == nStages) {
+				#shiftII = maxResponse	#doesn't matter
+			}
+			else {
+				shiftII = onsets[i+1] + (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[i+1,])
+			}
+			for(j in 1:nOO) {		##assumes that only two stages are overlapping at an average onset of a stage
 				if(i==1) {
-					ll = 0
-					lu = 0
+					ll = minResponse
+					lu = minResponse
 					ul = shiftII[j] - nSDOverlap * sigmas[i+1]
 					uu = shiftII[j] + nSDOverlap * sigmas[i+1]
 				}
@@ -533,57 +555,50 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 					lu = shiftI[j] + nSDOverlap * sigmas[i]
 					ul = shiftII[j] - nSDOverlap * sigmas[i+1]
 					uu = shiftII[j] + nSDOverlap * sigmas[i+1]
-        			}
-        			else if(i==nStages) {
+				}
+				else if(i==nStages) {
 					ll = shiftI[j] - nSDOverlap * sigmas[i]
 					lu = shiftI[j] + nSDOverlap * sigmas[i]
-					ul = shiftII[j] - nSDOverlap * sigmas[2]
-					uu = shiftII[j] + nSDOverlap * sigmas[2]
-        			}
-				t = simulatedData$outputData$sampledTime[j] 
-				#print(paste0(t, " ", ll, " ", lu, " ", ul, " ", uu))
-				if(simulatedData$outputData$sampledStage[j] == i &&
-				   ((t > ll &&
-				   t < lu) ||
-				    (t > ul &&
-				     t < uu))) {
-					temp[nrow(temp) + 1, ] = simulatedData$outputData[j,]
-					#print("MATCHED")
-					#print(nrow(temp))
+					ul = maxResponse
+					uu = maxResponse
 				}
 
-		 #temp = rbind(temp, simulatedData$outputData[ 
-                          #simulatedData$outputData$sampledStage == i &
-                          #(
-                           #(simulatedData$outputData$sampledTime > ll- &
-                            #simulatedData$outputData$sampledTime < lu ) |
-                           #(simulatedData$outputData$sampledTime > ul &
-                            #simulatedData$outputData$sampledTime < uu)
-                           #),
-                          #]) 
-		 	}
-        	}
-		#print("FINAL")
+				t = simulatedData$outputData$sampledTime[j] 
+				if(simulatedData$outputData$sampledStage[j] == i)  {
+					if( t >= ll && t < lu) {
+						simulatedData$outputData$position[j] = 1
+						temp[nrow(temp) + 1, ] = simulatedData$outputData[j,]
+						stageLowerOverlap[i] = stageLowerOverlap[i] + 1
+					}
+					else if( t > ul && t <= uu) {
+						simulatedData$outputData$position[j] = 2
+						temp[nrow(temp) + 1, ] = simulatedData$outputData[j,]
+						stageUpperOverlap[i] = stageUpperOverlap[i] + 1
+					}
+					else if(t >= lu && t <= ul) {	
+						simulatedData$outputData$position[j] = 3
+						#center - do nothing - NOTHING IS ADDED TO TEMP!!!
+					}
+				}
+			}
+		#print(paste0("overlapping count: ", stageLowerOverlap[i] + stageUpperOverlap[i], " stage ", i))
+		}
+
+		#print("before unique")
 		#print(nrow(temp))
-		#print(temp[nrow(temp),])
 		temp = unique(temp)
-
+		#print(temp)
 		simulatedData$outputData = temp
-		#simulatedData$outputData = unique(simulatedData$outputData)	#if overlap, there is possibility of duplicated rows
-		print(length(simulatedData$outputData$sampledTime))
+		#print("after assignment")
+		#print(simulatedData$outputData)
+		#print("after unique")
+		#print(length(simulatedData$outputData$sampledTime))
 	}
 
-	if(excludeLastStage) {
-		print("Excluding last stage")
-		simulatedData$outputData = simulatedData$outputData[ 
-                          (simulatedData$outputData$sampledStage != nStages &
-                          simulatedData$outputData$sampledStage != 1 ),]
-		print(length(simulatedData$outputData$sampledTime))
-	}
 
 	if(resample) {	#Resampled original data
 		nOrig = length(simulatedData$outputData$sampledTime)
-		cat(paste("Resampling from ", nOrig, " original individuals."))
+		cat(paste("Resampling from ", nOrig, " original individuals.\n"))
 		if(nOrig < newSampleSize) {
 			fact = 2*newSampleSize/nOrig
 			stop(paste("The new sample size must be smaller than or equal to the original sample size. Please increase the original sample size by at least ", fact, " times more."))
@@ -592,6 +607,90 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 		simulatedData$outputData = simulatedData$outputData[inds,]
 		print(length(simulatedData$outputData$sampledTime))
 	}
+
+
+	#get the final breakdown of sample sizes in zones of overlap and between zones of overlap - this is inefficient because calculations are redone but conceptually easier
+	stageCenter = numeric(nStages)
+	stageLowerOverlap = numeric(nStages)
+	stageUpperOverlap = numeric(nStages)
+
+	nFinal = nrow(simulatedData$outputData)
+	print("Partitioning overlap / central samples")
+	print(nFinal)
+	for(i in 1:(nStages)) {
+		#shiftI = numeric(nFinal)
+		#shiftII = numeric(nFinal)
+		if(i == 1) {
+			#shiftI = minResponse	#doesn't matter
+		}
+		else {
+			shiftI = onsets[i] +  (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[i,])
+		}
+		if(i == nStages) {
+			#shiftII = maxResponse	#doesn't matter
+		}
+		else {
+			shiftII = onsets[i+1] + (as.matrix(simulatedData$outputData[,1:nCovariates]) - meanX) %*% as.numeric(slopes[i+1,])
+		}
+		for(j in 1:nFinal) {		##assumes that only two stages are overlapping at an average onset of a stage
+			if(i==1) {
+				ll = minResponse
+				lu = minResponse
+				ul = shiftII[j] - nSDOverlap * sigmas[i+1]
+				uu = shiftII[j] + nSDOverlap * sigmas[i+1]
+			}
+			else if(i>1 && i<nStages) {
+				ll = shiftI[j] - nSDOverlap * sigmas[i]
+				lu = shiftI[j] + nSDOverlap * sigmas[i]
+				ul = shiftII[j] - nSDOverlap * sigmas[i+1]
+				uu = shiftII[j] + nSDOverlap * sigmas[i+1]
+			}
+			else if(i==nStages) {
+				ll = shiftI[j] - nSDOverlap * sigmas[i]
+				lu = shiftI[j] + nSDOverlap * sigmas[i]
+				ul = maxResponse
+				uu = maxResponse
+			}
+			t = simulatedData$outputData$sampledTime[j] 
+			if(simulatedData$outputData$sampledStage[j] == i) {  
+				if(!is.null(simulatedData$outputData$position)) {
+					if(simulatedData$outputData$position[j]==1) {
+						stageLowerOverlap[i] = stageLowerOverlap[i] + 1
+					}
+					else if(simulatedData$outputData$position[j]==2) {
+						stageUpperOverlap[i] = stageUpperOverlap[i] + 1
+					}
+					else if(simulatedData$outputData$position[j]==2) {
+						stageCenter[i] = stageCenter[i] + 1
+					}
+				}
+
+				else if(t >= ll && t < lu) {
+					stageLowerOverlap[i] = stageLowerOverlap[i] + 1
+				}
+				else if(t > ul && t <= uu) {
+					stageUpperOverlap[i] = stageUpperOverlap[i] + 1
+				}
+				else if(t >= lu && t <= ul) {
+					stageCenter[i] = stageCenter[i] + 1
+					#if(overlapOnly) {
+						#print("in center")
+						#print(t)
+						#print("boundary lower")
+						#print(lu)
+						#print("boundary upper")
+						#print(ul)
+						#stop("should not be any center points.")
+					#}
+				}
+			}
+		}
+		#print(paste0("overlapping count: ", stageLowerOverlap[i] + stageUpperOverlap[i], " stage ", i))
+	}
+
+	simulatedData$stageCenter = stageCenter
+	simulatedData$stageLowerOverlap = stageLowerOverlap
+	simulatedData$stageUpperOverlap = stageUpperOverlap
 
 	return(simulatedData)
 }

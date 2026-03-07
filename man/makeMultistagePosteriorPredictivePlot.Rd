@@ -17,7 +17,7 @@ makeMultistagePosteriorPredictivePlot(
   slice = 0.25,
   minResponse = 0,
   maxResponse = 365,
-  y_pred = TRUE,
+  y_pred = FALSE,
   nChains = 4,
   nIts = 1000,
   smooth = c("GAM", "LOESS", "SPLINE", "NONE")
