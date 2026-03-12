@@ -797,6 +797,9 @@ simulateMultistageData = function(n=1000,
 				  maxCovariateMean=5.0,
 				  seed=NULL) {
 
+  if(!nonCyclical) {
+    stop("Currently, stages must be coded so that they are \"unrolled\" and numbered from 1 to nStages+1. They must be non-cyclical.")
+  }
 
 	#if(nonCyclical) {
 		#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages+1))
@@ -806,6 +809,7 @@ simulateMultistageData = function(n=1000,
 		#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages))
 		#colnames(individuals) = paste0("stage", 1:nStages)
 	#}
+
 	#Basic checks
 	if(minResponse!=0) {
 		stop("Minimum responses other than 0 are not supported.")
@@ -889,15 +893,20 @@ simulateMultistageData = function(n=1000,
 		stageDurationMeans = means[2:nStages]
 	}
 	#	simulate duration SDs, if needed
+  if(!is.null(stageDurationSDs)) {
+    warning("Setting all duration SDs to 0. Only the first full stage has intrinsic noise.")
+		stageDurationSDs = rep(0,nStages-1)
+  }
 	if(is.null(stageDurationSDs) || length(stageDurationSDs)!=nStages-1) {
-		stageDurationSDs = sqrt(runif(nStages-1, minStageVariance, maxStageVariance))
+		#stageDurationSDs = sqrt(runif(nStages-1, minStageVariance, maxStageVariance))
+		stageDurationSDs = rep(0,nStages-1)
 	}
 
 	#	simulate stage 1 slopes for onset model, if needed
 	if(is.null(stage1OnsetCovariateSlopes) || length(stage1OnsetCovariateSlopes)!=nCovariates) {
 		stage1OnsetCovariateSlopes = rep(0,nCovariates)
 		d1 = stage1OnsetMean
-		d2 = stageDurationMeans[1]
+		d2 = ifelse(stageDurationMeans[1]<stageMinimumSeparation*5,stageMinimumSeparation*5,stageDurationMeans[1])
 		#print("Stage 1")
 		for(i in 1:nCovariates) {
 			#the current / next is different here, since this is the onset model, not the duration model
@@ -942,17 +951,14 @@ simulateMultistageData = function(n=1000,
 		stop("The number of columns in the covariate data matrix does not match the requested number of covariates.")
 	}
 
-	#
-	#simulate the onset times for each stage and simulate sampling each individual in the population
-	times = runif(n,minResponse,maxResponse)
-
 	stages = rep(0,n)
 	onsets = matrix(0,nrow=n,ncol=nStages)
 	colnames(onsets) = stageNames
-	onsetCumTot = 0
+	#onsetCumTot = 0
 	for(i in 1:n) {
 		#covariates = as.vector(X[i,]) #get vector of covariate values
 		covariates = as.numeric(X[i,]) #get vector of covariate values
+	  #onsetCumTot = 0
 		for(j in 1:nStages) {
 			if(j==1) {
 				slopes = stage1OnsetCovariateSlopes
@@ -960,42 +966,53 @@ simulateMultistageData = function(n=1000,
 				#print(covariateMeans)
 				intercept = stage1OnsetMean - sum(as.numeric(slopes) * as.numeric(covariateMeans))
 				sd = stage1OnsetSD
-				onsets[i,j] = rnorm(1, softplus(intercept + sum(slopes * covariates)),sd)
-				#onsets[i,j] = rnorm(1, intercept + sum(slopes * covariates),sd)
+				#onsets[i,j] = rnorm(1, softplus(intercept + sum(slopes * covariates)),sd)
+				onsets[i,j] = rnorm(1, intercept + sum(slopes * covariates),sd) #negative possible for first onset
 				#if(times[i]>0 && times[i]<=onsets[i,j]) {
 					#stages[i] = nStages
 				#}
-				onsetCumTot = stage1OnsetMean
+				#onsetCumTot = onsets[i,j]
 			}
 			else {
 				slopes = as.vector(stageDurationCovariateSlopes[j-1,])
 				intercept = stageDurationMeans[j-1] - sum(as.numeric(slopes) * as.numeric(covariateMeans))
-				sd = stageDurationSDs[j-1]
+				#sd = stageDurationSDs[j-1]    #Should be 0
+        sd = 0  #Make it official
 				#print(slopes)
 				#print(covariateMeans)
-				duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd))
+				duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd)) #Softplus ok here. Sd is 0.
 				#duration = rnorm(1,intercept + sum(slopes * covariates),sd)
-				onsets[i,j] = onsetCumTot + duration
-				diff = onsets[i,j] - onsets[i,j-1]
-				if(diff < 0) {
-					onsets[i,j] = onsets[i,j-1]+1e-5 #stage of 1e-5 duration
-				}
+				#onsets[i,j] = onsetCumTot + duration
+        onsets[i,j] = onsets[i,j-1] + duration
+				#diff = onsets[i,j] - onsets[i,j-1]  #should never happen due to softplus
+				#if(diff < 0) {
+					#onsets[i,j] = onsets[i,j-1]+1e-5 #stage of 1e-5 duration
+				#}
 				#if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
 					#stages[i] = j-1
 				#}
-				onsetCumTot = onsetCumTot + stageDurationMeans[j-1]
+				#onsetCumTot = onsetCumTot + stageDurationMeans[j-1]
+				#onsetCumTot = onsetCumTot + onsets[i,j]
 			}
 		}
 		#if(times[i]>=onsetCumTot) {
 			#stages[i]=nStages
 		#}
 	}
+	#
+	#simulate the onset times for each stage and simulate sampling each individual in the population
+	#times = runif(n,minResponse,maxResponse)
+  minO = min(onsets)
+  maxO = max(onsets)
+	times = runif(n,ifelse(minResponse<minO,minResponse,minO),ifelse(maxResponse>maxO, maxResponse,maxO))
+
 
 	for(i in 1:n) {
 		for(j in 1:nStages) {
 			if(nonCyclical) {
 				if(j==1) {
-					if(times[i]>0 && times[i]<=onsets[i,j]) {
+					#if(times[i]>0 && times[i]<=onsets[i,j]) {
+					if(times[i]<=onsets[i,j]) {   #allow negative
 						stages[i] = 1
 					}
 				}
@@ -1004,11 +1021,12 @@ simulateMultistageData = function(n=1000,
 						stages[i] = j
 					}
 				}
-				if(j==nStages && times[i]>=onsets[i,j]) {
+				if(j==nStages && times[i]>=onsets[i,j]) {   #allow times past maxResponse without wraparound (nonCyclical=TRUE)
 					stages[i] = nStages+1
 				}
 			}
 			else {
+        stop("nonCyclical must be set to TRUE.")
 				if(j==1) {
 					if(times[i]>0 && times[i]<=onsets[i,j]) {
 						stages[i] = nStages
@@ -1047,6 +1065,64 @@ simulateMultistageData = function(n=1000,
 		    stageDurationCovariateSlopes=stageDurationCovariateSlopes))
 }
 
+
+	#return(list(outputData=outputData, 
+		    #nStages = nStages,
+		    #nCovariates = nCovariates,
+		    #nonCyclical = nonCyclical,
+		    #R=R,
+		    #Sigma=Sigma,
+		    #covariateSDs=covariateSDs,
+		    #covariateMeans=covariateMeans,
+		    #X=X,
+		    #stage1OnsetMean=stage1OnsetMean,
+		    #stage1OnsetSD=stage1OnsetSD,
+		    #stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes,
+		    #stageDurationMeans=stageDurationMeans,
+		    #stageDurationSDs=stageDurationSDs,
+		    #stageDurationCovariateSlopes=stageDurationCovariateSlopes))
+#}
+
+#' @export
+simulateMultistageOverlapData = function(n=500, meanFlowers = 20, nStages=3, nCovariates=2, ...) {
+
+  simulatedData = simulateMultistageData(n=n, nStages=nStages, nCovariates=nCovariates, ...) 
+  individuals = vector("list", n)
+  nFlowers = rpois(n, meanFlowers)
+ 
+  onsetCols = (nCovariates+1):(nCovariates+nStages) 
+  for(i in 1:n) {
+    onsets = as.numeric(simulatedData$outputData[i,onsetCols])
+    pi = stageProbabilities(t = simulatedData$outputData$sampledTime[i], 
+              onsets = onsets, 
+              SD = simulatedData$stage1OnsetSD    #just one SD with these data
+         )
+    flowers = sample(1:nStages, nFlowers[i], replace=TRUE, prob=pi)
+    stageCounts = tabulate(flowers, nbins=nStages)
+    individuals[[i]] = list(
+      sampledTime = simulatedData$outputData$sampledTime[i],
+      flowers = flowers,
+      stageCounts = stageCounts
+    )
+  }
+  return(list(simulatedIndividuals = individuals, simulatedData = simulatedData))
+}
+
+stageProbabilities = function(t, onsets, SD) {
+#print(t)
+#print(onsets)
+#print(SDs)
+  S = length(onsets)
+  pi = numeric(S)
+  pi[1] = 1 - pnorm((t - onsets[1])/SD)
+  pi[S] = pnorm((t - onsets[S])/SD)
+
+  for(i in 2:(S-1)) {
+    pi[i] = pnorm((t - onsets[i])/SD) - pnorm((t - onsets[i+1])/SD)
+  }
+  pi = pmax(pi, 0)
+  return(pi / sum(pi))
+}
 
 #' Simulate linearly correlated covariate data
 #'

@@ -1096,19 +1096,19 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	return(summary)
 }
 
-checkInput = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, stage=NULL, nStages=NULL, nOnsetCovariates=NULL, nDurationCovariates=NULL, minResponse, maxResponse, maxDiv, N, processExtremes) {
+checkInput = function(type=c("intercept-only","full","multistage-full","multistage-overlap-full"), responseData=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, stage=NULL, stageCounts=NULL, nStages=NULL, nOnsetCovariates=NULL, nDurationCovariates=NULL, minResponse, maxResponse, maxDiv, N, processExtremes) {
 
 	type = match.arg(type)
 	N = length(responseData)
-	N_C = nrow(onsetCovariateData)
-	K = ncol(onsetCovariateData)
-	N_O = nrow(onsetCovariateData)
-	N_D = nrow(durationCovariateData)
 
-	if(!(type=="intercept-only" || type=="full" || type=="multistage-full" )) {
+	if(!(type=="intercept-only" || type=="full" || type=="multistage-full" || type=="multistage-overlap-full")) {
 		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'full' or 'multistage-full'.\n"))
 		stop("Unsupported type error.")
 	}
+
+  if(processExtremes && (type=="multistage-overlap-full" || type=="multistage-full")) {
+    stop("Processing extremes is not supported for multistage data.")
+  }
 
 	if(processExtremes && N<0) {
 		stop("A positive population size, N, must be supplied when processing extremes.")
@@ -1134,6 +1134,11 @@ checkInput = function(type=c("intercept-only","full","multistage-full"), respons
 		warning("Ten or fewer data items is a very small sample size and will likely result in inaccurate inferences and a high divergence rate during Bayesian inference. The sample size should be at least 60, especially when covariates are used.")
 	}
 
+	N_C = nrow(onsetCovariateData)
+	K = ncol(onsetCovariateData)
+	N_O = nrow(onsetCovariateData)
+	N_D = nrow(durationCovariateData)
+
 	if(type=="multistage-full") {
 		#check that stage values match
 		N_S = length(stage)
@@ -1152,7 +1157,30 @@ checkInput = function(type=c("intercept-only","full","multistage-full"), respons
 		if(length(responseData) != length(stage)) {
 			stop("The stage data vector must be the same length as the response data vector so that each time in the response data corresponds to a stage. Stages should be coded with integer values starting with 1 and increasing consecutively.")
 		}
+  }
 
+  if(type=="multistage-overlap-full") {
+#print("HERE")
+    if(is.null(stageCounts)) {
+      stop("Please provide a stageCounts matrix of the count of units (e.g., flower units) in each stage. Rows are individuals, columns are stages.")
+    }
+    N_S = nrow(stageCounts)
+    S = nStages
+    #print(N)
+    #print(N_S)
+		if(N != N_S) {
+			stop("Make sure that there is a count of units in each stage for each observation. For example for each observed specimen report something like the following in a matrix (rows are observed specimens): 5 in bud, 10 in flower, 12 in immature fruit, 15 in mature fruit.")
+		}
+print("HERE too")
+    if(ncol(stageCounts)!=nStages) {
+      stop("The reported number of stages, nStages, must match the number of columns in your stage count matrix (stageCounts).")
+    }
+		if(length(responseData) != nrow(stageCounts)) {
+			stop("The stage count matrix must have the same number of rows as the length of response data vector so that each time in the response data corresponds to a row in the stage count matrix.")
+		}
+  }
+
+	if(type=="multistage-full" || type=="multistage-overlap-full") {
 		if(!identical(onsetCovariateData, durationCovariateData)) {
 			stop("The covariate data for duration models must be the same as the covariate data for the onset model when applying type 'multistage-full'.")
 		}
@@ -1166,7 +1194,7 @@ checkInput = function(type=c("intercept-only","full","multistage-full"), respons
 		}
 	}
 
-	if(type=="full" || type=="multistage-full") {
+	if(type=="full" || type=="multistage-full" || type=="multistage-overlap-full") {
 		if(sum(is.na(onsetCovariateData)) || !is.data.frame(onsetCovariateData) ) {
 			cat("Please remove all NA values, and provide a data frame of the onset model covariate (predictor variable) data. \nThese might be temperature or precipitation data at the specimen collection sites, for example.\nEach column of the data frame should be named with the predictor variable name (e.g. 'meanAnnualTemperature').\nThe order of the rows should correspond to the order of the elements in the response variable data vector (i.e., the first element in the response vector corresponds with the first row in the onset covariate data frame, the second element with the second row, and so forth).\nPlease see documentation for additional information and examples.")
 			stop("Please provide appropriate inputs")
@@ -1178,7 +1206,7 @@ checkInput = function(type=c("intercept-only","full","multistage-full"), respons
 		cat("Checking data compatibility.\n")
 		#check data dimensions
 		if(N != N_O || N != N_D) {
-			return(list(error=TRUE, error_m="Be sure the sample size is the the same for the response (observed) values, for the covariate values for the onset, and for the covariate values for the duration. Rows should be parallel. Row 1 in the response data vector should correspond to the same individual in row 1 of each covariate data frame. If files names are input, corresponding files should be text formatted with tab-separated columns which should have headers. If data frames are input, these should have column names."))
+			stop("Be sure the sample size is the the same for the response (observed) values, for the covariate values for the onset, and for the covariate values for the duration. Rows should be parallel. Row 1 in the response data vector should correspond to the same individual in row 1 of each covariate data frame. If files names are input, corresponding files should be text formatted with tab-separated columns which should have headers. If data frames are input, these should have column names.")
 		}
 
 		#check data dimensions
@@ -1190,7 +1218,7 @@ checkInput = function(type=c("intercept-only","full","multistage-full"), respons
 	return(TRUE)
 }
 
-checkPriors = function(type=c("intercept-only","full","multistage-full"), nStages, responseData=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, partitionDataForPriors=FALSE, minResponse, maxResponse) {
+checkPriors = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), nStages, responseData=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, partitionDataForPriors=FALSE, minResponse, maxResponse) {
 
 	if(partitionDataForPriors) {
 		cat("The data will be partitioned into two sets with 30% and 70% of the data. \n\n30% will be used to carry out a preliminary analysis using quantiles to estimate the prior distribution hyperparameter values. \n\n70% of the data will be used to carry out a Stan Bayesian analysis to obtain the posterior distributions of parameters.\n\nIf other hyperparameter information was provided as input, it will be ignored. \n\nThe calculated values based on quantiles are approximate; you may need to use other sources of data to get better estimates of prior hyperparameter values, especially if the Stan run results in divergences or other poor diagnostics.\n\n")
@@ -1198,7 +1226,7 @@ checkPriors = function(type=c("intercept-only","full","multistage-full"), nStage
 		scale = (maxResponse-minResponse) / (365 - 0) 	#setting scale relative to parameters for annual variation
 
 
-		if(type=="multistage-full") {
+		if(type=="multistage-full" || type=="multistage-overlap-full") {
 			stop("Automatic partitioning of data for prior hyperparameter estimation is not available for multistage analysis.")
 		}
 
@@ -1261,7 +1289,7 @@ checkPriors = function(type=c("intercept-only","full","multistage-full"), nStage
 		}
 	}
 
-	if(type=="multistage-full") {
+	if(type=="multistage-full" || type=="multistage-overlap-full") {
 		nCovariates = ncol(onsetCovariateData)
 		range = (maxResponse-minResponse)
 		mr = mean(responseData)
@@ -1279,7 +1307,7 @@ checkPriors = function(type=c("intercept-only","full","multistage-full"), nStage
 		}
 		if(is.null(onsetHyperAnchor)) {
 			cat("Automatically setting prior for onset model anchor.\n")
-			onsetHyperAnchor=c(oa,1*sdr)	#sd arbitrarily set to 1/10 of expected duration
+			onsetHyperAnchor=c(oa,1*sdr)	
 		}
 		if(is.null(durationHyperBetaMean)) {
 			cat("Automatically setting prior for duration model slope means.\n")
@@ -1291,7 +1319,7 @@ checkPriors = function(type=c("intercept-only","full","multistage-full"), nStage
 		}
 		if(is.null(durationHyperAnchor)) {
 			cat("Automatically setting prior for duration model anchors.\n")
-			durationHyperAnchor = data.frame(mean = rep(da,nStages-1), sd=rep(1*sdr,nStages-1))	#sd arbitrarily set to 1/10 of expected duration
+			durationHyperAnchor = data.frame(mean = rep(da,nStages-1), sd=rep(1*sdr,nStages-1))	#sd 1 standard deviation of the observed times
 		}
 		if(is.null(sigmaHyper)) {
 			cat("Automatically setting prior for sigma.\n")
@@ -1430,9 +1458,9 @@ mean_o = rep(0,nStages)
 mean_o_low = rep(0,nStages)
 mean_o_high= rep(0,nStages)
 
-beta = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
-beta_low = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
-beta_high = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
+beta_o = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
+beta_o_low = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
+beta_o_high = matrix(rep(0,nStages*nCovariates), nrow=nStages, ncol=nCovariates)
 
 alpha = rep(0, nStages)
 alpha_low = rep(0, nStages)
@@ -1461,9 +1489,9 @@ for(j in 2:(nStages+1)) {
 
        for(i in 1:nCovariates) {
                 varO = paste0("beta_o[", j, ",", i, "]")
-                beta[j-1,i] = summary[summary$variable==varO, "mean"]
-                beta_low[j-1,i] = summary[summary$variable==varO, paste0("q",probs[1])]
-                beta_high[j-1,i] = summary[summary$variable==varO, paste0("q",probs[2])]
+                beta_o[j-1,i] = summary[summary$variable==varO, "mean"]
+                beta_o_low[j-1,i] = summary[summary$variable==varO, paste0("q",probs[1])]
+                beta_o_high[j-1,i] = summary[summary$variable==varO, paste0("q",probs[2])]
         }
 }
 
@@ -1473,9 +1501,9 @@ return( list(mean_o_low = mean_o_low,
 	     alpha = alpha,
 	     alpha_low = alpha_low,
 	     alpha_high = alpha_high,
-	     beta = beta,
-	     beta_low = beta_low,
-	     beta_high = beta_high,
+	     beta_o = beta_o,
+	     beta_o_low = beta_o_low,
+	     beta_o_high = beta_o_high,
 	     sigma = sigma,
 	     sigma_low = sigma_low,
 	     sigma_high = sigma_high

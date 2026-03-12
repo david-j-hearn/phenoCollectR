@@ -5,9 +5,10 @@
 \title{Run a Bayesian analysis of phenological events using biocollection data}
 \usage{
 runStanPhenology(
-  type = c("intercept-only", "full", "multistage-full"),
+  type = c("intercept-only", "full", "multistage-full", "multistage-overlap-full"),
   responseData = NULL,
   stage = NULL,
+  stageCounts = NULL,
   nStages = NULL,
   hyperparams_noCovariates = NULL,
   onsetCovariateData = NULL,
@@ -27,8 +28,8 @@ runStanPhenology(
   maxResponse = 365,
   maxDiv = 0,
   setStringent = TRUE,
-  runMAP = TRUE,
-  processExtremes = TRUE,
+  runMAP = FALSE,
+  processExtremes = FALSE,
   N = 500,
   partitionDataForPriors = FALSE,
   byPassChecks = FALSE,
@@ -41,11 +42,13 @@ runStanPhenology(
 )
 }
 \arguments{
-\item{type}{The type of model to be implemented. Five options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data. Option 'multistage-full' is the most general option, and includes randomly sampled times of individuals, their phenological stage, and covariate data, with one linear model per stage, including for the interval between the start of a time period and the first stage in that time period. There is no multistage option for no covariates, but if you want to run such a model, set up a dummy covariate with a constant value and ignore the parameters for the linear model in the output. The Examples section below provides example usage of each scenario (default: intercept-only)}
+\item{type}{The type of model to be implemented. Five options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data. Option 'multistage-full' includes randomly sampled times of individuals, their phenological stage, and covariate data, with one linear model per stage, including for the interval between the start of a time period and the first stage in that time period. Option 'multistage-overlap-full' is the most general option. This option models individuals with 1 or more units that can occur in different stages. For example, an individual plant can have multiple floral units in different stages: bud, open flower, immature fruit, mature fruit. There is no multistage option for no covariates, but if you want to run such a model, set up a dummy covariate with a constant value and ignore the parameters for the linear model in the output. The Examples section below provides example usage of each scenario (default: intercept-only)}
 
 \item{responseData}{A vector of the response data. The response data are simply the observed times of collection, often the day of year for biocollection data. This vector is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason to use preprocessing transformations. (default: NULL)}
 
-\item{stage}{Only for use when type 'multistage-full'. A vector of integers the same length as the number of observations. For each observation, the stage is the numeric value associated with each stage. The stage is 1 if the observation is in the interval between the start of the time period and before the first phenophase in the time period. (default: NULL)}
+\item{stage}{Only for use with type 'multistage-full'. A vector of integers the same length as the number of observations. For each observation, the stage is the numeric value associated with each stage. The stage is 1 if the observation is in the interval between the start of the time period and before the first phenophase in the time period. (default: NULL)}
+
+\item{stageCounts}{Only for use with type 'multistage-overlap-full'. A matrix of intergers with columns representing stages and rows representing individuals. Each row represents an individual, and the counts of units (e.g. floral units) in each stage corresponding to the columns is provided. If the stage is before a unit has developed or after units have senesced, provide a count for that stage indicating the average number of units per individual when the units are active (e.g., expected number of flowers for the plant). If the individual represents the unit and stages are sequential (non-overlapping within the unit), then there is one unit, and the counts should be 0 for all stages, except for the stage the individual is in, which should have a count of 1. For example, if each season, the individual produces a single flower and that flower is open, then the stage counts for pre-reproductive, in bud, in flower, in immature fruit, in fruit, post-reproductive would be: 0, 0, 1, 0, 0, 0. This will perform the identical analysis as type 'multistage-full'.}
 
 \item{hyperparams_noCovariates}{For use with 'intercept-only' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order. Items in the vector can be named or unnamed. (default: NULL)}
 
@@ -223,6 +226,14 @@ The probability that an individual \eqn{j} is in stage \eqn{s} is the probabilit
 Last, the probability that an individual is in the last stage is the probability that the sampled time is after the onset of the last stage S: \deqn{P_{S|j}(O_S \leq t_j|\theta) = \Phi(z_{S|j})}
 
 The likelihood follows a categorical random variable: \deqn{L(\theta) = \prod_{j=1}^{j=N}\prod_{s=1}^{s=S}P_{s|j}^{I(s_j = s)}} where the indicator function \eqn{I(s_j=s)} returns 1 whenever the stage for the \eqn{j^{th}} individual equals \eqn{s} and returns 0 otherwise.
+
+\bold{THEORY: OVERLAPPING MULTISTAGE}
+
+For \bold{individuals with multiple units of organization each with multiple stages}, such as an individual plant with multiple floral units with stages 'bud', 'flower', 'immature fruit', 'mature fruit', counts of units in each stage are provided as input along with the time the indivdiual was observed.
+
+The probability that a unit is in a particular stage given the time of observation, \eqn{P_{s|j}} are the same probabilities as for the multistage theory above.
+
+In principle, there are many options to model the distribution of stages of units within an individual at a particular time of observation. One could model the developmental dynamics of the units and use this model to generate the distribution of stages. This is ideal, but requires detailed knowledge of the developmental dynamics of individuals. As an idealization, here, the probability mass function of the stages is modeled as multinomial, which models each unit as developing independently of the other units within the individual once the unit itself has begun development. The stage probabilities \eqn{P_{s|j}} provide the probabilities of occuring in each stage for the multinomial model.
 
 \bold{THEORY: PRESENCE-ONLY (PO)}
 
@@ -477,7 +488,7 @@ nStages=nStages,				            #number of stages
  mean_low = rep(0,nStages)
  mean_high = rep(0,nStages)
  
- #Extract slopes and intercepts (anchors) and overlay the inferred lines onto earlier plot
+ #Extract slopes and intercepts for mean-centered covariates (anchors) and overlay the inferred lines onto earlier plot
  for(j in 1:(nStages+1)) {
          beta = rep(0,nCovariates)
          beta_low = rep(0,nCovariates)
@@ -511,6 +522,12 @@ nStages=nStages,				            #number of stages
  }
  
  
+##
+##
+##
+##########################################################################################################################################################
+##Conduct an analysis of individuals with multiple units and each unit having one of multiple possible stages using SIMULATED DATA. (For example: an individual plant with multiple flower units, each in a different stage (budding, flowering, fruiting). 
+#
  
 ##
 ##

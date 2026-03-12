@@ -125,7 +125,8 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 		trueIntercepts[1] = simulatedData$stage1OnsetMean - sum(simulatedData$stage1OnsetCovariateSlopes * simulatedData$covariateMeans) #sum not neede here, for for consistency
 		cumOnsetSum = simulatedData$stage1OnsetMean
 		for(i in 1:(numberStages-1)) {
-			trueSlopes[i+1] = simulatedData$stageDurationCovariateSlopes[i,targetCovariateIndex]
+			#trueSlopes[i+1] = simulatedData$stageDurationCovariateSlopes[i,targetCovariateIndex]
+			trueSlopes[i+1] = trueSlopes[i] + simulatedData$stageDurationCovariateSlopes[i,targetCovariateIndex]
 			trueIntercepts[i+1] = cumOnsetSum + simulatedData$stageDurationMeans[i] - sum(simulatedData$stageDurationCovariateSlopes[i,] * simulatedData$covariateMeans)
 			cumOnsetSum = cumOnsetSum + simulatedData$stageDurationMeans[i]
 		}
@@ -150,7 +151,8 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 						   Sigma = simulatedData$Sigma, 
 						   R = simulatedData$R, 
 						   sd_x = simulatedData$covariateSDs) 
-			trueSlopes[i+1] = model$slope
+			#trueSlopes[i+1] = model$slope
+			trueSlopes[i+1] = model$slope + trueSlopes[i]
 			trueIntercepts[i+1] = model$intercept + cumOnsetSum
 			cumOnsetSum = cumOnsetSum + simulatedData$stageDurationMeans[i]
 		}
