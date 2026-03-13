@@ -40,6 +40,7 @@
 #' #plot phenophases for each individual in gray
 #' segments(x0 = data$X, y0 = data$O, x1 = data$X, y1 = data$C, col = "gray", lwd=0.5)
 #' }
+#' @noRd
 simulateCovariate = function(n, slopeO, interceptO, sigma, slopeD, interceptD, minCovariate, maxCovariate) {
 
 x = runif(n, minCovariate, maxCovariate)
@@ -79,7 +80,6 @@ return(out)
 #' @param maxResponse The maximum time of observations. default: 365, representing the number of days in a year. 
 #'
 #' @return Dataframe with columns labeled with the variable names, including all covariates, the simulated onset times, durations, cessations, sampled times, stage (before, during, after phenophase) and rows representing simulated individuals
-#' @export
 #' @importFrom MASS mvrnorm
 #'
 #' @examples
@@ -140,6 +140,7 @@ return(out)
 #' #With the above numbers that's o1: 1, o2: 2, c1: (3 + 3), d1: 1
 #' summary(lm(cessation ~ o1 + o2 + c1 + d1))
 #' }
+#' @noRd
 simulatePopulationLatentIntervalStates = function(n, 
 					covariateNamesOnset=NULL, covariateNamesDuration=NULL, 
 					covariateMeans = NULL, 
@@ -226,7 +227,6 @@ simulatePopulationLatentIntervalStates = function(n,
 #' @param noise_sd Standard deviation of the noise in the response variable
 #'
 #' @return A data frame with columns labeled with the variable names and rows representing simulation replicates.
-#' @export
 #' @importFrom MASS mvrnorm
 #'
 #' @examples
@@ -269,6 +269,7 @@ simulatePopulationLatentIntervalStates = function(n,
 #' #Means should resemble the provided ones for the response and covariates
 #' colMeans(simulated_data)
 #' }
+#' @noRd
 simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_sd = 0) {
 # Basic checks
 	if (!is.data.frame(X) && !is.matrix(X)) {
@@ -329,7 +330,6 @@ simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_
 #' @param var_max The maximum variance of a covariate, which is uniformly sampled between var_min and var_max. Must be positive and more than var_min. (default: 1)
 #'
 #' @return A list with the correlation matrix, R, the covariance matrix, Sigma, the loading matrix Lambda defined by the normally distributed loading, the diagonal matrix of variances, Psi, covariateSDs, where Sigma is Lambda %*% t(Lambda) + Psi
-#' @export
 #'
 #' @examples
 #' \donttest{
@@ -340,6 +340,7 @@ simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_
 #' maximumVariance = 1.0
 #' simulateFactorCorrelation(nCovariates, nLatentFactorsUnderlyingCorrelations, averageDeviationFromMeanCovariance, minimumVariance, maximumVariance)
 #' }
+#' @noRd
 simulateFactorCorrelation <- function(C = 3, 
 				      K = 2, 
 				      loading_sd = 0.7, 
@@ -382,7 +383,6 @@ simulateFactorCorrelation <- function(C = 3,
 #' @param stageMinimumSeparation A value describing the minimum amount of separation between the previous and the subsequent stage. (default: 10)
 #'
 #' @return A slope value giving rise to data that fit, on average, within the input constraints
-#' @export
 #'
 #' @examples
 #' \donttest{
@@ -398,6 +398,7 @@ simulateFactorCorrelation <- function(C = 3,
 #' y = rnorm(n, previousStageMeanDuration + x * slope, noise) 
 #' plot(x,y)
 #' }
+#' @noRd
 simulateCovariateSlope = function(windowBelow=10, windowAbove=10, minCovariate=-10, maxCovariate=10, stageMinimumSeparation=10) {
 	#print("below")
 	#print(windowBelow)
@@ -695,12 +696,13 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 	return(simulatedData)
 }
 
-#' Simulate covariate data, phenological stage onset times, sample times, and sampled stage data
+#' Simulate covariate data, phenological stage onset times and sampled times and stage data
+
 #'
-#' @description Simulate covariate data, phenological stage onset times, sample times, and sampled stage data.
+#' @description Simulate covariate data, phenological stage onset times and sampled times and stage data. Usable with both presence-only and multistage analyses. For presence-only analyses, remove all rows in the output data set (outputData) with sampled times (sampledTime) outside the stage of iterest.
 #' 
 #' @param n The sample size. (default: 1000)
-#' @param nStages The number of stages to simulate. Not optional. (default: 2)
+#' @param nStages The number of stages to simulate. (default: 2)
 #' @param nonCyclical Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: TRUE)
 #' @param stageNames A vector of the names of stages. (default: NULL)
 #' @param stage1OnsetMean The mean value of the first stage's onset. (default: NULL)
@@ -798,7 +800,7 @@ simulateMultistageData = function(n=1000,
 				  seed=NULL) {
 
   if(!nonCyclical) {
-    stop("Currently, stages must be coded so that they are \"unrolled\" and numbered from 1 to nStages+1. They must be non-cyclical.")
+    stop("Currently, stages must be coded so that they are \"unrolled\" and numbered from 1 to nStages+1. So, nonCyclical must be set to TRUE.")
   }
 
 	#if(nonCyclical) {
@@ -1137,7 +1139,6 @@ stageProbabilities = function(t, onsets, SD) {
 #' @param seed An optional seed for the random number generator.
 #'
 #' @return A data frame with columns labeled with the covariate names and n rows representing simulation replicates.
-#' @export
 #' @importFrom MASS mvrnorm
 #'
 #' @examples
@@ -1162,6 +1163,7 @@ stageProbabilities = function(t, onsets, SD) {
 #' #Correlation matrix should be close to the true correlation matrix
 #' cor(X)
 #' }
+#' @noRd
 simulateCorrelatedCovariateData = function (n, covariateNames=NULL, covariateMeans=NULL, Sigma = NULL, R = NULL, covariateSDs = NULL, seed = NULL)  {
 
 	if(is.null(covariateNames)) {
@@ -1307,7 +1309,6 @@ return(X)
 #' @param noise_sd Standard deviation of the noise in the response variable
 #'
 #' @return A data frame with columns labeled with the variable names and rows representing simulation replicates.
-#' @export
 #' @importFrom MASS mvrnorm
 #'
 #' @examples
@@ -1340,6 +1341,7 @@ return(X)
 #' #Means should be 100, 10, 20, 30
 #' colMeans(simulated_data)
 #' }
+#' @noRd
 simulateCorrelatedCovariateAndResponseData = function(n, beta, covariateNames, cov_means = NULL, response_name = "Y", Sigma = NULL, R = NULL, covariateSDs = NULL, anchor = 0, noise_sd = 1) {
 
 # Simulate covariates
@@ -1538,7 +1540,7 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 
 #' Simulate phenological states for individuals of a population
 #'
-#' @description Simulate the phenophase onset, duration, and cessation times for individuals of a population. Phenological extremes (first onset, last cessation) are also provided. 
+#' @description Simulate the phenophase onset, duration, and cessation times for individuals of a population. Phenological extremes (first onset, last cessation) are also provided. No covariates are included.
 #'
 #' Data can be simulated under either the beta onset, beta duration model (BB) or under the Gaussian process model (GP). 
 #' 

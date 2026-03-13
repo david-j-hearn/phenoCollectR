@@ -42,7 +42,7 @@ simulatePopulation(
 A list with the input parameter values, the simulated onsets (O), durations (D), cessations (C), observed collection times (Ts). Specifics of the output depend on whether the BB or the GP model was applied.
 }
 \description{
-Simulate the phenophase onset, duration, and cessation times for individuals of a population. Phenological extremes (first onset, last cessation) are also provided.
+Simulate the phenophase onset, duration, and cessation times for individuals of a population. Phenological extremes (first onset, last cessation) are also provided. No covariates are included.
 
 Data can be simulated under either the beta onset, beta duration model (BB) or under the Gaussian process model (GP).
 

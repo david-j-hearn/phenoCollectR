@@ -7,15 +7,21 @@ functions {
     real z = 0.0;
     real z1 = 0.0;
     real p;
-    z = (t_std[ind] - O_std[2] ) / sigma_std;
-    logp += counts[ind,1] * normal_lccdf(z | 0, 1); //Need to update this with fixed
+    if(counts[ind,1]>0) {
+      z = (t_std[ind] - O_std[2] ) / sigma_std;
+      logp += counts[ind,1] * normal_lccdf(z | 0, 1); //Need to update this with fixed
+    }
     for(i in 2:S-1) {
+      if(counts[ind,i]>0) {
         z = (t_std[ind] - O_std[i] ) / sigma_std;
         z1 = (t_std[ind] - O_std[i+1]) / sigma_std; 
-    logp += counts[ind,i] * log_diff_exp(normal_lcdf(z | 0, 1), normal_lcdf(z1 | 0, 1));
+        logp += counts[ind,i] * log_diff_exp(normal_lcdf(z | 0, 1), normal_lcdf(z1 | 0, 1));
+      }
     }
-    z = (t_std[ind] - O_std[S] ) / sigma_std;
-    logp += counts[ind,S] * normal_lcdf(z | 0, 1);
+    if(counts[ind,S]>0) {
+      z = (t_std[ind] - O_std[S] ) / sigma_std;
+      logp += counts[ind,S] * normal_lcdf(z | 0, 1);
+    }
     return logp;
   }
 }
@@ -31,7 +37,7 @@ data {
 
   vector[N] t_raw;  //observed collection times
 
-  array[N, S] int stage_counts;  //int array for each individual of counts per stage
+  array[N, S] int stage_counts;  //int array with rows of counts per stage per individual
 
   real T_max; //Maximum possible observed time (minimum assumed to be 0)
 
@@ -96,18 +102,18 @@ transformed data {
 
   sigmaMean_std = sigmaMean / sd_t;
   sigmaSD_std = sigmaSD / sd_t;
-  print("beta hyper means: ", betaMeans_std);
-  print("beta hyper sds: ", betaSDs_std);
-  print("anchor hyper means: ", anchorMeans_std);
-  print("anchor hyper SDs: ", anchorSDs_std);
-  print("sigma hyper mean: ", sigmaMean_std);
-  print("anchor hyper SD: ", sigmaSD_std);
+  print("beta hyperparameter means: ", betaMeans_std);
+  print("beta hyperparameter sds: ", betaSDs_std);
+  print("anchor hyperparameter means: ", anchorMeans_std);
+  print("anchor hyperparameter SDs: ", anchorSDs_std);
+  print("sigma hyperparameter mean: ", sigmaMean_std);
+  print("sigma hyperparameter SD: ", sigmaSD_std);
 }
 
 parameters {
 
   // Duration models (standardized time units)
-  vector<lower=0.0>[S-1] alpha_d_std;		//intercepts w/o last stage 
+  vector[S-1] alpha_d_std;		//intercepts w/o last stage 
   matrix[S-1, K] beta_d_std;			//slopes for duration models  - does not include last stage 
   real<lower=0> sigma_std; 	//single sigma flower-level variability
   //vector[N] gamma;  //individual random effects (shifting onset per individual)

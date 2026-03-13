@@ -86,6 +86,12 @@ runStanPhenology(
 
 \item{priorLevel}{Specifies types of priors by an integer. Setting to 0 will use flat priors. Above 0 will use the user-input prior hyperparameters with normally distributed priors. For presence-only data, leave at default. (default: 2)}
 
+\item{nXs}{For use with 'multistage-full' analyses only. Number of increments along the x-axis for posterior predictive plotting. (default: 101)}
+
+\item{nReps}{For use with 'multistage-full' analysis only. Number of replicates per x-axis increment to sample for posterior predictive estimates. (default: 100)}
+
+\item{calculatePPD}{For use with 'multistage-full' analyses only. Boolean indicating whether the posterior predictive distribution should be estimated. (default: FALSE)}
+
 \item{...}{Parameters to be input into the Stan sample function. Not currently implemented. Do not use.}
 
 \item{maximizeSampleSize}{Boolean flag for use when partitionDataForPriors is set to TRUE. If a user wants 100\% of the data to be used for the Bayesian analysis, set this to TRUE. This is statistically invalid because the same data are used to estimate the prior hyperparameters and carry out the full Bayesian analysis. When the sample size is very small, and no prior information is available, the error on the estimates may be unacceptably large unless the fuller dataset is used for inference. Deprecated and no longer implemented. (default: FALSE)}
@@ -172,9 +178,9 @@ The theory developed by Hearn et al. (XXXX) unifies the models for onset and dur
 
 As part of a Bayesian analysis, and to reduce model identifiability issues with presence-only data, a prior distribution is needed for the analysis. Flat priors will not work for this analysis. Because the setting of priors can be challenging, this function can optionally implement methods that will automate the specification of priors for you. Advanced users can manually tailor prior hyperparameters and achieve weakly informative priors, if desired. Under the current implementation, the functional form of the priors is pre-set.
 
-Users can also optionally choose to analyze phenological extremes. To do so requires an estimate of the population size from with biocollection records were obtained. The concept of "population" in this case can be quite loose and can be the metapopulation consisting of all populations from which samples were selected.
+Users can also optionally choose to analyze phenological extremes. To do so requires an estimate of the population size from which biocollection records were obtained. The concept of "population" in this case can be quite loose and can be the metapopulation consisting of all populations from which samples were selected.
 
-The parameters to be estimated for the 'full' model include the marginal mean onset time (\eqn{\mu_O}), the marginal mean duration (\eqn{\mu_D}), one parameter (\eqn{\beta_O} coefficient) for each covariate used to model the mean onset time, one parameter (\eqn{\beta_D} coefficient) for each covariate used to model the mean duration time, and one \eqn{\sigma_O} parameter which models both the standard deviation of the distribution of onset times and the standard deviation of the distribution of durations. If there are \eqn{K_O} onset covariates, and \eqn{K_D} duration covariates, then there is a total of 3 + \eqn{K_O} + \eqn{K_D} free parameters (including the two \eqn{\alpha} intercept terms.
+The parameters to be estimated for the 'full' model include the marginal mean onset time (\eqn{\mu_O}), the marginal mean duration (\eqn{\mu_D}), one parameter (\eqn{\beta_O} coefficient) for each covariate used to model the mean onset time, one parameter (\eqn{\beta_D} coefficient) for each covariate used to model the mean duration time, and one \eqn{\sigma_O} parameter which models both the standard deviation of the distribution of onset times and the standard deviation of the distribution of durations. If there are \eqn{K_O} onset covariates, and \eqn{K_D} duration covariates, then there is a total of 3 + \eqn{K_O} + \eqn{K_D} free parameters (including the two \eqn{\alpha} intercept terms and \eqn{\sigma_O}).
 
 The parameters to be estimated for the 'intercept-only' model include the marginal mean onset time (\eqn{\mu_O}), the marginal mean duration (\eqn{\mu_D}), and the sigma parameter (\eqn{\sigma_O}).
 
@@ -194,7 +200,7 @@ Both visible and latent events are modeled with random variables (RVs).
 
 RVs are symbolized with the first letter of the state of interest: Onset (O), Duration (D), Cessation (C), observed collection Times (T).
 
-RVs representing extremes are subscripted. For example, first onset is \eqn{O_1}, and last onset is \eqn{O_N} where \eqn{N} is the population size.
+RVs representing extremes are subscripted. For example, first onset in a population is \eqn{O_1}, and last cessation is \eqn{C_N} where \eqn{N} is the population size.
 
 Parameters are subscripted by the associated random variable. For example, mean duration is \eqn{\mu_D} and the standard deviation of the last cessation is \eqn{\sigma_{C_N}}. In the linear models, intercept parameters are represented by \eqn{\alpha} and slope coefficients are \eqn{\beta}. So, for the model of mean onset, the intercept is \eqn{\alpha_O} and a slope coefficient for the \eqn{i^{th}} covariate is \eqn{\beta_{O,i}}.
 
@@ -208,20 +214,22 @@ Onset times have intrinsic noise due to \eqn{\sigma_O}, whereas durations do not
 
 The sample design is as follows. Individuals are randomly sampled from a population at random points in time during the time period.
 
-The only RVs with directly observed states are the observed times (\eqn{T}) and the observed states (\eqn{S}). All the other RVs are latent (hidden) and estimated from the observed times and associated stages.
+The only RVs with directly observed states are the observed times (\eqn{T}) and the observed phenological stages (\eqn{S}). All the other RVs are latent (hidden) and estimated from the observed times and associated stages.
 
 For the theory, we simplify things by examining a time period (TP) starting at time 0 and of length 1 time unit. Data sampled from other length time periods can be translated to start at time 0 by subtracting \eqn{m} from all times and scaled to a length of 1 by dividing all sampled times by \eqn{M-m}. In what follows, we assume such transformations have already been made. These transformations are handled automatically by this runStanPhenology function. If users wish to transform their data in other ways prior to analysis, we leave this up to the user.
 
 \bold{THEORY: MULTISTAGE}
 
-For \bold{multistage} data, all observed times are kept and the stage (e.g., flowering, fruiting, active growth, dormant) is recorded with an integer label.
+For \bold{multistage} data, all observed times are kept and the stage (e.g., flowering, fruiting, active growth, dormancy) is recorded with an integer label.
 For the core theory, we need to determine the probabilities of each stage given the sampled time and model parameters. The core parameters are the mean onset of the first full stage in the TP, the mean durations, and the variation in onset times.
+
+Here, the notation is slightly different that that presented above. \eqn{O_1} represents the onset time of the first stage, rather than the first onset phenological extreme.
 
 If you are interested in doing an analysis of data before a phenophase of interest, during a phenophase of interest, and after a phenophase of interest (BDA analysis), code the data with the following stages: 1 = before, 2 = during, and 3 = after.
 
-The probability that an individual is in a stage that is before the first full stage begins (ie, stage 1) is \deqn{P_{1|j}(O_1>t_j|\theta)=1-\Phi(z_{1|j})} where \eqn{t_j} is the observed time of collection of the \eqn{j^{th}} individual, \eqn{\Phi(z) \equiv P(Z<z)} is the cumulative distribution function of a standard normal random variable \eqn{\Phi(z) \equiv P(Z<z)}, and z values are the standardized times \eqn{z = \frac{t-\mu}{\sigma}}.
+The probability that an individual is in a stage that is before the first full stage begins (ie, stage 1) is \deqn{P_{1|j}(O_1>t_j|\theta)=1-\Phi(z_{1|j})} where \eqn{t_j} is the observed time of collection of the \eqn{j^{th}} individual, \eqn{\Phi(z) \equiv P(Z \le z)} is the cumulative distribution function of a standard normal random variable, and z values are the standardized times \eqn{z = \frac{t-\mu}{\sigma}}.
 
-The probability that an individual \eqn{j} is in stage \eqn{s} is the probability that the sampled time is after the onset of stage \eqn{s} and before the onset of the next stage \eqn{s+1}: \deqn{P_{s|j}(O_s \leq t_j, O_{s+1} > t_j|\theta) = \Phi(z_{s|j})-\Phi(z_{s+1|j})}
+The probability that an individual \eqn{j} is in stage \eqn{s} is the probability that the sampled time is after the onset of stage \eqn{s} and before the onset of the next stage \eqn{s+1}. Using De Morgan's law for probabilities, \deqn{P_{s|j}(O_s \leq t_j, O_{s+1} > t_j|\theta) = \Phi(z_{s|j})-\Phi(z_{s+1|j})}
 
 Last, the probability that an individual is in the last stage is the probability that the sampled time is after the onset of the last stage S: \deqn{P_{S|j}(O_S \leq t_j|\theta) = \Phi(z_{S|j})}
 
@@ -229,41 +237,43 @@ The likelihood follows a categorical random variable: \deqn{L(\theta) = \prod_{j
 
 \bold{THEORY: OVERLAPPING MULTISTAGE}
 
-For \bold{individuals with multiple units of organization each with multiple stages}, such as an individual plant with multiple floral units with stages 'bud', 'flower', 'immature fruit', 'mature fruit', counts of units in each stage are provided as input along with the time the indivdiual was observed.
+For \bold{individuals with multiple units of organization each with multiple stages}, such as an individual plant with multiple floral units with stages 'bud', 'flower', 'immature fruit', and 'mature fruit', the counts of units in each stage are provided as input along with the time the indivdiual was observed.
 
-The probability that a unit is in a particular stage given the time of observation, \eqn{P_{s|j}} are the same probabilities as for the multistage theory above.
+The probability that a unit is in a particular stage \eqn{s} given the time of observation, \eqn{P_{s|j}}, are the same probabilities as for the multistage theory above.
 
-In principle, there are many options to model the distribution of stages of units within an individual at a particular time of observation. One could model the developmental dynamics of the units and use this model to generate the distribution of stages. This is ideal, but requires detailed knowledge of the developmental dynamics of individuals. As an idealization, here, the probability mass function of the stages is modeled as multinomial, which models each unit as developing independently of the other units within the individual once the unit itself has begun development. The stage probabilities \eqn{P_{s|j}} provide the probabilities of occuring in each stage for the multinomial model.
+In principle, there are many options to model the distribution of stages of units within an individual at a particular time of observation. One could model the developmental dynamics of the units and use this model to generate the distribution of stages. This is ideal, but requires detailed knowledge of the developmental dynamics of individuals. As an idealization, here, the probability mass function of the stages of units within an individual is modeled as multinomial, which models each unit as developing independently of the other units within the individual once the unit itself has begun development. The stage probabilities \eqn{P_{s|j}} provide the probabilities of occuring in each stage for the multinomial model.
+
+We note that this overlapping multistage model is a generalization of the multistage model presented above. If an individual is the single unit of phenological activity, then a 0 is scored for all stages that the individual is not in, and a 1 is scored for the stage the individual is in. In this context, the multinomial probability reduces to the probabilties defined for the multistage analysis above.
 
 \bold{THEORY: PRESENCE-ONLY (PO)}
 
 For \bold{presence-only (PO)} data, only the observed times \emph{during} the process of interest are recorded and all other times are discarded.
 
-The theory for presence only is a bit more complicated than the theory for multistage data because marginalization is required to normalize the probability of being in a stage. The ultimate goal for PO analysis is to infer the parameters that describe the distribution of observed sampled times. The other distributions of interest, including extremes, onsets, peak, and cessation, are functions of these parameters with a caveat for extremes.
+The theory for presence only is a bit more complicated than the theory for multistage data because marginalization is required to normalize the probability of being in a stage. The ultimate goal for PO analysis is to infer the parameters that describe the distribution of observed sampled times. The other distributions of interest, including extremes, onsets, peak, and cessation, are functions of these parameters (with a caveat for extremes).
 
-The distribution whose parameters we want to infer is the probability density of the observed times given the individual was sampled during the process of interest (state \eqn{s_j=s})and given the parameters of the onset distribution and duration: \deqn{p_{j|s} \equiv p(t_j|s_j=s,D,\mu_O,\sigma_O)} For simplicity, let \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. Using Bayes rule, \deqn{p(t_j|s_j=s,\theta) = \frac{P(s_j=s|t_j,\theta)p(t_j|\theta)}{P(s_j=s|\theta)}}
+The distribution whose parameters we want to infer is the probability density of the observed times given the individual was sampled during the phenological stage of interest (stage \eqn{s_j=s}) and given the parameters of the onset distribution and duration: \deqn{p_{j|s} \equiv p(t_j|s_j=s,D,\mu_O,\sigma_O)} For simplicity, let \eqn{\theta \equiv (D,\mu_O,\sigma_O)}. Using Bayes rule, \deqn{p(t_j|s_j=s,\theta) = \frac{P(s_j=s|t_j,\theta)p(t_j|\theta)}{P(s_j=s|\theta)}}
 
 The probability that a sampled individual \eqn{j} is in the focal stage of interest, \eqn{s}, given the sampled time and parameters for individual \eqn{j}, was defined above as \eqn{P_{s|j}}.
 
 The sampling strategy defines \eqn{p(t_j|\theta)}. In the current implementation, the sample of times is assumed to be a random sample and independent of \eqn{\theta}, i.e., \eqn{p(t_j|\theta)=\frac{1}{M-m}}. Since all observed times are scaled to a TP of length 1 already, \eqn{p(t_j|\theta)=1}.
 
-Finally, \eqn{P(s_j=s|\theta)} is the expected length of the process of interest when the TP is length 1 and the process occurs entirely within the TP. By the law of total probability, this is \deqn{\int_0^1 P(s_j=s,t_j|\theta)dt_j=\int_0^1 P(s_j=s|t_j,\theta)p(t_j|\theta)dt_j=\int_0^1 P(s_j=s|t_j,\theta)dt_j=\int_0^1P_{s|j}dt_j=\int_0^1 (\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O}))dt_j} Hearn et al. (XXXX) in their Supporting Information Methods S1 provide a solution for this integral in terms of \eqn{\Phi} and \eqn{\phi} (the density function for the standard normal).
+Finally, \eqn{P(s_j=s|\theta)} is the expected length of the stage of interest when the TP is length 1 and the stage occurs entirely within the TP. By the law of total probability, this is \deqn{\int_0^1 P(s_j=s,t_j|\theta)dt_j=\int_0^1 P(s_j=s|t_j,\theta)p(t_j|\theta)dt_j=\int_0^1 P(s_j=s|t_j,\theta)dt_j=\int_0^1P_{s|j}dt_j=\int_0^1 (\Phi(\frac{t-\mu_O}{\sigma_O})-\Phi(\frac{t-D-\mu_O}{\sigma_O}))dt_j} Hearn et al. (XXXX) in their Supporting Information Notes S1 provide a solution for this integral in terms of \eqn{\Phi} and \eqn{\phi} (the density function for the standard normal).
 
 Defining the normalization constant, \eqn{c_j}, as \eqn{\frac{P(s_j=s|\theta)}{p(t_j|\theta)} = P(s_j=s|\theta)}, then the likelihood function for presence-only data is: \deqn{\prod_{j=1}^{j=N} \frac{p_{j|s}}{c_j}} In this case, the normalization constant is different for each individual once predictors for mean onset and duration are defined in terms of covariates, as each individual has different covariate values. So, it doesn't cancel. The next section develops this aspect of the model.
 
 \bold{THEORY: MODELING COVARIATES}
 
-In the current implementation, the mean onset time and the duration times are modeled as linear functions of covariates. Different covariates can be used for the onset model and for the duration model(s), but for the multistage inference, they are the same for onset and duration model(s). If we let \eqn{\vec{X}} represent the vector of covariates and \eqn{\vec{\beta}} represent the vector of coefficients, then the following are the models for mean onset and mean duration: \deqn{O \sim N(\alpha_O + \vec{\beta_O} \cdot \vec{X}, \sigma_O^2)} and \deqn{D \equiv \mu_D = \alpha_D+\vec{\beta_D} \cdot \vec{X}}. For multistage inference, there are multiple duration models, one for each stage, each with a different intercept \eqn{\alpha} and coefficients \eqn{\vec{\beta}}.
+In the current implementation, the mean onset time and the duration times are modeled as linear functions of covariates. Different covariates can be used for the onset model and for the duration model(s), but for the current implementation of multistage inference, the covariates must be the same for onset and duration model(s). If we let \eqn{\vec{X}} represent the vector of covariates and \eqn{\vec{\beta}} represent the vector of coefficients, then the following are the models for mean onset and mean duration: \deqn{O \sim N(\alpha_O + \vec{\beta_O} \cdot \vec{X}, \sigma_O^2)} and \deqn{D \equiv \mu_D = \alpha_D+\vec{\beta_D} \cdot \vec{X}} For multistage inference, there are multiple duration models, one for each stage, each with a different intercept \eqn{\alpha} and coefficients \eqn{\vec{\beta}}.
 
 These models of mean onset and duration make the model hierarchical, so that with the inclusion of covariates, everywhere in the likelihood function where \eqn{\mu_O} or \eqn{D} appear, they are replaced by the above linear functions. If there are \eqn{K_O} covariates for the onset model and \eqn{K_D} (\eqn{K_D} = \eqn{K_O} for multistage models) covariates for the duration model(s), along with the two \eqn{\alpha} intercepts and the \eqn{\sigma_O} standard deviation parameter, the fully specified model has \eqn{2 + K_O + K_D + 1} estimable parameters, or S + S*K_O + 1 parameters for the multistage model.
 
 \bold{THEORY: BAYESIAN ANALYSIS AND PRIORS}
 
-In a Bayesian analysis the probability density of the parameters given the data, which is called the posterior distribution, is proportional to the product of the likelihood, which is the probability of the data given the parameters, and the prior distribution, which is the marginal probability of the parameters: \eqn{Posterior \propto Likehood * Prior}.
+In a Bayesian analysis, the probability density of the parameters given the data (which is called the posterior distribution) is proportional to the product of the likelihood (which is the probability of the data given the parameters) and the prior distribution (which is the marginal probability of the parameters): \eqn{Posterior \propto Likehood * Prior}.
 
 The above sections provided derivations of the likelihood functions for both PO datasets and multistage datasets, so the only remaining thing needed to carry out a Bayesian analysis is to specify the prior distributions. The priors are defined for the \eqn{D,\beta_O,\alpha_O, \beta_D, \alpha_D, \sigma_O} parameters. In the current implementation, the priors can be flat, or they can be normally distributed.
 
-Set the \emph{priorLevel} function parameter (described below) to 0 for a flat prior. Identifiability for PO sets necessitates an informative prior.  Priors for the multistage model are automatically set to weakly informative priors.
+Set the \emph{priorLevel} function parameter (described below) to 0 for a flat prior. Identifiability for PO analyses necessitates an informative prior.  Priors for the multistage model are automatically set to weakly informative priors if none are provided by the user.
 
 Set the \emph{priorLevel} to any value greater than or equal to 1 for normally distributed priors. A normally distributed prior requires two hyperparameters for each parameter: the mean of the parameter and the standard deviation of the parameter. Users can manually input these hyperparameter values or can use automated prior specification.
 
@@ -391,57 +401,26 @@ write.csv(stanSummaryPO,"Simulated.PresenceOnly.informativePriors.csv")
 #
 library(dplyr)
 library(posterior)
+library(ggplot2)
  #Set the parameters 
- nStages = 4
- nCovariates = 3
- n = 500
+ nStages = 4         #Number of stages to be simulated (will be 1 more than this once "unrolled" from cyclical time period
+ nCovariates = 3     #Number of covariates to be simulated
+ n = 500             #Sample size
  minResponse = 0 		#The minimum observed time should always be at least 0
  maxResponse = 365		#Days in the year for yearly cycles
- #minStageVariance = 9
- #maxStageVariance = 25
- 
- #Onset / duration parameters - determines spread of stages - high, uniform numbers result in more equally separated stages
- #minWeight = 10
- #maxWeight = 50
- #meanOnsetSpread = runif(nStages+1, minWeight, maxWeight)
- 
- #Slopes - These are automatically set below
- #         Here, we set them to reasonable values so that stages rarely overlap. If desired, uncomment these lines and comment out the lower simulatedData line.
- #minSlope = -1
- #maxSlope = 1
- #stageDurationCovariateSlopes = as.matrix(data.frame(
-                     #cov1=runif(nStages-1, minSlope,maxSlope),
-                     #cov2=runif(nStages-1, minSlope,maxSlope),
-                     #cov3=runif(nStages-1, minSlope,maxSlope)))
- #stage1OnsetCovariateSlopes = runif(nCovariates, minSlope,maxSlope)
- 
-         #Simulate data
- #simulatedData = simulateMultistageData(n=n,
-                   #nonCyclical=TRUE,		#multistage is structured as nonCyclical
-                   #nStages=nStages,
-                   #stageNames=stageNames,
-                   #minStageVariance=minStageVariance,
-                   #maxStageVariance=maxStageVariance,
-                   #meanOnsetSpread=meanOnsetSpread,
-                   #stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes,
-                   #stageDurationCovariateSlopes=stageDurationCovariateSlopes,
-                   #nCovariates=nCovariates,
-                   #minResponse=minResponse,
-                   #maxResponse=maxResponse
-                   #)
 
- #Automated - uncomment the above for more control
- simulatedData = simulateMultistageData(n=n, nonCyclical=TRUE, nStages=nStages,nCovariates=nCovariates)
+ #Automated - many options available for more control
+ simulatedData = simulateMultistageData(n=n, nStages=nStages,nCovariates=nCovariates)
  
  #Plotting 
  	#Set which covariate is the x-axis in the plot
  targetCovariateIndex = 1
  
      #Set colors
- #stageColors = viridisLite::viridis(nStages+1)
  stageColors = RColorBrewer::brewer.pal(nStages+1, "Set1")
- 
- plotMultistageSimulation(simulatedData=simulatedData,
+
+ #Plot the sampled data color-coded by stage 
+ trueModels = plotMultistageSimulation(simulatedData=simulatedData,
                   nonCyclical=TRUE,
                   targetCovariateIndex=targetCovariateIndex,
                   stageColors=stageColors,
@@ -452,19 +431,34 @@ library(posterior)
                   shadeStage=TRUE,
                   minResponse=minResponse, maxResponse=maxResponse)
  
- #Run inference with Stan
+ #Run inference with Stan - THIS MAY TAKE A WHILE!
  stanResults =runStanPhenology(
      type="multistage-full",                             #model with many stages and covariates
      responseData=simulatedData$outputData$sampledTime,  #observed collection times
      stage=simulatedData$outputData$sampledStage,        #observed stage at collection time
-nStages=nStages,				            #number of stages
-     nOnsetCovariates=nCovariates,			    #number of onset covariates (same as duration)
-     nDurationCovariates=nCovariates,                     #number of duration covariates (same as onset)
+    nStages=nStages,				            #number of stages - needed, as not all stages are necessarily sampled
      onsetCovariateData=simulatedData$X,                 #covariate data (same as for duration)
-     durationCovariateData=simulatedData$X,              #covariate data (same as for onset)
-     maxDiv=4000					    #should be set to 0, but in case of the stray divergence, set high for this example
+     maxDiv=4000,					    #should be set to 0, but in case of the stray divergence, set high for this example
+     calculatePPD=TRUE
  )
+
+#Plot the posterior predictive distribution - THIS TAKES SOME TIME
+#BLACK dotted lines = true marginal mean onsets (marginalized across other covariates)
+#COLORED solid lines = posterior predictive mean onset (no marginalizing across other covariates)
+#RED dotted lines = mean posterior marginal mean onsets (marginalized across other covariates)
+p = makeMultistagePosteriorPredictivePlot(stanResult=stanResults,
+   responseData=simulatedData$outputData$sampledTime,
+   targetCovariateName="cov1",
+   covariateData=simulatedData$X,
+   stageData=simulatedData$outputData$sampledStage,
+   nStages=nStages+1,    #with stage coding, an extra stage is added
+   y_pred=TRUE)          #the predicted responses are calculated when calculatePPD is set to TRUE during Stan run (above)
  
+ #Plot the true mean stage boundaries (based on used simulation parameters) with black dotted lines
+ for(i in 1:nStages) {
+   p = p + geom_abline(intercept = trueModels$trueIntercepts[i], slope = trueModels$trueSlopes[i], color = "black", linewidth = 0.5, linetype="dashed")
+  }
+
  #Extract basic summary data
  probs = c(2.5, 97.5)
  measures=c("mean", "median", "sd", "mad")
@@ -480,55 +474,52 @@ nStages=nStages,				            #number of stages
    n = Inf
  ) \%>\% as.data.frame()
  
- #Set up vectors to store mean durations (means) and mean onsets (means_o) with low and high bounds of credible intervals.
- means_o = rep(0,nStages+1)
- mean_o_low = rep(0,nStages+1)
- mean_o_high= rep(0,nStages+1)
- means = rep(0,nStages+1)
- mean_low = rep(0,nStages)
- mean_high = rep(0,nStages)
  
- #Extract slopes and intercepts for mean-centered covariates (anchors) and overlay the inferred lines onto earlier plot
- for(j in 1:(nStages+1)) {
-         beta = rep(0,nCovariates)
-         beta_low = rep(0,nCovariates)
-         beta_high = rep(0,nCovariates)
-         varO = paste0("anchor_o[", j, "]")
-         mean_o_low[j] = summary[summary$variable==varO, paste0("q",probs[1])]
-         mean_o_high[j] = summary[summary$variable==varO, paste0("q", probs[2])]
-         if(j<=nStages) {
-                 varD = paste0("anchor_d[", j, "]")
-                 means[j] = summary[summary$variable==varD, "mean"]
-                 mean_low[j] = summary[summary$variable==varD, paste0("q",probs[1])]
-                 mean_high[j] = summary[summary$variable==varD, paste0("q",probs[2])]
-         }
-         alpha = summary[summary$variable==varO, "mean"]
-         alpha_low = summary[summary$variable==varO, paste0("q",probs[1])]
-         alpha_high = summary[summary$variable==varO, paste0("q",probs[2])]
-         means_o[j] = alpha
+  #Set up vectors to store mean durations (means) and mean onsets (means_o) with low and high bounds of credible intervals.
+  means = rep(0,nStages+1)
+  mean_low = rep(0,nStages)
+  mean_high = rep(0,nStages)
  
-        for(i in 1:nCovariates) {
-                 varO = paste0("beta_o[", j, ",", i, "]")
-                 beta[i] = summary[summary$variable==varO, "mean"]
-                 beta_low[i] = summary[summary$variable==varO, paste0("q",probs[1])]
-                 beta_high[i] = summary[summary$variable==varO, paste0("q",probs[2])]
-         }
-        model = phenoCollectR:::true_marginal_line(alpha=alpha, beta=beta, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
-        model_low = phenoCollectR:::true_marginal_line(alpha=alpha_low, beta=beta_low, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
-        model_high = phenoCollectR:::true_marginal_line(alpha=alpha_high, beta=beta_high, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
-        abline(a=model$intercept, b=model$slope, col="black", lwd=1, lty="dotted") #col=stageColors[j]
-        abline(a=model_low$intercept, b=model_low$slope, col="yellow")
-        abline(a=model_high$intercept, b=model_high$slope, col="yellow")
- }
+  #Extract slopes and intercepts (anchors) and overlay the inferred lines and 95\% BCI's onto earlier plot as colored lines and shaded regions
+  for(j in 1:(nStages+1)) {
+          beta = rep(0,nCovariates)
+          beta_low = rep(0,nCovariates)
+          beta_high = rep(0,nCovariates)
+          varO = paste0("anchor_o[", j, "]")
+          if(j<=nStages) {
+                  varD = paste0("anchor_d[", j, "]")
+                  means[j] = summary[summary$variable==varD, "mean"]
+                  mean_low[j] = summary[summary$variable==varD, paste0("q",probs[1])]
+                  mean_high[j] = summary[summary$variable==varD, paste0("q",probs[2])]
+          }
+          alpha = summary[summary$variable==varO, "mean"]
+          alpha_low = summary[summary$variable==varO, paste0("q",probs[1])]
+          alpha_high = summary[summary$variable==varO, paste0("q",probs[2])]
+ 
+         for(i in 1:nCovariates) {
+                  varO = paste0("beta_o[", j, ",", i, "]")
+                  beta[i] = summary[summary$variable==varO, "mean"]
+                  beta_low[i] = summary[summary$variable==varO, paste0("q",probs[1])]
+                  beta_high[i] = summary[summary$variable==varO, paste0("q",probs[2])]
+          }
+         model = phenoCollectR:::true_marginal_line(alpha=alpha, beta=beta, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
+         model_low = phenoCollectR:::true_marginal_line(alpha=alpha_low, beta=beta_low, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
+         model_high = phenoCollectR:::true_marginal_line(alpha=alpha_high, beta=beta_high, mu=simulatedData$covariateMeans, Sigma=simulatedData$Sigma, j=targetCovariateIndex)
+   p = p + geom_abline(intercept = model$intercept, slope = model$slope, color = "red", linewidth = 0.5, linetype="dashed")
+  }
+
+ print(p)
  
  
 ##
 ##
 ##
 ##########################################################################################################################################################
-##Conduct an analysis of individuals with multiple units and each unit having one of multiple possible stages using SIMULATED DATA. (For example: an individual plant with multiple flower units, each in a different stage (budding, flowering, fruiting). 
+##Conduct an analysis of individuals with multiple units and each unit having one of multiple possible stages.
+SIMULATED DATA 
+(For example: an individual plant with multiple flower units, each in a different stage (budding, flowering, fruiting). 
 #
- 
+# NOT YET AVAILABLE FOR PUBLIC USE.  
 ##
 ##
 ##

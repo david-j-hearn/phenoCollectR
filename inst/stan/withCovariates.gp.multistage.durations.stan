@@ -124,12 +124,12 @@ transformed data {
 
 	sigmaMean_std = sigmaMean / sd_t;
 	sigmaSD_std = sigmaSD / sd_t;
-print("beta means: ", betaMeans_std);
-print("beta sds: ", betaSDs_std);
-print("anchor means: ", anchorMeans_std);
-print("anchor SDs: ", anchorSDs_std);
-print("sigma mean: ", sigmaMean_std);
-print("anchor SD: ", sigmaSD_std);
+print("beta hyperparameter means: ", betaMeans_std);
+print("beta hyperparameter sds: ", betaSDs_std);
+print("anchor hyperparameter means: ", anchorMeans_std);
+print("anchor hyperparameter SDs: ", anchorSDs_std);
+print("sigma hyperparameter mean: ", sigmaMean_std);
+print("sigma hyperparameter SD: ", sigmaSD_std);
 
 }
 
@@ -151,19 +151,14 @@ model {
 
 	// Priors tuned for standardized space
 	alpha_d_std ~ normal(anchorMeans_std, anchorSDs_std);
-	//alpha_d_std ~ normal(range_std/(S-1), 1.0);	//Set to average duration
-
 	to_vector(beta_d_std) ~ normal(to_vector(betaMeans_std), to_vector(betaSDs_std));
-	//to_vector(beta_d_std) ~ normal(0.0, 1.0);
-
 	sigma_std ~ normal(sigmaMean_std, sigmaSD_std);	
-	//sigma_std ~ normal(0.0, 0.1);	
 
 	//Likelihoods
-	for (n in 1:N) {
-
 		vector[S] O_mean_std;
 		vector[S-1] D_mean_std;
+
+	for (n in 1:N) {
 		for(s in 1:S-1) {
 
 			D_mean_std[s] = alpha_d_std[s] + dot_product(to_vector(beta_d_std[s,]), X_std[n,]);
@@ -241,14 +236,14 @@ generated quantities {
 
 	if(ppd == 1) {
 		for (n in 1:(nXs*nReps) ) {
-			for(s in 1:S) {
-				if(s == 1) {
+			y_pred[n,1] = 0.0;	//Should be identically 0
+			for(s in 2:S) {
+				//if(s == 1) {
 					//y_pred[n,s] = alpha_o[s] + dot_product(beta_o[s,], xPPD[n,]);
-					y_pred[n,s] = 0.0;	//Should be identically 0
-				}
-				else {
+				//}
+				//else {
 					y_pred[n,s] = normal_rng(alpha_o[s] + dot_product(beta_o[s,], xPPD[n,]),sigma);
-				}
+				//}
 			}
 		}
 	}

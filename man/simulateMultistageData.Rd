@@ -2,7 +2,7 @@
 % Please edit documentation in R/phenologySimulation.R
 \name{simulateMultistageData}
 \alias{simulateMultistageData}
-\title{Simulate covariate data, phenological stage onset times, sample times, and sampled stage data}
+\title{Simulate covariate data, phenological stage onset times and sampled times and stage data}
 \usage{
 simulateMultistageData(
   n = 1000,
@@ -40,7 +40,7 @@ simulateMultistageData(
 \arguments{
 \item{n}{The sample size. (default: 1000)}
 
-\item{nStages}{The number of stages to simulate. Not optional. (default: 2)}
+\item{nStages}{The number of stages to simulate. (default: 2)}
 
 \item{nonCyclical}{Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: TRUE)}
 
@@ -117,7 +117,7 @@ Parameters for simulation:
 }\if{html}{\out{</div>}}
 }
 \description{
-Simulate covariate data, phenological stage onset times, sample times, and sampled stage data.
+Simulate covariate data, phenological stage onset times and sampled times and stage data. Usable with both presence-only and multistage analyses. For presence-only analyses, remove all rows in the output data set (outputData) with sampled times (sampledTime) outside the stage of iterest.
 }
 \examples{
 \donttest{

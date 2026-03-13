@@ -12,6 +12,9 @@ devtools::install_github("david-j-hearn/phenoCollectR", dependencies = TRUE)
 
 STAN installation (and checks) are performed using the utilities of the `cmdstanr` package. `phenoCollectR` will also install `cmdstanr` if necessary.
 
+## Documentation
+Although all functions are documented, some documentation uses specialized formatting that will not be visible using the standard help() function. Instead, start the help pages using help.start(), and navigate to Packages -> P -> phenoCollectR to access documentation for all exported functions. 
+
 ## Quick example:
 ```{r,R.options=list(max.print=20)}
 ## Get the file name with data for the blood root plant

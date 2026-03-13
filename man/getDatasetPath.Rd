@@ -27,8 +27,8 @@ The variables (columns) of each dataset are as follows:
 \item Year. The year decimal of the specimen collection. This is the year as an integer and the decimal part represents the date of collection if the first day of the year was 0 and the last 1.
 \item DOY. The Day Of Year. This is the day of collection counted from the 1st day of the year.
 \item Elevation. The elevation of the collection locality in meters.
-\item AnnualMonthlyAverageTemp. The Annual Monthly Average Temperature in Celcius.
-\item SpringMonthlyAverageTemp. The Monthly Average Temperature for the Spring months in Celcius.
+\item AnnualMonthlyAverageTemp. The Annual Monthly Average Temperature in Celsius.
+\item SpringMonthlyAverageTemp. The Monthly Average Temperature for the Spring months in Celsius.
 \item FirstQuarterMonthlyAverageTemp. The Monthly Average Temperature for the first quarter of the year.
 }
 

@@ -591,7 +591,7 @@ getHyperparametersViaQuantiles = function(responseDataForPrior, scale=1, lowerQu
 #' @param prop The proportion of the data to be used for the first set of the partition. (default: 0.3)
 #'
 #' @return A list of six elements. The first three represent the first subset for response data (responseDataForInference), onset covariate data (onsetCovariateDataForInference) and duration covariate data (durationCovariateDataForInference), and the last three correspondingly represent the second subset.
-#' @export
+#' @noRd
 partitionResponseCovariateData = function(responseData, onsetCovariateData, durationCovariateData, prop=0.3) {
 
 	#perhaps set seed...
@@ -644,7 +644,7 @@ partitionResponseCovariateData = function(responseData, onsetCovariateData, dura
 #' @param prop The proportion of the data to be used for the first set of the partition. (default: 0.3)
 #'
 #' @return A list with two vectors corresponding to the two sets of the partition.
-#' @export
+#' @noRd
 partitionResponseData = function(responseData, prop=0.3) {
 	nRes = length(responseData)
 	train_indices = sample(nRes, size = floor(prop * nRes), replace=FALSE)
@@ -885,7 +885,6 @@ summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=
 #' @param durationCovariateData A data frame with each named column providing a covariate for the duration model.
 #'
 #' @return The fit linear model object that is the output of the R lm function.
-#' @export
 runStandardLinearModel = function(responseData, onsetCovariateData, durationCovariateData) {
 	# Combine response and predictors into one data frame
 	merged = merge_df_by_column(onsetCovariateData, durationCovariateData)
@@ -904,9 +903,9 @@ runStandardLinearModel = function(responseData, onsetCovariateData, durationCova
 
 #' Summary of Stan parameter estimates and associated diagnostics for a phenology model with covariates
 #' 
-#' Provides a summary as a data frame of the results of a Stan analysis of phenology. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values. 
+#' Provides a summary as a data frame of the results of a Stan analysis of phenology. Use runStanPhenology with type 'full'. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values. Not currently implemented for other model types.
 #'
-#' @param stanRunResult The output from runStanPhenology 
+#' @param stanRunResult The output from runStanPhenology for presence only datasets with covariates (type 'full').
 #' @param taxonName The name of the taxon being analyzed
 #' @param measures The metrics to calculate for each parameter. (default: c("mean", "median", "sd", "mad"))
 #' @param quantiles The quantiles to calculate for each metric. (default: c(2.5, 97.5))
@@ -1436,9 +1435,7 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 
 #' @importFrom posterior quantile2
 #' @importFrom dplyr %>%
-getMultistageSummary = function(stanResults, nCovariates, nStages, probs=c(2.5, 97.5)) {
-
-	measures=c("mean", "median", "sd", "mad")
+getMultistageSummary = function(stanResults, nCovariates, nStages, probs=c(2.5, 97.5), measures=c("mean", "median", "sd", "mad")) {
 
 	#Extract basic summary data
 summary = print(

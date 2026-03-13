@@ -20,7 +20,7 @@ getAnswer <- function(q = "Do you want to continue? (yes/no): "){
 #' 
 #' @importFrom cmdstanr check_cmdstan_toolchain cmdstan_version install_cmdstan
 #' @importFrom utils install.packages
-#' @export
+#' @noRd
 makeSTANchecks <- function(){
   ## Check if it is Windows
   if( isTRUE(.Platform$OS.type == "windows") ){
