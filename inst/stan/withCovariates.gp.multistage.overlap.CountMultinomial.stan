@@ -3,7 +3,7 @@ functions {
   real log_p_stage_counts_given_t(
       int S,
       int ind,
-      matrix counts,
+      array[,] int counts,
       vector t_std,
       vector O_std,
       real sigma_std) {
@@ -186,7 +186,8 @@ model {
 
     target += log_p_stage_counts_given_t(S,
         n,
-        stage_proportions,
+        //stage_proportions,
+        stage_counts,
         t_std,
         O_mean_std,
         sigma_std);

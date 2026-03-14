@@ -1003,11 +1003,10 @@ simulateMultistageData = function(n=1000,
 	}
 	#
 	#simulate the onset times for each stage and simulate sampling each individual in the population
-	#times = runif(n,minResponse,maxResponse)
-  minO = min(onsets)
-  maxO = max(onsets)
-	times = runif(n,ifelse(minResponse<minO,minResponse,minO),ifelse(maxResponse>maxO, maxResponse,maxO))
-
+	times = runif(n,minResponse,maxResponse)
+  #minO = min(onsets)
+  #maxO = max(onsets)
+	#times = runif(n,ifelse(minResponse<minO,minResponse,minO),ifelse(maxResponse>maxO, maxResponse,maxO))
 
 	for(i in 1:n) {
 		for(j in 1:nStages) {
@@ -1088,17 +1087,23 @@ simulateMultistageData = function(n=1000,
 #' @export
 simulateMultistageOverlapData = function(n=500, meanFlowers = 20, nStages=3, nCovariates=2, ...) {
 
-  simulatedData = simulateMultistageData(n=n, nStages=nStages, nCovariates=nCovariates, ...) 
+  simulatedData = simulateMultistageData(n=n, nStages=nStages-1, nCovariates=nCovariates, ...) 
   individuals = vector("list", n)
   nFlowers = rpois(n, meanFlowers)
  
-  onsetCols = (nCovariates+1):(nCovariates+nStages) 
+  onsetCols = (nCovariates+1):(nCovariates+nStages-1) 
   for(i in 1:n) {
     onsets = as.numeric(simulatedData$outputData[i,onsetCols])
+    #print("onsets from simulation")
+    #print(onsets)
+    #print("time")
+    #print(simulatedData$outputData$sampledTime[i])
     pi = stageProbabilities(t = simulatedData$outputData$sampledTime[i], 
               onsets = onsets, 
               SD = simulatedData$stage1OnsetSD    #just one SD with these data
          )
+    #print("pi")
+    #print(pi)
     flowers = sample(1:nStages, nFlowers[i], replace=TRUE, prob=pi)
     stageCounts = tabulate(flowers, nbins=nStages)
     individuals[[i]] = list(
@@ -1115,12 +1120,14 @@ stageProbabilities = function(t, onsets, SD) {
 #print(onsets)
 #print(SDs)
   S = length(onsets)
-  pi = numeric(S)
-  pi[1] = 1 - pnorm((t - onsets[1])/SD)
-  pi[S] = pnorm((t - onsets[S])/SD)
+#print("# stages")
+#print(S)
+  pi = numeric(S+1) # S is the number of onsets (not including baseline), so number of stages is S+1
+  pi[1] = 1 - pnorm((t - onsets[1])/SD)         #before onset 1
+  pi[S+1] = pnorm((t - onsets[S])/SD)             #after onset S
 
-  for(i in 2:(S-1)) {
-    pi[i] = pnorm((t - onsets[i])/SD) - pnorm((t - onsets[i+1])/SD)
+  for(i in 1:(S-1)) {                           
+    pi[i+1] = pnorm((t - onsets[i])/SD) - pnorm((t - onsets[i+1])/SD)
   }
   pi = pmax(pi, 0)
   return(pi / sum(pi))

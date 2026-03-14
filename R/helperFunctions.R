@@ -1288,6 +1288,10 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 		}
 	}
 
+  if(type=="multistage-overlap-full") {
+    nStages = nStages-1
+  }
+
 	if(type=="multistage-full" || type=="multistage-overlap-full") {
 		nCovariates = ncol(onsetCovariateData)
 		range = (maxResponse-minResponse)
@@ -1435,7 +1439,10 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 
 #' @importFrom posterior quantile2
 #' @importFrom dplyr %>%
-getMultistageSummary = function(stanResults, nCovariates, nStages, probs=c(2.5, 97.5), measures=c("mean", "median", "sd", "mad")) {
+getMultistageSummary = function(stanResults, probs=c(2.5, 97.5), measures=c("mean", "median", "sd", "mad")) {
+
+ nStages = stanResults$data$S - 1
+ nCovariates = stanResults$data$K
 
 	#Extract basic summary data
 summary = print(

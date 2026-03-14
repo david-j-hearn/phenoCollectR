@@ -192,6 +192,8 @@ runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stage
 
 	#checkInput and checkPriors should have already been called from runStanPhenology
 
+  #Stages are tricky - the onset of the first stage is not discoverable from this approach; instead, the start of the period through to the second stage is the first stage, so it may overlap with pre-reproductive and the first reproductive stage, and the last stage extends from the last reproductive period through to the period after reproduction.
+
 	if(minResponse!=0) {
 		stop("Minimum response must be 0")
 	}
@@ -251,12 +253,14 @@ runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stage
 	S = nStages
 	K = nCovariates
 
-  stageCounts = cbind(rep(0,nrow(stageCounts)),stageCounts)
+  #stageCounts = cbind(rep(0,nrow(stageCounts)),stageCounts)
 
 	#get the number of covariates for onset and for duration
 	N = length(observed)
 
 	cat("Setting hyperparameters. Scaling to be done in Stan\n")
+
+
 
 	betaMeans = rbind(onsetHyperBeta[[1]], durationHyperBetaMean)
 	betaSDs = rbind(onsetHyperBeta[[2]], durationHyperBetaSD)
@@ -266,6 +270,16 @@ runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stage
 
 	sigmaMean = sigmaHyper[1]
 	sigmaSD = sigmaHyper[2]
+
+print("betaMeans")
+print(betaMeans)
+print("betaSDs")
+print(betaSDs)
+print("anchorMeans")
+print(anchorMeans)
+print("anchorSDs")
+print(anchorSDs)
+
 
 	cat("Preparing data for Stan.\n")
 	stanData <- list( 
@@ -278,13 +292,13 @@ runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stage
 			 t_raw = observed,			#Observed collection times, scaled (N vector)
 			 T_max = maxResponse,			#Maximum collection time, original scale (scalar)
 			 stage_counts = stageCounts,				#Observed stage counts of developmental unit (N X S matrix)
-			 S = S+1,					#Number of stages (scalar) - no wraparound -> S+1
+			 S = S,					#Number of stages (scalar) - no wraparound
 			 X_raw = as.matrix(covariates$covariates, ncol=K),	#The scaled covariate data (N X K matrix)
 			 K = K,					#Number of covariates (scalar)
-			 ppd = calculatePPD,			#Boolean to calculate posterior predictive data
-			 nXs = nXs,				#number of x iterations of target covariate for PPD
-			 nReps = nReps,				#number of replicates per Stan sample per stage per nXs iterations
-			 xPPD = as.matrix(xPPD, ncol=K),	#the data over which to calculate PPD
+			 #ppd = calculatePPD,			#Boolean to calculate posterior predictive data
+			 #nXs = nXs,				#number of x iterations of target covariate for PPD
+			 #nReps = nReps,				#number of replicates per Stan sample per stage per nXs iterations
+			 #xPPD = as.matrix(xPPD, ncol=K),	#the data over which to calculate PPD
 			 betaMeans = betaMeans,			#joined onset and duration model slope coefficients
 			 betaSDs = betaSDs, 			#joined onset and duration model sd on slope coefficients
 			 anchorMeans = anchorMeans, 		#joined onset and duration model anchors (with standardized data these are the marginal mean responses)
