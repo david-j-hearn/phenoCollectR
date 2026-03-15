@@ -1175,12 +1175,69 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##
 #' ##
 #' ##########################################################################################################################################################
-#' ##Conduct an analysis of individuals with multiple units and each unit having one of multiple possible stages.
-#' SIMULATED DATA 
-#' (For example: an individual plant with multiple flower units, each in a different stage (budding, flowering, fruiting). 
-#' #
-#' # NOT YET AVAILABLE FOR PUBLIC USE.  
-#' ##
+#' ##Conduct an analysis of individuals with multiple phenological units and each unit having one of multiple possible stages.
+#' #(For example: an individual plant with multiple flower units, each in a different stage (budding, flowering, fruiting) with pre-reproductive and post-reproductive stages possible with no flowers. 
+#' ###SIMULATION PARAMETERS
+#' n = 500            #individuals sampled 
+#' meanFlowers = 30   #mean number of flowers per individual at peak reproduction
+#' nStages = 5        #number of stages, including pre-reproductive, bud, flower, fruit, post-reproductive stages 
+#' nCovariates = 3     #number of simulated environmental factors that influence stage timing
+#'
+#' includePrePost = TRUE #include pre-reproductive and post-reproductive stages when no flowers are present
+#'
+#' maxResponse = 365   #maximum day of year of observation
+#' minResponse = 0     #minimum day of year of observation - must stay at 0
+#'
+#' minStage = 10       #relative expected duration of shortest stage ("middle" stages)
+#' maxStage = 30       #relative expected duration of longest stage ("edge" stages)
+#'
+#' #weights for stage durations
+#' meanOnsetSpread = c(maxStage,rep(minStage,nStages-2),maxStage) 
+#'
+#' #stage onset variance parameters
+#' #  error is highest when stage variance is high (modulated by minStageVariance and maxStageVariance)
+#' #  set lower bound on stage onset standard deviation to 1/5 expected smallest duration 
+#' minStageVariance = ((1/5)*maxResponse*(minStage/sum(c(maxStage,rep(minStage,nStages-2),maxStage))))^2  
+#' maxStageVariance = 2*minStageVariance
+#'
+#' ### SIMULATE the data
+#' sim = simulateMultistageOverlapData(n=n, meanUnits=meanFlowers, nStages=nStages, nCovariates=nCovariates, minStageVariance = minStageVariance, maxStageVariance=maxStageVariance, meanOnsetSpread=meanOnsetSpread, includePrePost=includePrePost)
+#'          
+#' # Extract the relevant data for Bayesian analysis 
+#' #   counts of floral units in each stage (or a 1/0 for pre- and post- stages before and after floral units have developed)
+#' stageCountMatrix <- t(
+#'   sapply(sim$simulatedIndividuals, `[[`, "stageCounts")
+#' )
+#' #   times of observation
+#' t_obs <- sapply(sim$simulatedIndividuals, `[[`, "sampledTime")
+#'
+#' ### RUN BAYESIAN ANALYSIS using multinomial multistage probability model coded in Stan 
+#' # THIS WILL TAKE A WHILE - PLEASE BE PATIENT
+#' stanResults =runStanPhenology(
+#'   type="multistage-overlap-full",       #model with many overlapping stages and covariates
+#'   responseData=t_obs,                   #observed collection times
+#'   stageCounts=stageCountMatrix,         #observed floral unit stage counts at observed time
+#'   onsetCovariateData=sim$simulatedData$X,           #covariate data (same as for duration)
+#'   maxDiv=4000             #should be set to 0, but in case of the stray Stan divergence, set high for this example
+#' )
+#'
+#' # Extract basic summary data
+#' stanSummary = phenoCollectR:::getMultistageSummary(stanResult=stanResults)
+#' #nDivergent = sum(stanResults$result$diagnostic_summary()$num_divergent)
+#' #nMaxTreeDepth = sum(stanResults$result$diagnostic_summary()$num_max_treedepth)
+#'
+#' ### PLOT the simulated data and results
+#' #   colors are weighted by proportion of floral units in each stage
+#' stageColors = rainbow(nStages) 
+#' trueModels = plotMultistageSimulation(simulatedData=sim, stageColors=stageColors, includeOverlap=TRUE, shadeStage=FALSE)
+#'
+#' ## Add true (red dotted) and (posterior mean) estimated (black dotted) mean stage boundaries as a function of the first simulated covariate 'cov1'
+#' targetCovariateIndex = 1
+#' for(i in 1:(nStages-1)) {
+#'   model = phenoCollectR:::true_marginal_line(alpha=stanSummary$mean_o[i], beta=stanSummary$beta_o[i,], mu=sim$simulatedData$covariateMeans, Sigma=sim$simulatedData$Sigma, j=targetCovariateIndex)
+#'   abline(a=model$intercept, b=model$slope, col="black", lwd=3, lty="dotted")
+#'   abline(a=trueModels$trueIntercepts[i], b=trueModels$trueSlopes[i], col="red", lwd=3, lty="dotted")
+#' }
 #' ##
 #' ##
 #' ##########################################################################################################################################################

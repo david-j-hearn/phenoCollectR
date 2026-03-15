@@ -21,7 +21,8 @@ plotMultistageSimulation(
   minResponse = 0,
   maxResponse = 365,
   nonCyclical = TRUE,
-  main = NULL
+  main = NULL,
+  includeOverlap = FALSE
 )
 }
 \arguments{

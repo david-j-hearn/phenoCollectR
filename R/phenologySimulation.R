@@ -697,7 +697,6 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 }
 
 #' Simulate covariate data, phenological stage onset times and sampled times and stage data
-
 #'
 #' @description Simulate covariate data, phenological stage onset times and sampled times and stage data. Usable with both presence-only and multistage analyses. For presence-only analyses, remove all rows in the output data set (outputData) with sampled times (sampledTime) outside the stage of iterest.
 #' 
@@ -1067,29 +1066,57 @@ simulateMultistageData = function(n=1000,
 }
 
 
-	#return(list(outputData=outputData, 
-		    #nStages = nStages,
-		    #nCovariates = nCovariates,
-		    #nonCyclical = nonCyclical,
-		    #R=R,
-		    #Sigma=Sigma,
-		    #covariateSDs=covariateSDs,
-		    #covariateMeans=covariateMeans,
-		    #X=X,
-		    #stage1OnsetMean=stage1OnsetMean,
-		    #stage1OnsetSD=stage1OnsetSD,
-		    #stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes,
-		    #stageDurationMeans=stageDurationMeans,
-		    #stageDurationSDs=stageDurationSDs,
-		    #stageDurationCovariateSlopes=stageDurationCovariateSlopes))
-#}
-
+#' Simulate covariate data and phenological unit stages nested within individuals
+#'
+#' @description Simulate covariate data, phenological unit stage counts, onset times, and sampled times. An example would be an individual plant with multiple flowers as the phenological unit, with flower units in possibly different phenological stages (bud, flower, immature fruit, mature fruit). The function also optionally models transitions from a pre-(phenological unit) stage, to stages with multiple phenological units, to post-(phenological unit) stages after those units have senesced.
+#' 
+#' @param n The sample size. (default: 500)
+#' @param meanUnits The mean number of phenological units that an individual develops during a phenological time period (e.g., an individual plant produces multiple flower units during a phenological cycle). (default: 20)
+#' @param nStages The number of stages to simulate. This optionally includes the 'pre-' and 'post-' stages (see parameter 'includePrePost').  (default: 4; one pre-, one post-, and 2 internal stages with multiple phenological units)
+#' @param nCovariates The number of covariates to simulate. (default: 2)
+#' @param includePrePost Include pre- and post- stages for which phenological units have not yet developed (pre-) or have senesced (post-). (default: TRUE)
+#' @param ... Additional optional parameters passed to simulateMultistageData (called from within this simulateMultistageOverlapData function). 
+#'
+#' @return A list with the following: 
+#'
+#'		Data frame named 'simulatedData' with the output from the called simuateMultistageData function
+#'    A list of 'simulatedIndividuals' with:
+#'      The time when an individual was observed
+#'      A vector, 'phenologicalUnitStages', of the stages of the phenological units within the individual. If the individual is pre- or post-, there will be a single number representing that stage.
+#'      A vector, 'stageCounts', of the counts of phenological units within each of the nStages stages. If the individual is pre- or post-, there will be a 1 in the index position of that stage and zeroes in the other stages. Otherwise, there will be a count of the number of phenological units in the stage.
+#'      A vector, 'pi', of the probabilities of being in each stage at the sampled time.
+#'
 #' @export
-simulateMultistageOverlapData = function(n=500, meanFlowers = 20, nStages=3, nCovariates=2, ...) {
+#'
+#' @examples
+#' \donttest{
+#' ##Set basic simulation parameters 
+#' numberStages = 5           #Since 'includePrePost' is set to TRUE below, this include pre-(phenological unit), phenological unit stage 1, phenological unit stage 2, and post-(phenological unit) stages. An example would be a plant with the following stages: the plant hasn't produced any flower units (pre-), the plant has flower units are open flowers (phenologial unit stage 1), the plant has flower units that have developed into fruits (phenological unit stage 2), and the plant has fruits that have senesced (post-). 
+#' numberCovariates = 3
+#' sampleSize = 500
+#' meanUnits = 30             #Set the mean number of phenological units (e.g., flowers) that an individual develops during a phenological cycle.
+#' includePrePost = TRUE      #The first and last stages will be pre- and post- (reproductive) stages, evaluated at the level of the individual (1 for in the stage, 0 for not in the stage)
+#'
+#' ##Simulate data
+#' sim = simulateMultistageOverlapData(n=sampleSize, meanUnits=meanUnits, nStages=numberStages, nCovariates=numberCovariates, includePrePost=includePrePost)
+#'
+#' ##Plot simulated data with the first covariate along the x-axis and the predominant stage color coded. Note, this plot does not represent all the stages of all the phenological units, but rather a single 'x' for each indivdiual color-coded by the predominant stage.
+#' #	set colors for the stages
+#' #stageColors = rainbow(numberStages) 
+#' #stageColors = viridisLite::viridis(numberStages)
+#' stageColors = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499") #Paul Tol
+#' #	create the plot
+#' plotMultistageSimulation(simulatedData=sim$simulatedData, targetCovariateIndex=1, stageColors=stageColors)
+#' }
+simulateMultistageOverlapData = function(n=500, meanUnits = 20, nStages=4, nCovariates=2, includePrePost=TRUE, ...) {
+ 
+  if(includePrePost && nStages<=3) {
+    stop("Provide at least 4 stages when simulating pre- and post- stages, so that there is a minimum of two 'middle' stages.")
+  } 
 
-  simulatedData = simulateMultistageData(n=n, nStages=nStages-1, nCovariates=nCovariates, ...) 
+  simulatedData = simulateMultistageData(n=n, nStages=nStages-1, nCovariates=nCovariates, ...)    #breaks one stage into pre-, post-, so nStages-1 results in nStages
   individuals = vector("list", n)
-  nFlowers = rpois(n, meanFlowers)
+  nUnits = rpois(n, meanUnits)
  
   onsetCols = (nCovariates+1):(nCovariates+nStages-1) 
   for(i in 1:n) {
@@ -1104,12 +1131,48 @@ simulateMultistageOverlapData = function(n=500, meanFlowers = 20, nStages=3, nCo
          )
     #print("pi")
     #print(pi)
-    flowers = sample(1:nStages, nFlowers[i], replace=TRUE, prob=pi)
-    stageCounts = tabulate(flowers, nbins=nStages)
+    #if(includePrePost) {
+      ##Determine if individual is in pre- or post- stage
+      #stage = simulatedData$outputData$sampledStage[i]
+      #units = stage
+      #if(stage == 1) {
+        #stageCounts = rep(0,nStages)
+        #stageCounts[1] = 1
+      #}
+      #else if(stage == nStages) {
+        #stageCounts = rep(0,nStages)
+        #stageCounts[nStages] = 1
+      #}
+      #else {
+        #piPP = pi[2:(nStages-1)] / sum(pi[2:(nStages-1)])
+        #units = sample(2:(nStages-1), nUnits[i], replace=TRUE, prob=piPP)
+        #stageCounts = tabulate(units, nbins=nStages)
+      #}
+    #}
+    #else {
+      units = sample(1:nStages, nUnits[i], replace=TRUE, prob=pi)
+      stageCounts = tabulate(units, nbins=nStages)
+    #}
+
+    if(includePrePost) {
+      if(stageCounts[1] == nUnits[i]) {
+        stageCounts = rep(0,nStages)
+        stageCounts[1] = 1
+      }
+      else if(stageCounts[nStages] == nUnits[i]) {
+        stageCounts = rep(0,nStages)
+        stageCounts[nStages] = 1
+      }
+      else {
+        stageCounts[1] = 0
+        stageCounts[nStages] = 0
+      }
+    }
     individuals[[i]] = list(
       sampledTime = simulatedData$outputData$sampledTime[i],
-      flowers = flowers,
-      stageCounts = stageCounts
+      phenologicalUnitStages = units,
+      stageCounts = stageCounts,
+      pi = pi
     )
   }
   return(list(simulatedIndividuals = individuals, simulatedData = simulatedData))

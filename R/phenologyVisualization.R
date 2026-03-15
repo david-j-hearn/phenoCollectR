@@ -59,6 +59,18 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 	preds
 }
 
+getWeightedColors = function(stageColors, simulatedIndividuals) {
+  n = length(simulatedIndividuals)
+  rgbCols = col2rgb(stageColors)
+  stageCountMatrix <- t(
+    sapply(simulatedIndividuals, `[[`, "stageCounts")
+  )
+
+  rgbIndividuals <- (stageCountMatrix %*% t(rgbCols)) / rowSums(stageCountMatrix)
+  cols <- rgb(rgbIndividuals[,1], rgbIndividuals[,2], rgbIndividuals[,3], maxColorValue = 255)
+  return(cols)
+}
+
 #' Make a plot of simulated multistage data
 #'
 #' @description Make a plot of simulated multistage data
@@ -99,7 +111,15 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 #' #    create the plot
 #' plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 #' }
-plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL, drawIndividuals=FALSE, drawObserved=TRUE, drawLatentOnset=TRUE, drawTrueModel=TRUE, drawInferredModel=TRUE, observedCex=0.75, onsetCex=0.05, observedPch=4, onsetPch=17, shadeStage=TRUE, minResponse=0, maxResponse=365, nonCyclical=TRUE, main=NULL) {
+plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL, drawIndividuals=FALSE, drawObserved=TRUE, drawLatentOnset=TRUE, drawTrueModel=TRUE, drawInferredModel=TRUE, observedCex=0.75, onsetCex=0.05, observedPch=4, onsetPch=17, shadeStage=TRUE, minResponse=0, maxResponse=365, nonCyclical=TRUE, main=NULL, includeOverlap=FALSE) {
+
+  if(includeOverlap) {
+    if(is.null(simulatedData$simulatedData)) {
+      stop("Please provide the output from simulateMultistageOverlapData if includeOverlap is set to TRUE. Otherwise, provide the output from simulateMultistageData if not.")
+    }
+    weightedStageColors = getWeightedColors(stageColors=stageColors, simulatedIndividuals=simulatedData$simulatedIndividuals)
+    simulatedData = simulatedData$simulatedData
+  }
 
 	if(!drawLatentOnset && !drawObserved) {
 		stop("Nothing to plot in plotMultistageSimulation. Quitting.")
@@ -169,13 +189,16 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 	#Begin the plotting
 	x1 = min(simulatedData$outputData[,targetCovariateIndex])-50
 	x2 = max(simulatedData$outputData[,targetCovariateIndex])+50
+  if(includeOverlap) {
+		plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=weightedStageColors, pch=observedPch, cex=observedCex, ylim=c(minResponse,maxResponse), main=main)
+  }
 	for(i in 1:numberStages) {
 		if(i == 1) {
-			if(!drawLatentOnset) {
+			if(!drawLatentOnset && !includeOverlap) {
 				plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=stageColors[simulatedData$outputData$sampledStage], ylim=c(minResponse,maxResponse), pch=observedPch, cex=observedCex, main=main)
 
 			}
-			if(drawLatentOnset) {
+			if(drawLatentOnset && !includeOverlap) {
 				plot(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+1],col=stageColors[1+colInc],ylim=c(minResponse,maxResponse),pch=onsetPch,cex=observedCex, main=main)
 			}
 			if(shadeStage) {
@@ -204,7 +227,7 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 			}
 		}
 		else {
-			if(drawLatentOnset) {
+			if(drawLatentOnset && !includeOverlap) {
 				points(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+i],col=stageColors[i+colInc],pch=onsetPch,cex=observedCex)
 			}
 			if(shadeStage) {
@@ -239,13 +262,14 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 			abline(a=trueIntercepts[i], b=trueSlopes[i], col=stageColors[i+colInc])
 		}
 	}
-	if(drawLatentOnset && drawObserved) {
+	if(drawLatentOnset && drawObserved && !includeOverlap) {
 		points(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=stageColors[simulatedData$outputData$sampledStage], pch=observedPch, cex=observedCex)
 	}
 	if(drawIndividuals) {
 		tc = adjustcolor("gray25", alpha.f = 0.1)
 		segments(x0=simulatedData$outputData[,targetCovariateIndex],x1=simulatedData$outputData[,targetCovariateIndex],y0=minResponse,y1=maxResponse,col=tc)
 	}
+
 	return(list(trueIntercepts = trueIntercepts, trueSlopes = trueSlopes))
 }
 
