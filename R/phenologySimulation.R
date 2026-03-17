@@ -62,7 +62,7 @@ return(out)
 
 #' Simulate phenological times in a population with unimodal phenophase
 #'
-#' @description Simulate a population of individuals with simulated onset, duration, cessation, and observed times based on multiple correlated covariates for onset and for duration. Assumes a linear model with normally distributed variation. Defaults produced simulated values with no covariates.
+#' @description Simulate a population of individuals with simulated onset, duration, cessation, and observed times based on multiple correlated covariates for onset and for duration. Assumes a linear model with normally distributed variation. Defaults produced simulated values with no covariates. This is similar to other simulation functions in phenoCollectR, except this one permits different covariates for onset and duration models.
 #'
 #' @param n Sample size
 #' @param betaOnset Named vector of slope coefficients of the covariates for onset. Names are the names of the covariates. (default: NULL)
@@ -80,6 +80,7 @@ return(out)
 #' @param maxResponse The maximum time of observations. default: 365, representing the number of days in a year. 
 #'
 #' @return Dataframe with columns labeled with the variable names, including all covariates, the simulated onset times, durations, cessations, sampled times, stage (before, during, after phenophase) and rows representing simulated individuals
+#' @export
 #' @importFrom MASS mvrnorm
 #'
 #' @examples
@@ -140,7 +141,6 @@ return(out)
 #' #With the above numbers that's o1: 1, o2: 2, c1: (3 + 3), d1: 1
 #' summary(lm(cessation ~ o1 + o2 + c1 + d1))
 #' }
-#' @noRd
 simulatePopulationLatentIntervalStates = function(n, 
 					covariateNamesOnset=NULL, covariateNamesDuration=NULL, 
 					covariateMeans = NULL, 
