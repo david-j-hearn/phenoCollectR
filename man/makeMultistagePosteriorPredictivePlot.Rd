@@ -68,7 +68,7 @@ library(posterior)
  n = 500
  minResponse = 0             #The minimum observed time should always be at least 0
  maxResponse = 365
- simulatedData = simulateMultistageData(n=n, nonCyclical=TRUE, nStages=nStages,nCovariates=nCovariates)
+ simulatedData = simulateMultistageData(n=n, nStages=nStages,nCovariates=nCovariates)
 
  #Plotting
      #Set which covariate is the x-axis in the plot
@@ -79,7 +79,6 @@ library(posterior)
  stageColors = RColorBrewer::brewer.pal(nStages+1, "Set1")
 
  trueModels = plotMultistageSimulation(simulatedData=simulatedData,
-                  nonCyclical=TRUE,
                   targetCovariateIndex=targetCovariateIndex,
                   stageColors=stageColors,
                   drawLatentOnset=FALSE,

@@ -43,21 +43,21 @@
 #' @noRd
 simulateCovariate = function(n, slopeO, interceptO, sigma, slopeD, interceptD, minCovariate, maxCovariate) {
 
-x = runif(n, minCovariate, maxCovariate)
-O = interceptO + slopeO * x + rnorm(n,0,sigma)
-D = interceptD + slopeD * x	#no intrinsic variance for duration under GP
-C = O + D
-Ts = runif(n, O, C) #works because duration is a constant size interval and time period bounds are not enforced.
+	x = runif(n, minCovariate, maxCovariate)
+	O = interceptO + slopeO * x + rnorm(n,0,sigma)
+	D = interceptD + slopeD * x	#no intrinsic variance for duration under GP
+	C = O + D
+	Ts = runif(n, O, C) #works because duration is a constant size interval and time period bounds are not enforced.
 
-out = list(
-	X = x,
-	O = O,
-	D = D,
-	C = C,
-	Ts = Ts
+	out = list(
+		   X = x,
+		   O = O,
+		   D = D,
+		   C = C,
+		   Ts = Ts
 	)
 
-return(out)
+	return(out)
 }
 
 #' Simulate phenological times in a population with unimodal phenophase
@@ -142,16 +142,16 @@ return(out)
 #' summary(lm(cessation ~ o1 + o2 + c1 + d1))
 #' }
 simulatePopulationLatentIntervalStates = function(n, 
-					covariateNamesOnset=NULL, covariateNamesDuration=NULL, 
-					covariateMeans = NULL, 
-					covarianceMatrix = NULL,
-					correlationMatrix = NULL, 
-					covariateStandardDeviations = NULL,
-					betaOnset=NULL, betaDuration=NULL, 
-					meanOnset = 0, meanDuration = 0, 
-					sigmaOnset = 1, 
-					minResponse=0, maxResponse=365,
-					seed = NULL) {
+						  covariateNamesOnset=NULL, covariateNamesDuration=NULL, 
+						  covariateMeans = NULL, 
+						  covarianceMatrix = NULL,
+						  correlationMatrix = NULL, 
+						  covariateStandardDeviations = NULL,
+						  betaOnset=NULL, betaDuration=NULL, 
+						  meanOnset = 0, meanDuration = 0, 
+						  sigmaOnset = 1, 
+						  minResponse=0, maxResponse=365,
+						  seed = NULL) {
 
 	#Basic checks
 	if(n<=0) {
@@ -170,8 +170,8 @@ simulatePopulationLatentIntervalStates = function(n,
 	#Simulate covariate data
 	covs_all = union(covariateNamesOnset,covariateNamesDuration)
 	if(!is.null(covs_all)) {
-	X = simulateCorrelatedCovariateData(n=n, covariateNames=covs_all, covariateMeans=covariateMeans, Sigma = covarianceMatrix, R = correlationMatrix, covariateSDs = covariateStandardDeviations, seed = seed)  
-	data = X
+		X = simulateCorrelatedCovariateData(n=n, covariateNames=covs_all, covariateMeans=covariateMeans, Sigma = covarianceMatrix, R = correlationMatrix, covariateSDs = covariateStandardDeviations, seed = seed)  
+		data = X
 	}
 	else {
 		data = data.frame(matrix(nrow = n, ncol = 0))
@@ -271,9 +271,9 @@ simulatePopulationLatentIntervalStates = function(n,
 #' }
 #' @noRd
 simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_sd = 0) {
-# Basic checks
+	# Basic checks
 	if (!is.data.frame(X) && !is.matrix(X)) {
-	  stop("X must be a data.frame or matrix.")
+		stop("X must be a data.frame or matrix.")
 	}
 
 	X <- as.data.frame(X)
@@ -286,33 +286,33 @@ simulateResponseData = function(X, beta, response_name = "Y", anchor = 0, noise_
 	if (is.null(xn)) stop("X must have column names.")
 	if (is.null(bn)) stop("beta must be a named vector.")
 
-  # Check name matching
+	# Check name matching
 	missing <- setdiff(xn, bn)
 	extra   <- setdiff(bn, xn)
 
 	if (length(missing) > 0) {
-	  stop("beta is missing coefficients for: ", paste(missing, collapse = ", "))
+		stop("beta is missing coefficients for: ", paste(missing, collapse = ", "))
 	}
 	if (length(extra) > 0) {
-	  warning("beta has extra coefficients not in X: ", paste(extra, collapse = ", "))
+		warning("beta has extra coefficients not in X: ", paste(extra, collapse = ", "))
 	}
 
-  # Align beta to X columns
+	# Align beta to X columns
 	beta <- beta[xn]
 
-  # Linear predictor
+	# Linear predictor
 	linear_part <- as.vector(as.matrix(X) %*% beta)
 
-  # Adjust intercept for anchor
+	# Adjust intercept for anchor
 	intercept <- anchor - mean(linear_part)
 
-  # Simulate noise
+	# Simulate noise
 	epsilon <- rnorm(n, mean = 0, sd = noise_sd)
 
-  # Simulate response
+	# Simulate response
 	Y <- intercept + linear_part + epsilon
 
-  # Combine into dataframe
+	# Combine into dataframe
 	df <- data.frame(Y = Y, X, check.names = FALSE)
 	names(df)[1] <- response_name
 
@@ -349,26 +349,26 @@ simulateFactorCorrelation <- function(C = 3,
 
 	stopifnot(C >= 1)
 	stopifnot(K >= 1)
-	
+
 	# If C = 1, K must effectively be 1 (otherwise Lambda is 1xK, still OK,
 	# but the result is just a scalar variance anyway).
 	K_use <- min(K, C)
-	
+
 	# Loadings matrix: C x K_use
 	Lambda <- matrix(rnorm(C * K_use, 0, loading_sd), nrow = C, ncol = K_use)
-	
+
 	# Unique variances (length C)
 	psi <- runif(C, var_min, var_max)
-	
+
 	# Make Psi safely a C x C matrix
 	Psi <- diag(as.numeric(psi), nrow = C, ncol = C)
-	
+
 	# Covariance
 	Sigma <- Lambda %*% t(Lambda) + Psi
-	
+
 	# Correlation: for P=1, cov2cor returns 1
 	R <- if (C == 1) matrix(1, 1, 1) else cov2cor(Sigma)
-	
+
 	return(list(R = R, Sigma = Sigma, Lambda = Lambda, Psi = Psi, covariateSDs = sqrt(psi)))
 }
 
@@ -391,7 +391,7 @@ simulateFactorCorrelation <- function(C = 3,
 #' minCovariate = -4
 #' maxCovariate = 27
 #' stageMinimumSeparation = 5
-#' slope = simulateCovariateSlope(previousStageMeanDuration, currentStageMeanDuration, minCovariate, maxCovariate, stageMinimumSeparation=10)
+#' slope = simulateCovariateSlope(previousStageMeanDuration, currentStageMeanDuration, minCovariate, maxCovariate, stageMinimumSeparation=stageMinimumSeparation)
 #' n = 100
 #' noise = 3
 #' x = runif(n, minCovariate,maxCovariate)
@@ -431,9 +431,9 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 	if( (nSDNormal <= 0 && centeredNormal) || (nSDOverlap <= 0 && overlapOnly) ) {
 		stop("The number of standard deviation units must be positive.")
 	}
-	if(!simulatedData$nonCyclical) {
-		stop("Please renumber your stages so that the times between 0 and your first stage are labeled 1, stage 1 times are labeled 2, and so forth so that after the start of the last stage up to the end of the time period is nStages + 1. This function will still treat times as cyclical, especially if centeredNormal is set to TRUE or excludeLastStage is set to TRUE. In both cases, the samples from the last stage wrap around the 'start' point.")
-	}
+	#if(!simulatedData$nonCyclical) {
+	#stop("Please renumber your stages so that the times between 0 and your first stage are labeled 1, stage 1 times are labeled 2, and so forth so that after the start of the last stage up to the end of the time period is nStages + 1. This function will still treat times as cyclical, especially if centeredNormal is set to TRUE or excludeLastStage is set to TRUE. In both cases, the samples from the last stage wrap around the 'start' point.")
+	#}
 
 	nOrig = length(simulatedData$outputData$sampledTime)
 	if(nOrig < newSampleSize && !replace && resample) {
@@ -442,7 +442,8 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 		stop("The new sample size must be smaller than or equal to the original sample size.")
 	}
 
-	nStages = simulatedData$nStages+1	#Non cyclical, so that times between 0 and the first stage are labeled 1...
+	#nStages = simulatedData$nStages+1	#Non cyclical, so that times between 0 and the first stage are labeled 1...
+	nStages = simulatedData$nStages	#Non cyclical, so that times between 0 and the first stage are labeled 1...
 	nCovariates = simulatedData$nCovariates
 
 	meanX = colMeans(simulatedData$outputData[,paste0("cov", 1:simulatedData$nCovariates)])		#estimate covariate means from data
@@ -457,9 +458,9 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 			slopes[i,] = rep(0,nCovariates)
 		}
 		else if(i==2) {
-			onsets[i] = simulatedData$stage1OnsetMean
-			sigmas[i] = simulatedData$stage1OnsetSD
-			slopes[i,] = simulatedData$stage1OnsetCovariateSlopes
+			onsets[i] = simulatedData$stage2OnsetMean
+			sigmas[i] = simulatedData$stage2OnsetSD
+			slopes[i,] = simulatedData$stage2OnsetCovariateSlopes
 		}
 		else {
 			onsets[i] = onsets[i-1] + simulatedData$stageDurationMeans[i-2]
@@ -582,7 +583,7 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 					}
 				}
 			}
-		#print(paste0("overlapping count: ", stageLowerOverlap[i] + stageUpperOverlap[i], " stage ", i))
+			#print(paste0("overlapping count: ", stageLowerOverlap[i] + stageUpperOverlap[i], " stage ", i))
 		}
 
 		#print("before unique")
@@ -675,13 +676,13 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 				else if(t >= lu && t <= ul) {
 					stageCenter[i] = stageCenter[i] + 1
 					#if(overlapOnly) {
-						#print("in center")
-						#print(t)
-						#print("boundary lower")
-						#print(lu)
-						#print("boundary upper")
-						#print(ul)
-						#stop("should not be any center points.")
+					#print("in center")
+					#print(t)
+					#print("boundary lower")
+					#print(lu)
+					#print("boundary upper")
+					#print(ul)
+					#stop("should not be any center points.")
 					#}
 				}
 			}
@@ -704,9 +705,9 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 #' @param nStages The number of stages to simulate. (default: 2)
 #' @param nonCyclical Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: TRUE)
 #' @param stageNames A vector of the names of stages. (default: NULL)
-#' @param stage1OnsetMean The mean value of the first stage's onset. (default: NULL)
-#' @param stage1OnsetSD The standard deviation of the first stage's onset. (default: NULL)
-#' @param stage1OnsetCovariateSlopes A vector with the first stage's onset model coefficients. (default: NULL)
+#' @param stage2OnsetMean The mean value of the second stage's onset. The first stage has onset time at the beginning of the time period (i.e., 0). (default: NULL)
+#' @param stage2OnsetSD The standard deviation of the first stage's onset. (default: NULL)
+#' @param stage2OnsetCovariateSlopes A vector with the first stage's onset model coefficients. (default: NULL)
 #' @param stageDurationMeans A vector with all but the last stage's mean durations. (default: NULL)
 #' @param stageDurationSDs A vector with all but the last stage's duration standard deviations. (default: NULL)
 #' @param stageDurationCovariateSlopes A matrix with the slopes for each coefficient of the duration model for each stage. Columns are the covariates, and rows are the stages. (default: NULL)
@@ -743,7 +744,7 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 #'
 #'			Covariate data: X
 #'
-#'			Stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes
+#'			Stage 1 model: stage2OnsetMean, stage2OnsetSD, stage2OnsetCovariateSlopes
 #'
 #'			Duration models for all but the last stage: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
 #'
@@ -769,11 +770,11 @@ resampleBiasedData = function(simulatedData=NULL, resample=FALSE, centeredNormal
 #' }
 simulateMultistageData = function(n=1000, 
 				  nStages=2, 
-				  nonCyclical=TRUE,
+				  #nonCyclical=TRUE,			#edited so that the first part of the time period and the last part of the time period are considered separate stages
 				  stageNames=NULL,
-				  stage1OnsetMean=NULL,
-				  stage1OnsetSD=NULL,
-				  stage1OnsetCovariateSlopes=NULL,
+				  stage2OnsetMean=NULL,			#stage 1 begins at time 0 at the beginning of the time period. 
+				  stage2OnsetSD=NULL,
+				  stage2OnsetCovariateSlopes=NULL,
 				  stageDurationMeans=NULL,
 				  stageDurationSDs=NULL,		
 				  stageDurationCovariateSlopes=NULL,
@@ -788,9 +789,9 @@ simulateMultistageData = function(n=1000,
 				  covariateMeans=NULL, 
 				  covariateSDs=NULL, 
 				  covariateNames=NULL,
-				  R=NULL, 
-				  Sigma=NULL, 
-				  nHiddenFactors=2, 
+				  R=NULL, 			#Correlation matrix
+				  Sigma=NULL, 			#Covariatnce matrix
+				  nHiddenFactors=2,		#Latent factors that are jointly coupled to observed factors, determining their correlation 
 				  hiddenFactorStrength=0.7, 
 				  minCovariateVariance=16.0,
 				  maxCovariateVariance=100.0,
@@ -798,30 +799,30 @@ simulateMultistageData = function(n=1000,
 				  maxCovariateMean=5.0,
 				  seed=NULL) {
 
-  if(!nonCyclical) {
-    stop("Currently, stages must be coded so that they are \"unrolled\" and numbered from 1 to nStages+1. So, nonCyclical must be set to TRUE.")
-  }
+	#if(!nonCyclical) {
+	#stop("Currently, stages must be coded so that they are \"unrolled\" and numbered from 1 to nStages+1. So, nonCyclical must be set to TRUE.")
+	#}
 
 	#if(nonCyclical) {
-		#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages+1))
-		#colnames(individuals) = paste0("stage", 1:(nStages+1))
+	#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages+1))
+	#colnames(individuals) = paste0("stage", 1:(nStages+1))
 	#}
 	#else {
-		#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages))
-		#colnames(individuals) = paste0("stage", 1:nStages)
+	#individuals = as.data.frame( matrix(NA_real_, nrow = n, ncol = nStages))
+	#colnames(individuals) = paste0("stage", 1:nStages)
 	#}
 
 	#Basic checks
 	if(minResponse!=0) {
-		stop("Minimum responses other than 0 are not supported.")
+		stop("Minimum responses other than 0 are not currently supported.")
 	}
 
 	if(nStages<2) {
-		stop("There must be at least 2 stages, even if these are just 'active' and 'dormant'.")
+		stop("There must be at least 2 stages.")
 	}
 
 	if(nCovariates<1) {
-		stop("There must be at least 1 covariate.")
+		stop("There must be at least 1 covariate. You can provide a constant covariate with correlation 0 if desired.")
 	}
 
 	#Generate covariate names, if needed
@@ -855,7 +856,7 @@ simulateMultistageData = function(n=1000,
 			covariateSDs = RInfo$covariateSDs
 			names(covariateSDs) = covariateNames
 		}
-	
+
 		#simulate mean covariate values if needed
 		if(is.null(covariateMeans)) {
 			if(minCovariateMean>=maxCovariateMean) {
@@ -867,78 +868,80 @@ simulateMultistageData = function(n=1000,
 
 		#simulate covariate data - is a data frame
 		X = simulateCorrelatedCovariateData(n=n, covariateNames=covariateNames, covariateMeans=covariateMeans, Sigma=Sigma, R=R, covariateSDs=covariateSDs, seed=seed) 
-		
+
 	}
 
 	#simulate response data
 	#	simulate stage 1 onset SD, if needed
-	if(is.null(stage1OnsetSD)) {
+	if(is.null(stage2OnsetSD)) {
 		if(minStageVariance<0 || minStageVariance >= maxStageVariance) {
 			stop("The minimum stage variance must be positive and less than the maximum stage variance.")
 		}
-		stage1OnsetSD = sqrt(runif(1, minStageVariance, maxStageVariance))
+		stage2OnsetSD = sqrt(runif(1, minStageVariance, maxStageVariance))
 	}
 	#	simulate onset means for each stage, and convert these to durations, as needed
-	if(is.null(stage1OnsetMean) || is.null(stageDurationMeans) || length(stageDurationMeans)!=nStages-1) {
+	if(is.null(stage2OnsetMean) || is.null(stageDurationMeans) || length(stageDurationMeans)!=nStages-1) {
 		if(length(meanOnsetSpread)==1) {
-			meanOnsetSpread = rep(meanOnsetSpread,nStages+1)
+			meanOnsetSpread = rep(meanOnsetSpread,nStages)
 		}
 		if(any(meanOnsetSpread<0)) {
 			stop("Each mean onset spread must be positive.")
 		}
-		if(length(meanOnsetSpread)!=nStages+1) {
-			stop("Provide a vector of length nStages+1 representing the weight to give each stage (including before stage one and after the last stage) when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
+		if(length(meanOnsetSpread)!=nStages) {
+			stop("Provide a vector of length nStages representing the weight to give each stage when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
 		}
 		means = phenoCollectR:::rdirichlet(1,meanOnsetSpread) * (maxResponse - minResponse) + minResponse
-		stage1OnsetMean = means[1]	
-		stageDurationMeans = means[2:nStages]
+		stage2OnsetMean = means[1]	
+		stageDurationMeans = means[2:nStages]	#minimum of two stages
 	}
 	#	simulate duration SDs, if needed
-  if(!is.null(stageDurationSDs)) {
-    warning("Setting all duration SDs to 0. Only the first full stage has intrinsic noise.")
-		stageDurationSDs = rep(0,nStages-1)
-  }
+	if(!is.null(stageDurationSDs)) {
+		warning("Setting all duration SDs to 0. Only the first full stage has intrinsic noise.")
+		stageDurationSDs = rep(0,nStages-1)	#first duration is the time between the onset of the first stage (at t=0) and the onset of the second stage, which is represented as stage2OnsetMean.
+	}
 	if(is.null(stageDurationSDs) || length(stageDurationSDs)!=nStages-1) {
 		#stageDurationSDs = sqrt(runif(nStages-1, minStageVariance, maxStageVariance))
 		stageDurationSDs = rep(0,nStages-1)
 	}
 
-	#	simulate stage 1 slopes for onset model, if needed
-	if(is.null(stage1OnsetCovariateSlopes) || length(stage1OnsetCovariateSlopes)!=nCovariates) {
-		stage1OnsetCovariateSlopes = rep(0,nCovariates)
-		d1 = stage1OnsetMean
-		d2 = ifelse(stageDurationMeans[1]<stageMinimumSeparation*5,stageMinimumSeparation*5,stageDurationMeans[1])
+	#	simulate stage 2 slopes for onset model, if needed
+	if(is.null(stage2OnsetCovariateSlopes) || length(stage2OnsetCovariateSlopes)!=nCovariates) {
+		stage2OnsetCovariateSlopes = rep(0,nCovariates)
+		d1 = stage2OnsetMean
+		d2 = ifelse(stageDurationMeans[1]<stageMinimumSeparation*1,stageMinimumSeparation*1,stageDurationMeans[1])	#This includes the very last stage, which is not really needed
 		#print("Stage 1")
 		for(i in 1:nCovariates) {
 			#the current / next is different here, since this is the onset model, not the duration model
-			stage1OnsetCovariateSlopes[i] = simulateCovariateSlope(windowBelow=d1, windowAbove=d2, minCovariate=min(X[,i]), maxCovariate=max(X[,i]), stageMinimumSeparation = stageMinimumSeparation) 
+			stage2OnsetCovariateSlopes[i] = simulateCovariateSlope(windowBelow=d1, windowAbove=d2, minCovariate=min(X[,i]), maxCovariate=max(X[,i]), stageMinimumSeparation = stageMinimumSeparation) 
 		}
 	}
 	#	simulate stage duration covariate slopes, if needed
-	if(!is.null(stageDurationCovariateSlopes) && (ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-1)) {
-		stop("Duration Covariate Slopes are provided, but the dimensions do no match: should be nStages-1 X nCovariates")
+	if(!is.null(stageDurationCovariateSlopes) && (ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-2)) {
+		stop("Duration Covariate Slopes are provided, but the dimensions do no match: should be nStages-2 X nCovariates")
 	}
-	if(is.null(stageDurationCovariateSlopes) || ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-1) {
+	if(is.null(stageDurationCovariateSlopes) || ncol(stageDurationCovariateSlopes)!=nCovariates || nrow(stageDurationCovariateSlopes)!=nStages-2) {
 		#print(stageDurationCovariateSlopes)
-		stageDurationCovariateSlopes = matrix(0,ncol=nCovariates,nrow=nStages-1)
-		colnames(stageDurationCovariateSlopes) = covariateNames
-		rownames(stageDurationCovariateSlopes) = stageNames[1:nStages-1]
-		for(i in 1:nCovariates) {
-			#print("covariate")
-			#print(i)
-			mC = min(X[,i])
-			MC = max(X[,i])
-			for(j in 1:(nStages-1)) {
-				#print("stage")
-				#print(j)
-				windowBelow = stageDurationMeans[j]
-				if(j == nStages-1) { #wrap around
-					windowAbove = stage1OnsetMean
+		if(nStages > 2) {	#if number of stages is 2, then there is only the onset curve for stage 2, which is taken care of separately from other stages
+			stageDurationCovariateSlopes = matrix(0,ncol=nCovariates,nrow=nStages-2)	#Does not include slopes for stage 1 and stage 2 
+			colnames(stageDurationCovariateSlopes) = covariateNames
+			rownames(stageDurationCovariateSlopes) = stageNames[3:nStages]	#stage 1 at minResponse (0), stage 2 handled separately with variation, stage 3 duration is first one handled here
+			for(i in 1:nCovariates) {
+				#print("covariate")
+				#print(i)
+				mC = min(X[,i])
+				MC = max(X[,i])
+				for(j in 1:(nStages-2)) {
+					#print("stage")
+					#print(j)
+					if(j == 1) { #wrap around
+						windowBelow = stage2OnsetMean
+					}
+					else {
+						windowBelow = stageDurationMeans[j-1]
+					}
+					windowAbove = stageDurationMeans[j]
+					stageDurationCovariateSlopes[j,i] = simulateCovariateSlope(windowBelow=windowBelow, windowAbove=windowAbove, minCovariate=mC, maxCovariate=MC, stageMinimumSeparation = stageMinimumSeparation)
 				}
-				else {
-					windowAbove = stageDurationMeans[j+1]
-				}
-				stageDurationCovariateSlopes[j,i] = simulateCovariateSlope(windowBelow=windowBelow, windowAbove=windowAbove, minCovariate=mC, maxCovariate=MC, stageMinimumSeparation = stageMinimumSeparation)
 			}
 		}
 	}
@@ -953,94 +956,63 @@ simulateMultistageData = function(n=1000,
 	}
 
 	stages = rep(0,n)
-	onsets = matrix(0,nrow=n,ncol=nStages)
-	colnames(onsets) = stageNames
-	#onsetCumTot = 0
+	onsets = matrix(0,nrow=n,ncol=(nStages-1)) #stage 1 is not included, which is constant undetermined at 0 (or below)
+	colnames(onsets) = stageNames[2:nStages]
 	for(i in 1:n) {
-		#covariates = as.vector(X[i,]) #get vector of covariate values
 		covariates = as.numeric(X[i,]) #get vector of covariate values
-	  #onsetCumTot = 0
-		for(j in 1:nStages) {
+		for(j in 1:(nStages-1)) {		#doesn't include onset of first stage
 			if(j==1) {
-				slopes = stage1OnsetCovariateSlopes
-				#print(slopes)
-				#print(covariateMeans)
-				intercept = stage1OnsetMean - sum(as.numeric(slopes) * as.numeric(covariateMeans))
-				sd = stage1OnsetSD
-				#onsets[i,j] = rnorm(1, softplus(intercept + sum(slopes * covariates)),sd)
-				onsets[i,j] = rnorm(1, intercept + sum(slopes * covariates),sd) #negative possible for first onset
-				#if(times[i]>0 && times[i]<=onsets[i,j]) {
-					#stages[i] = nStages
-				#}
-				#onsetCumTot = onsets[i,j]
+				slopes = stage2OnsetCovariateSlopes
+				intercept = stage2OnsetMean - sum(as.numeric(slopes) * as.numeric(covariateMeans))
+				sd = stage2OnsetSD
+				onsets[i,j] = rnorm(1, intercept + sum(slopes * covariates),sd) #negative possible for second onset (first is at 0 or below)
 			}
 			else {
 				slopes = as.vector(stageDurationCovariateSlopes[j-1,])
 				intercept = stageDurationMeans[j-1] - sum(as.numeric(slopes) * as.numeric(covariateMeans))
-				#sd = stageDurationSDs[j-1]    #Should be 0
-        sd = 0  #Make it official
-				#print(slopes)
-				#print(covariateMeans)
+				sd = 0  #Make it official
 				duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd)) #Softplus ok here. Sd is 0.
-				#duration = rnorm(1,intercept + sum(slopes * covariates),sd)
-				#onsets[i,j] = onsetCumTot + duration
-        onsets[i,j] = onsets[i,j-1] + duration
-				#diff = onsets[i,j] - onsets[i,j-1]  #should never happen due to softplus
-				#if(diff < 0) {
-					#onsets[i,j] = onsets[i,j-1]+1e-5 #stage of 1e-5 duration
-				#}
-				#if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
-					#stages[i] = j-1
-				#}
-				#onsetCumTot = onsetCumTot + stageDurationMeans[j-1]
-				#onsetCumTot = onsetCumTot + onsets[i,j]
+				onsets[i,j] = onsets[i,j-1] + duration
 			}
 		}
-		#if(times[i]>=onsetCumTot) {
-			#stages[i]=nStages
-		#}
 	}
-	#
 	#simulate the onset times for each stage and simulate sampling each individual in the population
 	times = runif(n,minResponse,maxResponse)
-  #minO = min(onsets)
-  #maxO = max(onsets)
-	#times = runif(n,ifelse(minResponse<minO,minResponse,minO),ifelse(maxResponse>maxO, maxResponse,maxO))
 
 	for(i in 1:n) {
-		for(j in 1:nStages) {
-			if(nonCyclical) {
-				if(j==1) {
-					#if(times[i]>0 && times[i]<=onsets[i,j]) {
-					if(times[i]<=onsets[i,j]) {   #allow negative
-						stages[i] = 1
-					}
-				}
-				else {
-					if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
-						stages[i] = j
-					}
-				}
-				if(j==nStages && times[i]>=onsets[i,j]) {   #allow times past maxResponse without wraparound (nonCyclical=TRUE)
-					stages[i] = nStages+1
+		for(j in 1:(nStages-1)) {
+			#if(nonCyclical) {
+			if(j==1) {
+				#if(times[i]>0 && times[i]<=onsets[i,j]) {
+				if(times[i]<=onsets[i,j]) {   #allow negative; onsets don't include stage 1, which is 0 or less, so j==1 is stage 2
+					stages[i] = 1
 				}
 			}
 			else {
-        stop("nonCyclical must be set to TRUE.")
-				if(j==1) {
-					if(times[i]>0 && times[i]<=onsets[i,j]) {
-						stages[i] = nStages
-					}
-				}
-				else {
-					if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
-						stages[i] = j-1
-					}
-				}
-				if(j==nStages && times[i]>=onsets[i,j]) {
-					stages[i] = nStages
+				if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) { #index j is stage j+1
+					stages[i] = j
 				}
 			}
+			if(j==nStages-1 && times[i]>=onsets[i,j]) {   #allow times past maxResponse without wraparound (nonCyclical=TRUE)
+				stages[i] = nStages
+			}
+			#}
+			#else {
+			#stop("nonCyclical must be set to TRUE.")
+			#if(j==1) {
+			#if(times[i]>0 && times[i]<=onsets[i,j]) {
+			#stages[i] = nStages
+			#}
+			#}
+			#else {
+			#if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
+			#stages[i] = j-1
+			#}
+			#}
+			#if(j==nStages && times[i]>=onsets[i,j]) {
+			#stages[i] = nStages
+			#}
+			#}
 		}
 	}
 
@@ -1051,15 +1023,15 @@ simulateMultistageData = function(n=1000,
 	return(list(outputData=outputData, 
 		    nStages = nStages,
 		    nCovariates = nCovariates,
-		    nonCyclical = nonCyclical,
+		    #nonCyclical = nonCyclical,
 		    R=R,
 		    Sigma=Sigma,
 		    covariateSDs=covariateSDs,
 		    covariateMeans=covariateMeans,
 		    X=X,
-		    stage1OnsetMean=stage1OnsetMean,
-		    stage1OnsetSD=stage1OnsetSD,
-		    stage1OnsetCovariateSlopes=stage1OnsetCovariateSlopes,
+		    stage2OnsetMean=stage2OnsetMean,
+		    stage2OnsetSD=stage2OnsetSD,
+		    stage2OnsetCovariateSlopes=stage2OnsetCovariateSlopes,
 		    stageDurationMeans=stageDurationMeans,
 		    stageDurationSDs=stageDurationSDs,
 		    stageDurationCovariateSlopes=stageDurationCovariateSlopes))
@@ -1072,33 +1044,39 @@ simulateMultistageData = function(n=1000,
 #' 
 #' @param n The sample size. (default: 500)
 #' @param meanUnits The mean number of phenological units that an individual develops during a phenological time period (e.g., an individual plant produces multiple flower units during a phenological cycle). (default: 20)
-#' @param nStages The number of stages to simulate. This optionally includes the 'pre-' and 'post-' stages (see parameter 'includePrePost').  (default: 4; one pre-, one post-, and 2 internal stages with multiple phenological units)
+#' @param nPre The number of stages before overlapping phenological units (e.g., floral units) begin development
+#' @param nVisible The number of stages for which overlapping phenological units (e.g., floral units) are present (e.g., bud, flower, immature fruit, mature fruit)
+#' @param nPost The number of stages after all overlapping phenological units (e.g., floral units) have abscised (after fruits have fallen off of plant)
 #' @param nCovariates The number of covariates to simulate. (default: 2)
-#' @param includePrePost Include pre- and post- stages for which phenological units have not yet developed (pre-) or have senesced (post-). (default: TRUE)
 #' @param ... Additional optional parameters passed to simulateMultistageData (called from within this simulateMultistageOverlapData function). 
 #'
 #' @return A list with the following: 
 #'
-#'		Data frame named 'simulatedData' with the output from the called simuateMultistageData function
+#'	nPre: the number of stages before (pre, such as dormant stage, pre-reproductive vegetative stage) development of overlapping phenological units (such as flower units)
+#'	nVisible: the number of stages when overlapping phenological units are visible (such as bud, flower, immature fruit, mature fruit for floral units)
+#'	nPost: the number of stages after (post) all phenological units have absciced from the individual. 
+#'	Data frame named 'simulatedData' with the output from the internally-called simuateMultistageData function
 #'    A list of 'simulatedIndividuals' with:
 #'      The time when an individual was observed
-#'      A vector, 'phenologicalUnitStages', of the stages of the phenological units within the individual. If the individual is pre- or post-, there will be a single number representing that stage.
-#'      A vector, 'stageCounts', of the counts of phenological units within each of the nStages stages. If the individual is pre- or post-, there will be a 1 in the index position of that stage and zeroes in the other stages. Otherwise, there will be a count of the number of phenological units in the stage.
+#'	A vector, 'phenologicalUnits', of counts of phenological units for each stage that includes latent as well as observed units
+#'      A vector, 'stageCounts', of the counts of observed phenological units within each of the nStages stages. If the individual is in a pre- or post- stage, there will be a 1 in the index position of that stage and zeroes in the other stages. Otherwise, there will be a count of the number of observed phenological units in the stage and 0's in all the pre- and post- stages.
 #'      A vector, 'pi', of the probabilities of being in each stage at the sampled time.
+#'	nUnits: the total number of units (latent and observed) for the individual. It is possible that not all have developed yet and it is possible that some have already abscised.
 #'
 #' @export
 #'
 #' @examples
 #' \donttest{
 #' ##Set basic simulation parameters 
-#' numberStages = 5           #Since 'includePrePost' is set to TRUE below, this include pre-(phenological unit), phenological unit stage 1, phenological unit stage 2, and post-(phenological unit) stages. An example would be a plant with the following stages: the plant hasn't produced any flower units (pre-), the plant has flower units are open flowers (phenologial unit stage 1), the plant has flower units that have developed into fruits (phenological unit stage 2), and the plant has fruits that have senesced (post-). 
+#' nPre = 1           
+#' nVisible = 3
+#' nPost = 1
 #' numberCovariates = 3
-#' sampleSize = 500
+#' popSize = 500	      #Number of individuals to simulate in the simulated population
 #' meanUnits = 30             #Set the mean number of phenological units (e.g., flowers) that an individual develops during a phenological cycle.
-#' includePrePost = TRUE      #The first and last stages will be pre- and post- (reproductive) stages, evaluated at the level of the individual (1 for in the stage, 0 for not in the stage)
 #'
 #' ##Simulate data
-#' sim = simulateMultistageOverlapData(n=sampleSize, meanUnits=meanUnits, nStages=numberStages, nCovariates=numberCovariates, includePrePost=includePrePost)
+#' sim = simulateMultistageOverlapData(n=popSize, nPre = nPre, nVisible = nVisible, nPost = nPost, meanUnits=meanUnits, nStages=numberStages, nCovariates=numberCovariates)
 #'
 #' ##Plot simulated data with the first covariate along the x-axis and the predominant stage color coded. Note, this plot does not represent all the stages of all the phenological units, but rather a single 'x' for each indivdiual color-coded by the predominant stage.
 #' #	set colors for the stages
@@ -1108,92 +1086,122 @@ simulateMultistageData = function(n=1000,
 #' #	create the plot
 #' plotMultistageSimulation(simulatedData=sim$simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 #' }
-simulateMultistageOverlapData = function(n=500, meanUnits = 20, nStages=4, nCovariates=2, includePrePost=TRUE, ...) {
- 
-  if(includePrePost && nStages<=3) {
-    stop("Provide at least 4 stages when simulating pre- and post- stages, so that there is a minimum of two 'middle' stages.")
-  } 
+simulateMultistageOverlapData = function(n=500, meanUnits = 20, nPre=1, nVisible=2, nPost=1, nCovariates=2, ...) {
 
-  simulatedData = simulateMultistageData(n=n, nStages=nStages-1, nCovariates=nCovariates, ...)    #breaks one stage into pre-, post-, so nStages-1 results in nStages
-  individuals = vector("list", n)
-  nUnits = rpois(n, meanUnits)
- 
-  onsetCols = (nCovariates+1):(nCovariates+nStages-1) 
-  for(i in 1:n) {
-    onsets = as.numeric(simulatedData$outputData[i,onsetCols])
-    #print("onsets from simulation")
-    #print(onsets)
-    #print("time")
-    #print(simulatedData$outputData$sampledTime[i])
-    pi = stageProbabilities(t = simulatedData$outputData$sampledTime[i], 
-              onsets = onsets, 
-              SD = simulatedData$stage1OnsetSD    #just one SD with these data
-         )
-    #print("pi")
-    #print(pi)
-    #if(includePrePost) {
-      ##Determine if individual is in pre- or post- stage
-      #stage = simulatedData$outputData$sampledStage[i]
-      #units = stage
-      #if(stage == 1) {
-        #stageCounts = rep(0,nStages)
-        #stageCounts[1] = 1
-      #}
-      #else if(stage == nStages) {
-        #stageCounts = rep(0,nStages)
-        #stageCounts[nStages] = 1
-      #}
-      #else {
-        #piPP = pi[2:(nStages-1)] / sum(pi[2:(nStages-1)])
-        #units = sample(2:(nStages-1), nUnits[i], replace=TRUE, prob=piPP)
-        #stageCounts = tabulate(units, nbins=nStages)
-      #}
-    #}
-    #else {
-      units = sample(1:nStages, nUnits[i], replace=TRUE, prob=pi)
-      stageCounts = tabulate(units, nbins=nStages)
-    #}
+	if(nPre > 1 && nVisible>0) {
+		stop("There can only be one pre-unit stage if there are one or more stages where units are visible. When units are visible, the unit, not the individual on which the unit develops, is the unit of phenological attention. Since the unit is not observable in the pre stages, it is not possible to subdivide the pre stages into multiple stages.")
+	}
+	if(nPost > 1 && nVisible>0) {
+		stop("There can only be one post-unit stage if there are one or more stages where units are visible. When units are visible, the unit, not the individual on which the unit develops, is the unit of phenological attention. Since the unit is not observable in the post stages, it is not possible to subdivide the post stages into multiple stages.")
+	}
 
-    if(includePrePost) {
-      if(stageCounts[1] == nUnits[i]) {
-        stageCounts = rep(0,nStages)
-        stageCounts[1] = 1
-      }
-      else if(stageCounts[nStages] == nUnits[i]) {
-        stageCounts = rep(0,nStages)
-        stageCounts[nStages] = 1
-      }
-      else {
-        stageCounts[1] = 0
-        stageCounts[nStages] = 0
-      }
-    }
-    individuals[[i]] = list(
-      sampledTime = simulatedData$outputData$sampledTime[i],
-      phenologicalUnitStages = units,
-      stageCounts = stageCounts,
-      pi = pi
-    )
-  }
-  return(list(simulatedIndividuals = individuals, simulatedData = simulatedData))
+	if(nPost > 1 && nVisible==0) {
+		stop("If there are no stages with visible units, assign all stages to the 'pre' stages.")
+	}
+
+	nStages = nPre + nVisible + nPost
+
+	if(nStages<2) {
+		stop("Include at least 2 stages.")
+	} 
+
+	simulatedData = simulateMultistageData(n=n, nStages=nStages, nCovariates=nCovariates, ...)    
+	individuals = vector("list", n)
+	nUnits = rpois(n, meanUnits)
+
+	onsetCols = (nCovariates+1):(nCovariates+nStages-1) #does not include onset stage 1
+	for(i in 1:n) {
+		if(nUnits[i]==0) {	#assure at least one unit per individual
+			nUnits[i]=1
+		}
+		onsets = as.numeric(simulatedData$outputData[i,onsetCols])
+		pi = stageProbabilities(t = simulatedData$outputData$sampledTime[i], 
+					onsets = onsets, 
+					SD = simulatedData$stage2OnsetSD    #just one SD with these data
+		)
+		units = sample(1:nStages, nUnits[i], replace=TRUE, prob=pi)
+		stageCounts = tabulate(units, nbins=nStages)
+
+		prePost=TRUE
+		touched=FALSE
+		if(nVisible>=1) {
+			if(sum(stageCounts[(nPre+1):(nPre+nVisible)])>0) {
+				if(nPre>=1) {
+					stageCounts[1:nPre] = 0
+				}
+				if(nPost>=1) {	
+					stageCounts[(nPre+nVisible+1):(nPre+nVisible+nPost)] = 0
+				}
+				prePost=FALSE
+				touched=TRUE
+			}
+		}
+		if(nPre>=1 && prePost) {
+			for(j in 1:nPre) {
+				if(simulatedData$outputData$sampledStage[i]==j) {
+					stageCounts = rep(0,nStages)
+					stageCounts[j] = 1
+					touched = TRUE
+				}
+			}
+		}
+		if(nPost>=1 && prePost && !touched) {
+			for(j in (nPre+nVisible+1):(nPre+nVisible+nPost)) {
+				if(simulatedData$outputData$sampledStage[i]==j) {
+					stageCounts = rep(0,nStages)
+					stageCounts[j] = 1
+					touched = TRUE
+				}
+			}
+		}
+
+		if(!touched) { 
+			#there are no units in the visible stages, so there must be at least one unit in the pre- or post- stages only, although the individual was simulated as being in a visible stage
+			#this should be reached only very rarely
+			js = which(stageCounts == max(stageCounts)) #get stages with max number of units
+			j=sample(x=js,size=1,prob=pi[js]) #sample a stage with max units
+			stageCounts = rep(0,nStages) #reset all other stages to 0
+			stageCounts[j] = 1 #set the individual to the sampled stage
+			if(j>=nPre+1 && j<=nPre+nVisible) { 
+				#check that sampled stage is in pre- or post- stage
+				#should never be reached, since previously was checked whether visible unit(s) present
+				stop("Something went horribly wrong. Couldn't find stage.")
+			}
+		}
+
+		individuals[[i]] = list(
+					sampledTime = simulatedData$outputData$sampledTime[i],
+					phenologicalUnits = units,
+					stageCounts = stageCounts,
+					nUnits = nUnits[i],
+					pi = pi
+		)
+	}
+	return(list(simulatedIndividuals = individuals, simulatedData = simulatedData))
 }
 
+#onsets don't include onset for stage 1, so stage is index + 1
 stageProbabilities = function(t, onsets, SD) {
-#print(t)
-#print(onsets)
-#print(SDs)
-  S = length(onsets)
-#print("# stages")
-#print(S)
-  pi = numeric(S+1) # S is the number of onsets (not including baseline), so number of stages is S+1
-  pi[1] = 1 - pnorm((t - onsets[1])/SD)         #before onset 1
-  pi[S+1] = pnorm((t - onsets[S])/SD)             #after onset S
+	#print(t)
+	#print(onsets)
+	#print(SD)
+	S = length(onsets)
+	#print("# stages")
+	#print(S)
+	pi = numeric(S+1) # S is the number of onsets (not including onset for stage 1), so number of stages is S+1
+	#print("A")
+	pi[1] = 1 - pnorm((t - onsets[1])/SD)         #before onset 2 (at index 1) is stage 1
+	#print("B")
+	pi[S+1] = pnorm((t - onsets[S])/SD)           #after onset S, which is stage S+1
 
-  for(i in 1:(S-1)) {                           
-    pi[i+1] = pnorm((t - onsets[i])/SD) - pnorm((t - onsets[i+1])/SD)
-  }
-  pi = pmax(pi, 0)
-  return(pi / sum(pi))
+	if(S>1) { #deal with the two stage scenario 
+	for(i in 1:(S-1)) {                           
+	#print("C")
+		pi[i+1] = pnorm((t - onsets[i])/SD) - pnorm((t - onsets[i+1])/SD) #index i is for stage i+1
+	}
+	}
+	pi = pmax(pi, 0)	#numerical precision sometimes results in negative value
+	return(pi / sum(pi))	#should already be normalized, but to account for numerical errors
 }
 
 #' Simulate linearly correlated covariate data
@@ -1240,128 +1248,128 @@ simulateCorrelatedCovariateData = function (n, covariateNames=NULL, covariateMea
 		return(rep(0,n))
 	}
 
-#Rename n
+	#Rename n
 	N = n
 
-#Set seed
+	#Set seed
 	if (!is.null(seed)) { set.seed(seed) }
 
-# Load required package
+	# Load required package
 	if (!requireNamespace("MASS", quietly = TRUE)) {
 		stop("Please install the 'MASS' package with install.packages('MASS')")
 	}
 
-  # ---- all covariates (union) ----
-  all_covs = covariateNames
-  p <- length(all_covs)
+	# ---- all covariates (union) ----
+	all_covs = covariateNames
+	p <- length(all_covs)
 
-  # ---- checks ----
-  if (is.null(Sigma) && (is.null(R) || is.null(covariateSDs))) {
-    warn("No covariance or correlation matrix with scales provided. Using identity matrix for covariance matrix.")
-	Sigma = diag(p)
-  	rownames(Sigma) = all_covs
-	colnames(Sigma) = all_covs
-  }
+	# ---- checks ----
+	if (is.null(Sigma) && (is.null(R) || is.null(covariateSDs))) {
+		warn("No covariance or correlation matrix with scales provided. Using identity matrix for covariance matrix.")
+		Sigma = diag(p)
+		rownames(Sigma) = all_covs
+		colnames(Sigma) = all_covs
+	}
 
-  # ---- build Sigma_full ----
-  if (!is.null(Sigma)) {
-    if (!is.matrix(Sigma)) stop("Sigma must be a matrix.")
+	# ---- build Sigma_full ----
+	if (!is.null(Sigma)) {
+		if (!is.matrix(Sigma)) stop("Sigma must be a matrix.")
 
-    rn <- rownames(Sigma)
-    cn <- colnames(Sigma)
-    if (is.null(rn) || is.null(cn)) {
-      stop("Sigma must have rownames and colnames.")
-    }
-    if (!identical(rn, cn)) {
-      stop("Sigma rownames and colnames must match and be in the same order.")
-    }
+		rn <- rownames(Sigma)
+		cn <- colnames(Sigma)
+		if (is.null(rn) || is.null(cn)) {
+			stop("Sigma must have rownames and colnames.")
+		}
+		if (!identical(rn, cn)) {
+			stop("Sigma rownames and colnames must match and be in the same order.")
+		}
 
-    missing <- setdiff(all_covs, rn)
-    if (length(missing) > 0) {
-      stop("Sigma is missing covariates: ", paste(missing, collapse = ", "))
-    }
+		missing <- setdiff(all_covs, rn)
+		if (length(missing) > 0) {
+			stop("Sigma is missing covariates: ", paste(missing, collapse = ", "))
+		}
 
-    Sigma_use <- Sigma[all_covs, all_covs, drop = FALSE]
+		Sigma_use <- Sigma[all_covs, all_covs, drop = FALSE]
 
-  } else {
-    # R + covariateSDs path
-    if (!is.matrix(R)) stop("R must be a matrix.")
+	} else {
+		# R + covariateSDs path
+		if (!is.matrix(R)) stop("R must be a matrix.")
 
-    rn <- rownames(R)
-    cn <- colnames(R)
-    if (is.null(rn) || is.null(cn)) {
-      stop("R must have rownames and colnames.")
-    }
-    if (!identical(rn, cn)) {
-      stop("R rownames and colnames must match and be in the same order.")
-    }
+		rn <- rownames(R)
+		cn <- colnames(R)
+		if (is.null(rn) || is.null(cn)) {
+			stop("R must have rownames and colnames.")
+		}
+		if (!identical(rn, cn)) {
+			stop("R rownames and colnames must match and be in the same order.")
+		}
 
-    missing <- setdiff(all_covs, rn)
-    if (length(missing) > 0) {
-      stop("R is missing covariates: ", paste(missing, collapse = ", "))
-    }
+		missing <- setdiff(all_covs, rn)
+		if (length(missing) > 0) {
+			stop("R is missing covariates: ", paste(missing, collapse = ", "))
+		}
 
-    R_use <- R[all_covs, all_covs, drop = FALSE]
+		R_use <- R[all_covs, all_covs, drop = FALSE]
 
-    # covariateSDs can be named or unnamed
-    if (is.null(names(covariateSDs))) {
-      if (length(covariateSDs) != nrow(R)) {
-        stop("If covariateSDs is unnamed, it must have length equal to nrow(R).")
-      }
-      sds_named <- covariateSDs
-      names(sds_named) <- rownames(R)
-    } else {
-      sds_named <- covariateSDs
-    }
+		# covariateSDs can be named or unnamed
+		if (is.null(names(covariateSDs))) {
+			if (length(covariateSDs) != nrow(R)) {
+				stop("If covariateSDs is unnamed, it must have length equal to nrow(R).")
+			}
+			sds_named <- covariateSDs
+			names(sds_named) <- rownames(R)
+		} else {
+			sds_named <- covariateSDs
+		}
 
-    missing_sds <- setdiff(all_covs, names(sds_named))
-    if (length(missing_sds) > 0) {
-      stop("covariateSDs is missing covariates: ", paste(missing_sds, collapse = ", "))
-    }
+		missing_sds <- setdiff(all_covs, names(sds_named))
+		if (length(missing_sds) > 0) {
+			stop("covariateSDs is missing covariates: ", paste(missing_sds, collapse = ", "))
+		}
 
-    sds_use <- sds_named[all_covs]
-    p <- length(sds_use)
-    if(p==1) {
-	D <- diag(as.numeric(sds_use), nrow = p, ncol = p)
-    }
-    else {
-	    D = sds_use
-    }
-    Sigma_use <- diag(D) %*% R_use %*% diag(D)
-    #print(Sigma_use)
-    #print(R_use)
-    #print(sds_use)
-    #print(D)
-    #print(diag(D))
-  }
+		sds_use <- sds_named[all_covs]
+		p <- length(sds_use)
+		if(p==1) {
+			D <- diag(as.numeric(sds_use), nrow = p, ncol = p)
+		}
+		else {
+			D = sds_use
+		}
+		Sigma_use <- diag(D) %*% R_use %*% diag(D)
+		#print(Sigma_use)
+		#print(R_use)
+		#print(sds_use)
+		#print(D)
+		#print(diag(D))
+	}
 
-  # ---- means ----
-  if (is.null(covariateMeans)) {
-    means_use <- rep(0, p)
-    names(means_use) <- all_covs
-  } else {
-    if (is.null(names(covariateMeans))) {
-      stop("means must be a named vector with names matching covariates.")
-    }
-    missing_means <- setdiff(all_covs, names(covariateMeans))
-    if (length(missing_means) > 0) {
-      stop("means is missing covariates: ", paste(missing_means, collapse = ", "))
-    }
-    means_use <- covariateMeans[all_covs]
-  }
+	# ---- means ----
+	if (is.null(covariateMeans)) {
+		means_use <- rep(0, p)
+		names(means_use) <- all_covs
+	} else {
+		if (is.null(names(covariateMeans))) {
+			stop("means must be a named vector with names matching covariates.")
+		}
+		missing_means <- setdiff(all_covs, names(covariateMeans))
+		if (length(missing_means) > 0) {
+			stop("means is missing covariates: ", paste(missing_means, collapse = ", "))
+		}
+		means_use <- covariateMeans[all_covs]
+	}
 
-  # ---- PD check ----
-  ev <- eigen(Sigma_use, symmetric = TRUE, only.values = TRUE)$values
-  if (min(ev) <= 1e-10) {
-    stop("Sigma is not positive definite (min eigenvalue = ", signif(min(ev), 4), ").")
-  }
+	# ---- PD check ----
+	ev <- eigen(Sigma_use, symmetric = TRUE, only.values = TRUE)$values
+	if (min(ev) <= 1e-10) {
+		stop("Sigma is not positive definite (min eigenvalue = ", signif(min(ev), 4), ").")
+	}
 
-  # ---- simulate ----
-  X <- MASS::mvrnorm(n = N, mu = means_use, Sigma = Sigma_use)
-  colnames(X) <- all_covs
-  X <- as.data.frame(X)
+	# ---- simulate ----
+	X <- MASS::mvrnorm(n = N, mu = means_use, Sigma = Sigma_use)
+	colnames(X) <- all_covs
+	X <- as.data.frame(X)
 
-return(X)
+	return(X)
 }
 
 #' Simulate a response variable based on multiple correlated covariates
@@ -1414,156 +1422,156 @@ return(X)
 #' @noRd
 simulateCorrelatedCovariateAndResponseData = function(n, beta, covariateNames, cov_means = NULL, response_name = "Y", Sigma = NULL, R = NULL, covariateSDs = NULL, anchor = 0, noise_sd = 1) {
 
-# Simulate covariates
+	# Simulate covariates
 	X = simulateCorrelatedCovariateData(n=n, covariateNames=cov_names, covariateMeans=cov_means, Sigma = Sigma, R = R, covariateSDs = covariateSDs)  
 
-# Simulate response
+	# Simulate response
 	Y = simulateResponseData(X=X, beta=beta, response_name=response_name, anchor=anchor, noise_sd=noise_sd) 
 
-#Return output
+	#Return output
 	return(Y)
 }
 
 simulatePopulation.BB = function(N, minResponse=0, maxResponse=365, mu_O, sigma_O, mu_D, sigma_D, mins=1, maxs=3000, betaDuration=NA) {
-#maintain original copies
+	#maintain original copies
 	onset_mean = mu_O
-		duration_mean = mu_D
-		onset_sd = sigma_O
-		duration_sd = sigma_D
+	duration_mean = mu_D
+	onset_sd = sigma_O
+	duration_sd = sigma_D
 
-		if(is.na(betaDuration) || !betaDuration) {
-			stop("The duration mean and SD should be provided in terms of the beta distribution that samples the raw durations. This will be scaled by (1 - mu_O) after mu_O has been scaled between 0 and 1 to assure that duration + onset falls between minResponse and maxResponse times. Take your mu_D that you want to simulate and divide it by (1 - (mu_O-minResponse)/(maxResponse-minResponse)) to get the duration to input here. Note that sigma_D will also be scaled. Please input betaDistribution=T when you call this function to acknowledge understanding of this convention.")
-		}
+	if(is.na(betaDuration) || !betaDuration) {
+		stop("The duration mean and SD should be provided in terms of the beta distribution that samples the raw durations. This will be scaled by (1 - mu_O) after mu_O has been scaled between 0 and 1 to assure that duration + onset falls between minResponse and maxResponse times. Take your mu_D that you want to simulate and divide it by (1 - (mu_O-minResponse)/(maxResponse-minResponse)) to get the duration to input here. Note that sigma_D will also be scaled. Please input betaDistribution=T when you call this function to acknowledge understanding of this convention.")
+	}
 
-#scale to beta distribution support
+	#scale to beta distribution support
 	onset_mean = (onset_mean-minResponse)/(maxResponse-minResponse)
-		onset_sd = onset_sd / (maxResponse - minResponse)
-		duration_mean = duration_mean / (maxResponse - minResponse)
-		duration_sd = duration_sd / (maxResponse - minResponse)
+	onset_sd = onset_sd / (maxResponse - minResponse)
+	duration_mean = duration_mean / (maxResponse - minResponse)
+	duration_sd = duration_sd / (maxResponse - minResponse)
 
-# Convert mean/sd to alpha/beta for onset
-		alpha_s = beta_alpha(onset_mean, onset_sd)
-		beta_s = beta_beta(onset_mean, onset_sd)
+	# Convert mean/sd to alpha/beta for onset
+	alpha_s = beta_alpha(onset_mean, onset_sd)
+	beta_s = beta_beta(onset_mean, onset_sd)
 
-# Convert mean/sd to alpha/beta for duration
-		alpha_d = beta_alpha(duration_mean, duration_sd)
-		beta_d = beta_beta(duration_mean, duration_sd)
+	# Convert mean/sd to alpha/beta for duration
+	alpha_d = beta_alpha(duration_mean, duration_sd)
+	beta_d = beta_beta(duration_mean, duration_sd)
 
 
-		if(alpha_s<mins || alpha_s>maxs || alpha_d<mins || alpha_d>maxs || beta_s<mins || beta_s>maxs || beta_d<mins || beta_d>maxs) {
-			#print(c(alpha_s,beta_s,alpha_d,beta_d))
-				return(list(error_m = "Infeasible parameter value provided as input under beta onset, beta duration model. Try different parameter values, paying close attention to the scale of sigma. Sigmas that are too large cannot be accommodated by the beta distribution.", error=T))
+	if(alpha_s<mins || alpha_s>maxs || alpha_d<mins || alpha_d>maxs || beta_s<mins || beta_s>maxs || beta_d<mins || beta_d>maxs) {
+		#print(c(alpha_s,beta_s,alpha_d,beta_d))
+		return(list(error_m = "Infeasible parameter value provided as input under beta onset, beta duration model. Try different parameter values, paying close attention to the scale of sigma. Sigmas that are too large cannot be accommodated by the beta distribution.", error=T))
 
-		}
+	}
 
-		cnt = 1
-		#t_start = numeric(N)
-		#t_end = numeric(N)
-		#duration_raw = numeric(N)
-		#duration = numeric(N)
-		#observed = numeric(N)
-		Ts = rep(NA, N)
+	cnt = 1
+	#t_start = numeric(N)
+	#t_end = numeric(N)
+	#duration_raw = numeric(N)
+	#duration = numeric(N)
+	#observed = numeric(N)
+	Ts = rep(NA, N)
 
-		t_start = rbeta(N, alpha_s, beta_s)
-		duration_raw = rbeta(N, alpha_d, beta_d)
-		duration = duration_raw * (1 - t_start)
-		t_end =  t_start + duration
-		observed = runif(N) 
-		#sampled times of individuals in the phenophase is a subset of all the randomly observed times of the individuals (not all individuals are in the phenophase at a randomly observed time)
-		condition = (observed>t_start & observed<t_end)
-		Ts[condition] = observed[condition]
+	t_start = rbeta(N, alpha_s, beta_s)
+	duration_raw = rbeta(N, alpha_d, beta_d)
+	duration = duration_raw * (1 - t_start)
+	t_end =  t_start + duration
+	observed = runif(N) 
+	#sampled times of individuals in the phenophase is a subset of all the randomly observed times of the individuals (not all individuals are in the phenophase at a randomly observed time)
+	condition = (observed>t_start & observed<t_end)
+	Ts[condition] = observed[condition]
 
-		#There are more efficient ways to do this
-		#while(cnt <= N) {
-			##sample the start time
-			#t_start[cnt] = rbeta(1, alpha_s, beta_s)
-			##sample the unscaled duration
-			#duration_raw[cnt] = rbeta(1, alpha_d, beta_d)
-			##scale the duration
-			#duration[cnt] = duration_raw[cnt] * (1 - t_start[cnt])
-			##calculate the end time
-			#t_end[cnt] = t_start[cnt] + duration[cnt]
-			##sample the observed time
-			#observed = runif(1) #CORRECT, but cessation time distribution is biased
-			##check if observed time is in phenophase
-			#if(observed>t_start[cnt] && observed<t_end[cnt]) { #CORRECT
-				#Ts[cnt] = observed #CORRECT
-				##Ts[cnt] = runif(1, t_start[cnt], t_end[cnt]) #BIASED for BB model
-				#cnt = cnt+1
-			#}
-		#}
+	#There are more efficient ways to do this
+	#while(cnt <= N) {
+	##sample the start time
+	#t_start[cnt] = rbeta(1, alpha_s, beta_s)
+	##sample the unscaled duration
+	#duration_raw[cnt] = rbeta(1, alpha_d, beta_d)
+	##scale the duration
+	#duration[cnt] = duration_raw[cnt] * (1 - t_start[cnt])
+	##calculate the end time
+	#t_end[cnt] = t_start[cnt] + duration[cnt]
+	##sample the observed time
+	#observed = runif(1) #CORRECT, but cessation time distribution is biased
+	##check if observed time is in phenophase
+	#if(observed>t_start[cnt] && observed<t_end[cnt]) { #CORRECT
+	#Ts[cnt] = observed #CORRECT
+	##Ts[cnt] = runif(1, t_start[cnt], t_end[cnt]) #BIASED for BB model
+	#cnt = cnt+1
+	#}
+	#}
 
-		t_start = minResponse + t_start * (maxResponse-minResponse)
-		t_end = minResponse + t_end * (maxResponse-minResponse)
-		Ts = minResponse + Ts * (maxResponse-minResponse)
-		duration = duration * (maxResponse-minResponse)
-		duration_raw = duration_raw * (maxResponse-minResponse)
+	t_start = minResponse + t_start * (maxResponse-minResponse)
+	t_end = minResponse + t_end * (maxResponse-minResponse)
+	Ts = minResponse + Ts * (maxResponse-minResponse)
+	duration = duration * (maxResponse-minResponse)
+	duration_raw = duration_raw * (maxResponse-minResponse)
 
-		#MC estimate
-		cessation_sd = sd(t_end)
-		duration_sd = sd(duration)
+	#MC estimate
+	cessation_sd = sd(t_end)
+	duration_sd = sd(duration)
 
-		return(list(
-					error = F,
-					error_m = "No errors detected during simulation under beta onset, beta duration model.",
-					N = N,
-					minResponse = minResponse,
-					maxResponse = maxResponse,
-					O = t_start,
-					Ts = Ts,
-					C = t_end,
-					D = duration,
-					D_raw = duration_raw,
-					CkN = max(t_end),
-					Ok1 = min(t_start),
-					R = max(t_end) - min(t_start),
-					mu_O = mu_O,
-					sigma_O = sigma_O,
-					mu_D_raw = mu_D, #for raw duration
-					sigma_D_raw = sigma_D, #for raw duration
-					mu_D = duration_mean * (1 - onset_mean) * (maxResponse - minResponse), #infers the beta parameters for the raw distribution, here is the scaled result for the duration
-					sigma_D = duration_sd,
-					mu_C = minResponse + (onset_mean + duration_mean * ( 1 - onset_mean)) * (maxResponse - minResponse),
-					sigma_C = cessation_sd,
-					alpha_s = alpha_s,
-					beta_s = beta_s,
-					alpha_d = alpha_d,
-					beta_d = beta_d
-					) )
+	return(list(
+		    error = F,
+		    error_m = "No errors detected during simulation under beta onset, beta duration model.",
+		    N = N,
+		    minResponse = minResponse,
+		    maxResponse = maxResponse,
+		    O = t_start,
+		    Ts = Ts,
+		    C = t_end,
+		    D = duration,
+		    D_raw = duration_raw,
+		    CkN = max(t_end),
+		    Ok1 = min(t_start),
+		    R = max(t_end) - min(t_start),
+		    mu_O = mu_O,
+		    sigma_O = sigma_O,
+		    mu_D_raw = mu_D, #for raw duration
+		    sigma_D_raw = sigma_D, #for raw duration
+		    mu_D = duration_mean * (1 - onset_mean) * (maxResponse - minResponse), #infers the beta parameters for the raw distribution, here is the scaled result for the duration
+		    sigma_D = duration_sd,
+		    mu_C = minResponse + (onset_mean + duration_mean * ( 1 - onset_mean)) * (maxResponse - minResponse),
+		    sigma_C = cessation_sd,
+		    alpha_s = alpha_s,
+		    beta_s = beta_s,
+		    alpha_d = alpha_d,
+		    beta_d = beta_d
+		    ) )
 }
 
 simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxResponse=365) {
 	n = N
-		sd = sigma
-		mu_O = (mu_O-minResponse) / (maxResponse - minResponse)
-		mu_C = (mu_C-minResponse) / (maxResponse - minResponse)
-		sd = sd / (maxResponse - minResponse)
-		#if(mu_O - 2*sigma < minResponse) {
-			#warning(paste("The onset is close to the beginning of the range of possible times. Multiple samples are likely to be rejected to maintain all observations within the range between ", minResponse, " and ", maxResponse, ". Your results are therefore likely going to be skewed."))
-		#}
+	sd = sigma
+	mu_O = (mu_O-minResponse) / (maxResponse - minResponse)
+	mu_C = (mu_C-minResponse) / (maxResponse - minResponse)
+	sd = sd / (maxResponse - minResponse)
+	#if(mu_O - 2*sigma < minResponse) {
+	#warning(paste("The onset is close to the beginning of the range of possible times. Multiple samples are likely to be rejected to maintain all observations within the range between ", minResponse, " and ", maxResponse, ". Your results are therefore likely going to be skewed."))
+	#}
 	#if(mu_C + 2*sigma > maxResponse) {
-		#warning(paste("The cessation is close to the upper end of the range of possible times. Multiple samples are likely to be rejected to maintain all observations within the range between ", minResponse, " and ", maxResponse, ". Your results are therefore likely going to be skewed."))
+	#warning(paste("The cessation is close to the upper end of the range of possible times. Multiple samples are likely to be rejected to maintain all observations within the range between ", minResponse, " and ", maxResponse, ". Your results are therefore likely going to be skewed."))
 	#}
 	if(mu_O>=mu_C) {
 		stop("The mean onset must be before the mean cessation. Quitting.")
 	}
 	d = mu_C - mu_O
-		start = rnorm(n,mu_O,sd)
-		#start = start[start>0]
-		#start = start[start+d<1]
-		#tot = length(start)
-		#nRej = 0
-		#while(tot<n) {
-			#nRej = nRej + (n-tot)
-				#temp = rnorm(n-tot,mu_O,sd)
-				#temp = temp[temp>0]
-				#temp = temp[temp+d<1]
-				#start = c(start,temp)
-				#tot = tot + length(temp)
-		#}
+	start = rnorm(n,mu_O,sd)
+	#start = start[start>0]
+	#start = start[start+d<1]
+	#tot = length(start)
+	#nRej = 0
+	#while(tot<n) {
+	#nRej = nRej + (n-tot)
+	#temp = rnorm(n-tot,mu_O,sd)
+	#temp = temp[temp>0]
+	#temp = temp[temp+d<1]
+	#start = c(start,temp)
+	#tot = tot + length(temp)
+	#}
 	##if(nRej>0.1*n) {
-		#warning(paste("Warning: rejected start times below 0 ", nRej, " times. This can bias inferences. If ", nRej, "is less than, say, 0.1% of the sample size (", (n*0.01), " in your case), this should be ok, otherwise, the model inference will be highly biased"))
-			#return(list(error=T))
+	#warning(paste("Warning: rejected start times below 0 ", nRej, " times. This can bias inferences. If ", nRej, "is less than, say, 0.1% of the sample size (", (n*0.01), " in your case), this should be ok, otherwise, the model inference will be highly biased"))
+	#return(list(error=T))
 	#}
 	end = start + d
 	obs = runif(n,start,end)
@@ -1571,11 +1579,11 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 
 	k = (maxResponse-minResponse)
 
-				Ts = minResponse + obs*k
-				O = minResponse + start * k
-				C = minResponse + end * k
-				CkN = minResponse + max(end) * k
-				Ok1 = minResponse + min(start) * k
+	Ts = minResponse + obs*k
+	O = minResponse + start * k
+	C = minResponse + end * k
+	CkN = minResponse + max(end) * k
+	Ok1 = minResponse + min(start) * k
 
 	Ok1 = Ok1%%k
 	CkN = CkN%%k
@@ -1589,23 +1597,23 @@ simulatePopulation.GP = function(N, mu_O, mu_C, sigma, minResponse=0, maxRespons
 	Ok1[Ok1 < 0] = Ok1[Ok1 < 0] + k
 	CkN[CkN < 0] = CkN[CkN < 0] + k
 
-		output = list(
-				error = F,
-				error_m = "No errors detected during simulation under GP model.",
-				N = n,
-				minResponse = minResponse,
-				maxResponse = maxResponse,
-				Ts = Ts,
-				O = O,
-				C = C,
-				Ok1 = Ok1,
-				CkN = CkN,
-				mu_O = minResponse + mu_O * (maxResponse - minResponse),
-				sigma = sigma,
-				mu_D = d * (maxResponse - minResponse),
-				mu_C = minResponse + mu_C * (maxResponse - minResponse)
-			     )
-		return(output)
+	output = list(
+		      error = F,
+		      error_m = "No errors detected during simulation under GP model.",
+		      N = n,
+		      minResponse = minResponse,
+		      maxResponse = maxResponse,
+		      Ts = Ts,
+		      O = O,
+		      C = C,
+		      Ok1 = Ok1,
+		      CkN = CkN,
+		      mu_O = minResponse + mu_O * (maxResponse - minResponse),
+		      sigma = sigma,
+		      mu_D = d * (maxResponse - minResponse),
+		      mu_C = minResponse + mu_C * (maxResponse - minResponse)
+	)
+	return(output)
 }
 
 #' Simulate phenological states for individuals of a population
@@ -1709,18 +1717,18 @@ simulatePopulation =  function(N, mu_O, sigma_O, mu_D_raw, sigma_D=NA, minRespon
 		stop("Beta shape parameters must have positive values.")
 	}
 	if(type == "BB") {
-    if(sigma_D <=0 ) {
-        stop("Standard deviations (sigmas) must be positive.")
-    }
+		if(sigma_D <=0 ) {
+			stop("Standard deviations (sigmas) must be positive.")
+		}
 		warning("The input mean duration, ", mu_D_raw, ", will be scaled so that all individual phenophases fit between ", minResponse, " and ", maxResponse, ".")
-			if(is.na(sigma_D)) {
-				stop("Missing the standard deviation of the phenophase duration distribution.")
-			}
+		if(is.na(sigma_D)) {
+			stop("Missing the standard deviation of the phenophase duration distribution.")
+		}
 		simulatePopulation.BB(N=N, minResponse=minResponse, maxResponse=maxResponse, mu_O=mu_O, sigma_O=sigma_O, mu_D=mu_D_raw, sigma_D=sigma_D, mins=mins, maxs=maxs, betaDuration=T)
 	}
 	else if(type == "GP") {
 		mu_C = mu_O + mu_D_raw
-			simulatePopulation.GP(N=N, mu_O=mu_O, mu_C=mu_C, sigma=sigma_O, minResponse=minResponse, maxResponse=maxResponse)
+		simulatePopulation.GP(N=N, mu_O=mu_O, mu_C=mu_C, sigma=sigma_O, minResponse=minResponse, maxResponse=maxResponse)
 	}
 	else {
 		stop(paste("Unsupported type: ", type))

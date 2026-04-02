@@ -721,7 +721,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 	return(list( CkNParams = fitCkN$estimate, Ok1Params = fitOk1$estimate ))
 }
 
-#' Run a Bayesian analysis of phenological events using biocollection data
+#' Run a Bayesian analysis of phenological events using biocollection data (Core Package Function!)
 #'
 #' @description
 #' This function is the core of the phenoCollectR package. It wraps many other functions to make the Bayesian analysis of phenological events using biocollection data as streamlined as possible, yet flexible if need be. In particular, it aims to connect variation in life history timing to environmental variation. 
@@ -751,6 +751,8 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' \bold{DATA TYPES}
 #' 
 #' There are two main types of datasets that can be analyzed. When only observation times of individuals in the stage of interest are available, these are presence-only data (PO). When observation times are available for multiple stages of interest, these are multistage data. Theory for these two types of datasets differs.
+#'
+#' The following sections can safely be skipped if not interested in theory. 
 #' 
 #' \bold{NOTATION}
 #' 
@@ -796,13 +798,19 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'  
 #'  \bold{THEORY: OVERLAPPING MULTISTAGE}
 #'  
-#'  For \bold{individuals with multiple units of organization each with multiple stages}, such as an individual plant with multiple floral units with stages 'bud', 'flower', 'immature fruit', and 'mature fruit', the counts of units in each stage are provided as input along with the time the indivdiual was observed. 
+#'  Please note that implementation of the overlapping multistage model is in progress.  You may run the model and expect fairly accurate estimates, but the uncertainty estimates are unlikely to be accurate. Please use with discretion.
+#'
+#'  The multistage theory above is a special case of a more general multistage theory in which each individual produces one or more phenological units that can be at different developmental stages on the same individual. For example, a plant may produce multiple floral units in a season. In this general case, the categorical model for the single individual in one of multiple stages generalizes to a multinomial model where counts are provided for each stage.
+#'
+#'  For \bold{individuals with multiple units of organization each with multiple stages}, such as an individual plant with multiple floral units with stages 'bud', 'flower', 'immature fruit', and 'mature fruit', the counts of units in each stage are provided as input along with the time the individual was observed. 
 #'  
 #'  The probability that a unit is in a particular stage \eqn{s} given the time of observation, \eqn{P_{s|j}}, are the same probabilities as for the multistage theory above. 
 #'  
-#'  In principle, there are many options to model the distribution of stages of units within an individual at a particular time of observation. One could model the developmental dynamics of the units and use this model to generate the distribution of stages. This is ideal, but requires detailed knowledge of the developmental dynamics of individuals. As an idealization, here, the probability mass function of the stages of units within an individual is modeled as multinomial, which models each unit as developing independently of the other units within the individual once the unit itself has begun development. The stage probabilities \eqn{P_{s|j}} provide the probabilities of occuring in each stage for the multinomial model. 
+#'  In principle, there are many options to model the distribution of stages of units within an individual at a particular time of observation. One could model the developmental dynamics of the units and use this model to generate the distribution of stages. This is ideal, but requires detailed knowledge of the developmental dynamics of individuals. As an idealization, here, the probability mass function of the stages of units within an individual is modeled as multinomial, which models each unit as developing independently of the other units within the individual once the unit itself has begun development (The units are synchronized with noise within an individual). The stage probabilities \eqn{P_{s|j}} provide the probabilities of occuring in each stage for the multinomial model. 
 #'
-#'  We note that this overlapping multistage model is a generalization of the multistage model presented above. If an individual is the single unit of phenological activity, then a 0 is scored for all stages that the individual is not in, and a 1 is scored for the stage the individual is in. In this context, the multinomial probability reduces to the probabilties defined for the multistage analysis above. 
+#'  We noted that this overlapping multistage model is a generalization of the multistage model presented above. However, there are stages when units are not yet present (pre) or when units have abscised (post) from the individual. In such cases, it is impossible to count the number of units in these latent pre and post stages. Additional information in the way of total expected units produced by the individual is therefore needed when latent pre and post stages are present. 
+#'
+#'  As a generalization of the multistage model, a special case of the overlapping multistage model reduces to the multistage model. When an individual is the single unit of phenological activity, then a 0 is scored for all stages that the individual is not in, and a 1 is scored for the stage the individual is in. In this context, the multinomial probability reduces to the categorical probabilties defined for the multistage analysis above. 
 #' 
 #'  \bold{THEORY: PRESENCE-ONLY (PO)}
 #' 
@@ -977,7 +985,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##
 #' ##
 #' ##########################################################################################################################################################
-#' ##Run more complicated examples, this time with SIMULATED PHENOLOGY and SIMULATED COVARIATES with MULTIPLE STAGES
+#' ##Run more complicated examples, this time with SIMULATED PHENOLOGY and SIMULATED COVARIATES
 #' #
 #' #COVARIATE MODEL
 #' covariate_namesOnset = c("v1", "v2")	
@@ -1018,7 +1026,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' #
 #' #_________________________________________________________________________________________________________________________________________________________
 #' #
-#' #HYPERPARAMETERS
+#' #HYPERPARAMETERS - Note these are unbiased. Consider changing them from the true values set above
 #' onsetHyperBeta = data.frame(slopesOnset,c(1,1))
 #' onsetHyperAnchor = c(150, 5)
 #' durationHyperBeta = data.frame(slopesDuration,c(1,1))
@@ -1027,7 +1035,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' #
 #' #_________________________________________________________________________________________________________________________________________________________
 #' #
-#' #PO DATA 
+#' #PO DATA - Extract data from one stage only
 #' responseData = simulated_data$observedTime[simulated_data$stage==2]
 #' onsetCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v2[simulated_data$stage==2])
 #' durationCovariateData = data.frame(simulated_data$v1[simulated_data$stage==2],simulated_data$v3[simulated_data$stage==2])
@@ -1081,7 +1089,6 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' 
 #'  #Plot the sampled data color-coded by stage 
 #'  trueModels = plotMultistageSimulation(simulatedData=simulatedData,
-#'                   nonCyclical=TRUE,
 #'                   targetCovariateIndex=targetCovariateIndex,
 #'                   stageColors=stageColors,
 #'                   drawLatentOnset=FALSE,
@@ -1111,11 +1118,11 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'    targetCovariateName="cov1",
 #'    covariateData=simulatedData$X,
 #'    stageData=simulatedData$outputData$sampledStage,
-#'    nStages=nStages+1,    #with stage coding, an extra stage is added
+#'    nStages=nStages,    #with stage coding, an extra stage is added
 #'    y_pred=TRUE)          #the predicted responses are calculated when calculatePPD is set to TRUE during Stan run (above)
 #'  
 #'  #Plot the true mean stage boundaries (based on used simulation parameters) with black dotted lines
-#'  for(i in 1:nStages) {
+#'  for(i in 1:(nStages-1)) {
 #'    p = p + geom_abline(intercept = trueModels$trueIntercepts[i], slope = trueModels$trueSlopes[i], color = "black", linewidth = 0.5, linetype="dashed")
 #'   }
 #'
@@ -1136,22 +1143,13 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'  
 #'  
 #'   #Set up vectors to store mean durations (means) and mean onsets (means_o) with low and high bounds of credible intervals.
-#'   means = rep(0,nStages+1)
-#'   mean_low = rep(0,nStages)
-#'   mean_high = rep(0,nStages)
 #'  
 #'   #Extract slopes and intercepts (anchors) and overlay the inferred lines and 95% BCI's onto earlier plot as colored lines and shaded regions
-#'   for(j in 1:(nStages+1)) {
+#'   for(j in 1:(nStages)) {
 #'           beta = rep(0,nCovariates)
 #'           beta_low = rep(0,nCovariates)
 #'           beta_high = rep(0,nCovariates)
 #'           varO = paste0("anchor_o[", j, "]")
-#'           if(j<=nStages) {
-#'                   varD = paste0("anchor_d[", j, "]")
-#'                   means[j] = summary[summary$variable==varD, "mean"]
-#'                   mean_low[j] = summary[summary$variable==varD, paste0("q",probs[1])]
-#'                   mean_high[j] = summary[summary$variable==varD, paste0("q",probs[2])]
-#'           }
 #'           alpha = summary[summary$variable==varO, "mean"]
 #'           alpha_low = summary[summary$variable==varO, paste0("q",probs[1])]
 #'           alpha_high = summary[summary$variable==varO, paste0("q",probs[2])]
@@ -1178,66 +1176,86 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##Conduct an analysis of individuals with multiple phenological units and each unit having one of multiple possible stages.
 #' #(For example: an individual plant with multiple flower units, each in a different stage (budding, flowering, fruiting) with pre-reproductive and post-reproductive stages possible with no flowers. 
 #' ###SIMULATION PARAMETERS
-#' n = 500            #individuals sampled 
-#' meanFlowers = 30   #mean number of flowers per individual at peak reproduction
-#' nStages = 5        #number of stages, including pre-reproductive, bud, flower, fruit, post-reproductive stages 
-#' nCovariates = 3     #number of simulated environmental factors that influence stage timing
+#'  n = 500            #individuals sampled
+#'  meanFlowers = 20   #mean number of flowers per individual
 #'
-#' includePrePost = TRUE #include pre-reproductive and post-reproductive stages when no flowers are present
+#'  #There can be at most 1 stage before units are visible (pre) or 1 stage after units have abscised, but not both. If there are no stages with visible units, then there can be multiple pre stages only. 
+#'  nPre = 1              #number of stages before visible units develop
+#'  nVis = 2              #number of stages with visible units
+#'  nPost = 0             #number of stages after visible units
 #'
-#' maxResponse = 365   #maximum day of year of observation
-#' minResponse = 0     #minimum day of year of observation - must stay at 0
+#'  nCovariates = 2     #number of simulated environmental factors
+#'  nStages = nPre+nVis+nPost     #total number of stages: due to a bug, this must be 3 or greater
 #'
-#' minStage = 10       #relative expected duration of shortest stage ("middle" stages)
-#' maxStage = 30       #relative expected duration of longest stage ("edge" stages)
+#'  maxResponse = 365   #maximum day of year of observation
+#'  minResponse = 0     #minimum day of year of observation - must stay at 0
 #'
-#' #weights for stage durations
-#' meanOnsetSpread = c(maxStage,rep(minStage,nStages-2),maxStage) 
+#'  scale = 50    #for transforming the scale within Stan (should be around 10 to 50 - default is fine)
 #'
-#' #stage onset variance parameters
-#' #  error is highest when stage variance is high (modulated by minStageVariance and maxStageVariance)
-#' #  set lower bound on stage onset standard deviation to 1/5 expected smallest duration 
-#' minStageVariance = ((1/5)*maxResponse*(minStage/sum(c(maxStage,rep(minStage,nStages-2),maxStage))))^2  
-#' maxStageVariance = 2*minStageVariance
+#'  meanOnsetSpread = sample(10:20, size=nStages, replace=TRUE)       #mean weight for each stage duration (Dirichlet)
 #'
-#' ### SIMULATE the data
-#' sim = simulateMultistageOverlapData(n=n, meanUnits=meanFlowers, nStages=nStages, nCovariates=nCovariates, minStageVariance = minStageVariance, maxStageVariance=maxStageVariance, meanOnsetSpread=meanOnsetSpread, includePrePost=includePrePost)
-#'          
-#' # Extract the relevant data for Bayesian analysis 
-#' #   counts of floral units in each stage (or a 1/0 for pre- and post- stages before and after floral units have developed)
-#' stageCountMatrix <- t(
-#'   sapply(sim$simulatedIndividuals, `[[`, "stageCounts")
-#' )
-#' #   times of observation
-#' t_obs <- sapply(sim$simulatedIndividuals, `[[`, "sampledTime")
+#'    minStageVariance = (1/10)*(maxResponse*(10/sum(meanOnsetSpread)))^2  #set smallest simulation stage onset standard deviation to expected smallest duration - plenty of overlap!
+#'  maxStageVariance = 2*minStageVariance
 #'
-#' ### RUN BAYESIAN ANALYSIS using multinomial multistage probability model coded in Stan 
-#' # THIS WILL TAKE A WHILE - PLEASE BE PATIENT
-#' stanResults =runStanPhenology(
-#'   type="multistage-overlap-full",       #model with many overlapping stages and covariates
-#'   responseData=t_obs,                   #observed collection times
-#'   stageCounts=stageCountMatrix,         #observed floral unit stage counts at observed time
-#'   onsetCovariateData=sim$simulatedData$X,           #covariate data (same as for duration)
-#'   maxDiv=4000             #should be set to 0, but in case of the stray Stan divergence, set high for this example
-#' )
+#'  # Simulate the data
+#'  sim = phenoCollectR:::simulateMultistageOverlapData(n=n, meanUnits=meanFlowers, nPre=nPre, nVis=nVis, nPost=nPost, nCovariates=nCovariates, minStageVariance = minStageVariance, maxStageVariance=maxStageVariance, meanOnsetSpread=meanOnsetSpread)
 #'
-#' # Extract basic summary data
-#' stanSummary = phenoCollectR:::getMultistageSummary(stanResult=stanResults)
-#' #nDivergent = sum(stanResults$result$diagnostic_summary()$num_divergent)
-#' #nMaxTreeDepth = sum(stanResults$result$diagnostic_summary()$num_max_treedepth)
+#'  # Plot the simulated data
+#'  par(mfrow = c(1, 2))  # 1 row, 2 columns
+#'  plotMultistageSimulation(simulatedData = sim, includeOverlap=TRUE, drawInferredModel=FALSE, main="X: times of observation; solid lines: true model of mean onset times", drawLatentOnset=FALSE)
 #'
-#' ### PLOT the simulated data and results
-#' #   colors are weighted by proportion of floral units in each stage
-#' stageColors = rainbow(nStages) 
-#' trueModels = plotMultistageSimulation(simulatedData=sim, stageColors=stageColors, includeOverlap=TRUE, shadeStage=FALSE)
+#'  #Get the unit count matrix (e.g., number of floral units in floral stages)
+#'  stageCountMatrix <- t(
+#'  sapply(sim$simulatedIndividuals, `[[`, "stageCounts")
+#'  )
 #'
-#' ## Add true (red dotted) and (posterior mean) estimated (black dotted) mean stage boundaries as a function of the first simulated covariate 'cov1'
-#' targetCovariateIndex = 1
-#' for(i in 1:(nStages-1)) {
-#'   model = phenoCollectR:::true_marginal_line(alpha=stanSummary$mean_o[i], beta=stanSummary$beta_o[i,], mu=sim$simulatedData$covariateMeans, Sigma=sim$simulatedData$Sigma, j=targetCovariateIndex)
-#'   abline(a=model$intercept, b=model$slope, col="black", lwd=3, lty="dotted")
-#'   abline(a=trueModels$trueIntercepts[i], b=trueModels$trueSlopes[i], col="red", lwd=3, lty="dotted")
-#' }
+#'  #Get the true total counts for each individual (including missing ones in pre or post)
+#'  #Currently treated as data (no prior)
+#'  #Not needed if all stages are stages that produce visible units (vis stages)
+#'  trueTotCounts = sapply(sim$simulatedIndividuals, `[[`, "nUnits")
+#'
+#'  #Get the observed times
+#'  t_obs <- sapply(sim$simulatedIndividuals, `[[`, "sampledTime")
+#'
+#'  #Print simulated data
+#'  print(cbind(stageCountMatrix,t_obs))
+#'
+#'  stanResults =runStanPhenology(
+#'    type="multistage-overlap-full",       #model with many stages and covariates
+#'    responseData=t_obs,  #observed collection times
+#'    stageCounts=stageCountMatrix,        #observed stage counts at collection time
+#'    preN = nPre,
+#'    visN = nVis,
+#'    postN = nPost,
+#'    onsetCovariateData=sim$simulatedData$X,           #covariate data (same as for duration)
+#'    totCounts = trueTotCounts,  #currently using true simulated times
+#'    fixedCounts = TRUE,		#not used
+#'    minResponse = minResponse,
+#'    maxResponse = maxResponse,
+#'    scale = scale,	    	#scale for transforming data in Stan - default is usually fine
+#'    bypass=T,			#force running of multistage overlap, acknowledging still in development
+#'    maxDiv=4000             #should be set to 0, but in case of the stray Stan divergence, set high for this example
+#'  )
+#'
+#'          #Extract basic summary data
+#'          stanSummary = phenoCollectR:::getMultistageSummary(stanResult=stanResults)
+#'          nDivergent = sum(stanResults$result$diagnostic_summary()$num_divergent)
+#'          nMaxTreeDepth = sum(stanResults$result$diagnostic_summary()$num_max_treedepth)
+#'
+#'          stageColors = rainbow(nStages)
+#'          trueModels = plotMultistageSimulation(simulatedData=sim, stageColors=stageColors, includeOverlap=TRUE, shadeStage=FALSE, drawLatentOnset=FALSE, drawTrueModel=FALSE, drawInferredModel=FALSE, main="Dotted red: true model; Dotted black: mean posterior estimate")
+#'
+#'          targetCovariateIndex = 1
+#'          # Add estimated mean stage boundaries
+#'	    #Black dotted lines are the mean posterior estimates
+#'	    #Red dotted lines are the true model lines
+#'          for(i in 2:nStages) {
+#'            model = phenoCollectR:::true_marginal_line(alpha=stanSummary$mean_o[i-1], beta=stanSummary$beta_o[i-1,], mu=sim$simulatedData$covariateMeans, Sigma=sim$simulatedData$Sigma, j=targetCovariateIndex)
+#'            abline(a=model$intercept, b=model$slope, col="black", lwd=3, lty="dotted")
+#'            abline(a=trueModels$trueIntercepts[i-1], b=trueModels$trueSlopes[i-1], col="red", lwd=3, lty="dotted")
+#'          }
+#'	    print("True models (a = intercepts / stage durations / anchors, b = slopes)")
+#'	    print(trueModels)
 #' ##
 #' ##
 #' ##########################################################################################################################################################
@@ -1291,7 +1309,8 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' ##########################################################################################################################################################
 #' }
 #runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, debug=0, ...) {
-runStanPhenology = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), responseData=NULL, stage=NULL, stageCounts=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=FALSE, N=500, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, calculatePPD=FALSE, ...) {
+#runStanPhenology = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), responseData=NULL, stage=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, nTotMean=NULL, nTotSD=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=FALSE, N=500, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, calculatePPD=FALSE, ...) {
+runStanPhenology = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), responseData=NULL, stage=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, totCounts=NULL, fixedCounts=FALSE, minResponse=0, maxResponse=365, scale=50, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=FALSE, N=NULL, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, calculatePPD=FALSE, bypass=FALSE, ...) {
 
 	## ###########################################################################
 	## CHECK STAN BLOCK
@@ -1304,6 +1323,10 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 		}
 	}
 	## ###########################################################################
+
+	if(type=="multistage-overlap-full" && !bypass) {
+		stop("The multistage overlap model is not currently fullly implemented.")
+	}
 
   #Allow users to input one set of covariate data for multistage analyses
   if(type=="multistage-full" || type=="multistage-overlap-full") {
@@ -1329,11 +1352,16 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 		   durationCovariateData=durationCovariateData,
 		   nDurationCovariates=nDurationCovariates,
 		   stage=stage,
-       stageCounts=stageCounts,
+       		   stageCounts=stageCounts,
 		   nStages=nStages,
+		   preN=preN,
+		   visN=visN,
+		   postN=postN,
 		   minResponse=minResponse,
 		   maxResponse=maxResponse,
+		   scale=scale,
 		   maxDiv=maxDiv,
+		   fixedCounts=fixedCounts,
 		   N=N,
 		   processExtremes=processExtremes
 	)
@@ -1341,6 +1369,9 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 	checkedPriors = checkPriors (
 				     type=type,
 				     nStages=nStages,
+				     preN=preN,
+				     visN=visN,
+				     postN=postN,
 				     responseData=responseData,
 				     hyperparams_noCovariates=hyperparams_noCovariates,
 				     onsetCovariateData=onsetCovariateData,
@@ -1354,6 +1385,10 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 				     durationHyperBetaSD=durationHyperBetaSD,
 				     durationHyperAnchor=durationHyperAnchor,
 				     sigmaHyper=sigmaHyper,
+				     stageCounts=stageCounts,
+				     totCounts=totCounts,
+				     #nTotMean=nTotMean,
+				     #nTotSD=nTotSD,
 				     partitionDataForPriors=partitionDataForPriors,
 				     minResponse=minResponse,
 				     maxResponse=maxResponse)
@@ -1372,6 +1407,8 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 	durationHyperBetaMean=checkedPriors$durationHyperBetaMean
 	durationHyperBetaSD=checkedPriors$durationHyperBetaSD
 	sigmaHyper=checkedPriors$sigmaHyper
+	#nTotMean=checkedPriors$nTotMean
+	#nTotSD=checkedPriors$nTotSD
 
 	cat("Running a Stan analysis.\n")
 
@@ -1445,25 +1482,27 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 		       runStan.WithCovariates.Multistage.overlap.GP(
 			      responseData=responseData,
 			      stageCounts=stageCounts,
-			      nStages=nStages,
+			      preN=preN,
+			      visN=visN,
+			      postN=postN,
+			      nCovariates=nOnsetCovariates,
 			      minResponse=minResponse,
 			      maxResponse=maxResponse,
+			      scale=scale,
 			      covariateData=onsetCovariateData,
-			      nCovariates=nOnsetCovariates,
-			      onsetHyperAnchor=onsetHyperAnchor,
 			      onsetHyperBeta=onsetHyperBeta,
-			      durationHyperAnchor=durationHyperAnchor,
+			      onsetHyperAnchor=onsetHyperAnchor,
 			      durationHyperBetaMean=durationHyperBetaMean,
 			      durationHyperBetaSD=durationHyperBetaSD,
+			      durationHyperAnchor=durationHyperAnchor,
 			      sigmaHyper=sigmaHyper,
+			      totCounts=totCounts,
+			      fixedCounts=fixedCounts,
+			      #nTotMean=nTotMean,
+			      #nTotSD=nTotSD,
 			      setStringent=setStringent,
 			      maxDiv=maxDiv,
-			      calculatePPD=FALSE,
-			      nReps=1,
-			      nXs=1
-			      #priorLevel=priorLevel,
-			      #processExtremes=processExtremes,
-			      #N=N,
+			      debug=FALSE
 		       )
 		)
 	}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/helperFunctions.R
 \name{summarizePhenologyResults}
 \alias{summarizePhenologyResults}
-\title{Summary of Stan parameter estimates and associated diagnostics for a phenology model with covariates}
+\title{Summary of Stan parameter estimates and associated diagnostics for a phenology model with covariates for 'full' model (not multistage, not intercept only models)}
 \usage{
 summarizePhenologyResults(
   stanRunResult,
@@ -36,7 +36,7 @@ summarizePhenologyResults(
 A data frame with the the following columns: taxon name, variable name, the type of phenological parameter being summarized (e.g., O onset), the name of the covariate, the marginal posterior probability that the slope coefficient is negative, the estimate for the observed collection time standard linear model, whether the estimate based on the standard linear model is in the 95\%CI of the Bayesian estimate, metrics, diagnostics.
 }
 \description{
-Provides a summary as a data frame of the results of a Stan analysis of phenology. Use runStanPhenology with type 'full'. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values. Not currently implemented for other model types.
+Provides a summary as a data frame of the results of a Stan analysis of phenology. Use runStanPhenology with type 'full' only. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values. NOT currently implemented for other model types.
 }
 \examples{
 \donttest{

@@ -61,6 +61,10 @@ sample_posterior_predictions  =  function(posterior_samples, cov_samplesO, covar
 
 getWeightedColors = function(stageColors, simulatedIndividuals) {
   n = length(simulatedIndividuals)
+  nStages = length(simulatedIndividuals[[1]]$stageCounts)
+  for(i in 1:n) {
+        simulatedIndividuals[[i]]$stageCounts = tabulate(simulatedIndividuals[[i]]$phenologicalUnits, nbins=nStages)
+  }
   rgbCols = col2rgb(stageColors)
   stageCountMatrix <- t(
     sapply(simulatedIndividuals, `[[`, "stageCounts")
@@ -82,7 +86,7 @@ getWeightedColors = function(stageColors, simulatedIndividuals) {
 #' @param drawObserved Flag to draw observed collection times. (default: TRUE)
 #' @param drawLatentOnset Flag to draw the true, but latent (unobserved) individual onset times. (default: TRUE)
 #' @param drawTrueModel Flag to draw the true mean onset model as a function of the target covariate. (default: TRUE)
-#' @param drawInferredModel Flag to draw the inferred mean onset model as a function of the target covariate based on latent onset times. (default: TRUE)
+#' @param drawInferredModel Flag to draw the inferred mean onset model as a function of the target covariate BASED ON UNOBSERVED LATENT ONSET TIMES, not inferred from observed data. Can be useful to see how far off the fit to the true data is from the true model. (default: FALSE)
 #' @param shadeStage Flag to shade the stages with transparent shade-specific color. (default: TRUE)
 #' @param observedCex Set the plot point size of the observed collection times. (default: 0.75)
 #' @param onsetCex Set the plot point size of the latent onset times. (default: 0.05)
@@ -111,12 +115,17 @@ getWeightedColors = function(stageColors, simulatedIndividuals) {
 #' #    create the plot
 #' plotMultistageSimulation(simulatedData=simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 #' }
-plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL, drawIndividuals=FALSE, drawObserved=TRUE, drawLatentOnset=TRUE, drawTrueModel=TRUE, drawInferredModel=TRUE, observedCex=0.75, onsetCex=0.05, observedPch=4, onsetPch=17, shadeStage=TRUE, minResponse=0, maxResponse=365, nonCyclical=TRUE, main=NULL, includeOverlap=FALSE) {
+plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL, drawIndividuals=FALSE, drawObserved=TRUE, drawLatentOnset=TRUE, drawTrueModel=TRUE, drawInferredModel=FALSE, observedCex=0.75, onsetCex=0.05, observedPch=4, onsetPch=17, shadeStage=TRUE, minResponse=0, maxResponse=365, main=NULL, includeOverlap=FALSE) {
 
   if(includeOverlap) {
     if(is.null(simulatedData$simulatedData)) {
-      stop("Please provide the output from simulateMultistageOverlapData if includeOverlap is set to TRUE. Otherwise, provide the output from simulateMultistageData if not.")
+      stop("Please provide the output from simulateMultistageOverlapData when includeOverlap is set to TRUE. Otherwise, provide the output from simulateMultistageData when not.")
     }
+    nStages = simulatedData$simulatedData$nStages
+    if(is.null(stageColors) || length(stageColors)<nStages) {
+	    stageColors = rainbow(nStages)
+    }
+
     weightedStageColors = getWeightedColors(stageColors=stageColors, simulatedIndividuals=simulatedData$simulatedIndividuals)
     simulatedData = simulatedData$simulatedData
   }
@@ -131,9 +140,12 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 	if(is.null(stageColors)) { stop("Provide a vector with a named color for each stage in your multistage model.") }
 
 	numberStages = simulatedData$nStages
+    	if(is.null(stageColors) || length(stageColors)<nStages) {
+	   	stageColors = rainbow(nStages)
+    	}
 	numberCovariates = simulatedData$nCovariates
-	trueSlopes = rep(0,numberStages)		#one slope per stage for the target covariate
-	trueIntercepts = rep(0,numberStages)		#one intercept per stage for the target covariate
+	trueSlopes = rep(0,numberStages-1)		#one slope per stage for the target covariate, not including onset of stage 1 (at 0)
+	trueIntercepts = rep(0,numberStages-1)		#one intercept per stage for the target covariate
 	if(targetCovariateIndex>numberCovariates) { stop("Please provide the index number of the covariate you wish to plot between 1 and the number of covariates, inclusive.") }
 	if(length(stageColors) < numberStages) { 
 		stop("Please provide a color for each stage.") 
@@ -141,29 +153,33 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 
 	#One covariate, so intercept (with anchor adjustment) and slope stay the same
 	if(numberCovariates==1) { 
-		trueSlopes[1] = simulatedData$stage1OnsetCovariateSlopes[targetCovariateIndex]
-		trueIntercepts[1] = simulatedData$stage1OnsetMean - sum(simulatedData$stage1OnsetCovariateSlopes * simulatedData$covariateMeans) #sum not neede here, for for consistency
-		cumOnsetSum = simulatedData$stage1OnsetMean
-		for(i in 1:(numberStages-1)) {
+		trueSlopes[1] = simulatedData$stage2OnsetCovariateSlopes[targetCovariateIndex]
+		trueIntercepts[1] = simulatedData$stage2OnsetMean - sum(simulatedData$stage2OnsetCovariateSlopes * simulatedData$covariateMeans) #sum not neede here, for for consistency
+		cumOnsetSum = simulatedData$stage2OnsetMean
+		if(numberStages>2)
+		{
+		for(i in 1:(numberStages-2)) {
 			#trueSlopes[i+1] = simulatedData$stageDurationCovariateSlopes[i,targetCovariateIndex]
 			trueSlopes[i+1] = trueSlopes[i] + simulatedData$stageDurationCovariateSlopes[i,targetCovariateIndex]
 			trueIntercepts[i+1] = cumOnsetSum + simulatedData$stageDurationMeans[i] - sum(simulatedData$stageDurationCovariateSlopes[i,] * simulatedData$covariateMeans)
 			cumOnsetSum = cumOnsetSum + simulatedData$stageDurationMeans[i]
 		}
+		}
 	}
 	#Get marginal model parameters based on correlation structure of the covariates
 	else { 
-		modelStage1 = true_marginal_line(alpha = simulatedData$stage1OnsetMean - sum(simulatedData$stage1OnsetCovariateSlopes * simulatedData$covariateMeans), 
-						 beta = simulatedData$stage1OnsetCovariateSlopes, 
+		modelStage2 = true_marginal_line(alpha = simulatedData$stage2OnsetMean - sum(simulatedData$stage2OnsetCovariateSlopes * simulatedData$covariateMeans), 
+						 beta = simulatedData$stage2OnsetCovariateSlopes, 
 						 mu = simulatedData$covariateMeans, 
 						 j = targetCovariateIndex, 
 						 Sigma = simulatedData$Sigma, 
 						 R = simulatedData$R, 
 						 sd_x = simulatedData$covariateSDs) 
-		trueSlopes[1] = modelStage1$slope
-		trueIntercepts[1] = modelStage1$intercept
-		cumOnsetSum = simulatedData$stage1OnsetMean
-		for(i in 1:(numberStages-1)) {
+		trueSlopes[1] = modelStage2$slope
+		trueIntercepts[1] = modelStage2$intercept
+		cumOnsetSum = simulatedData$stage2OnsetMean
+		if(numberStages>2) {
+		for(i in 1:(numberStages-2)) {
 			model = true_marginal_line(alpha = simulatedData$stageDurationMeans[i] - sum(simulatedData$stageDurationCovariateSlopes[i,] * simulatedData$covariateMeans),
 						   beta = simulatedData$stageDurationCovariateSlopes[i,],
 						   mu = simulatedData$covariateMeans, 
@@ -176,62 +192,49 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 			trueIntercepts[i+1] = model$intercept + cumOnsetSum
 			cumOnsetSum = cumOnsetSum + simulatedData$stageDurationMeans[i]
 		}
+		}
 	}
 
-	colInc = 0
-	if(nonCyclical) {
-		if(length(stageColors) < numberStages+1) { 
-			stop("For non-cyclical stage data, please provide an additional color.") 
-		}
-		colInc = 1
-	}
+	colInc = 1
+	#if(nonCyclical) {
+		#if(length(stageColors) < numberStages+1) { 
+			#stop("For non-cyclical stage data, please provide an additional color.") 
+		#}
+		#colInc = 1
+	#}
 
 	#Begin the plotting
 	x1 = min(simulatedData$outputData[,targetCovariateIndex])-50
 	x2 = max(simulatedData$outputData[,targetCovariateIndex])+50
   if(includeOverlap) {
-		plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=weightedStageColors, pch=observedPch, cex=observedCex, ylim=c(minResponse,maxResponse), main=main)
+		plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=weightedStageColors, pch=observedPch, cex=observedCex, ylim=c(minResponse,maxResponse), main=main, xlab="Target covariate value", ylab="Time of observation")
   }
-	for(i in 1:numberStages) {
+	for(i in 1:(numberStages-1)) {
 		if(i == 1) {
 			if(!drawLatentOnset && !includeOverlap) {
-				plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=stageColors[simulatedData$outputData$sampledStage], ylim=c(minResponse,maxResponse), pch=observedPch, cex=observedCex, main=main)
+				plot(simulatedData$outputData[,targetCovariateIndex], simulatedData$outputData$sampledTime, col=stageColors[simulatedData$outputData$sampledStage], ylim=c(minResponse,maxResponse), pch=observedPch, cex=observedCex, main=main, xlab="Target covariate value", ylab="Time of observation")
 
 			}
 			if(drawLatentOnset && !includeOverlap) {
-				plot(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+1],col=stageColors[1+colInc],ylim=c(minResponse,maxResponse),pch=onsetPch,cex=observedCex, main=main)
+				plot(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+1],col=stageColors[1+colInc],ylim=c(minResponse,maxResponse),pch=onsetPch,cex=observedCex, main=main, xlab="Target covariate value", ylab="Time of observation")
 			}
 			if(shadeStage) {
 				y1 = c(0,0)
 				y2 = trueIntercepts[i] + trueSlopes[i] * c(x1,x2)
 				y3 = trueIntercepts[i+1] + trueSlopes[i+1] * c(x1,x2)
 				#Under stage 1
-				if(nonCyclical) {
+				#if(nonCyclical) {
 					tc = adjustcolor(stageColors[1], alpha.f = 0.1)
-				}
-				else {
-					tc = adjustcolor(stageColors[numberStages], alpha.f = 0.1)
-				}
+				#}
+				#else {
+					#tc = adjustcolor(stageColors[numberStages], alpha.f = 0.1)
+				#}
 				polygon( x = c(x1, x2, x2, x1), 
 					y = c(y1[1], y1[2], y2[2], y2[1]), 
 					col = tc,
 					border = NA
 				)
-				#Above stage 1 onset
-				tc = adjustcolor(stageColors[1+colInc], alpha.f = 0.1)
-				polygon( x = c(x1, x2, x2, x1), 
-					y = c(y2[1], y2[2], y3[2], y3[1]), 
-					col = tc,
-					border = NA
-				)
-			}
-		}
-		else {
-			if(drawLatentOnset && !includeOverlap) {
-				points(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+i],col=stageColors[i+colInc],pch=onsetPch,cex=observedCex)
-			}
-			if(shadeStage) {
-				if(i==numberStages) {
+				if(i==numberStages-1) {		#case when 2 stages
 					y1 = trueIntercepts[i] + trueSlopes[i] * c(x1,x2)
 					y2 = c(maxResponse,maxResponse)
 					tc = adjustcolor(stageColors[i+colInc], alpha.f = 0.1)
@@ -241,9 +244,23 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 						border = NA
 					)
 				}
-				else {
+				##Above stage 1 onset
+				#tc = adjustcolor(stageColors[1+colInc], alpha.f = 0.1)
+				#polygon( x = c(x1, x2, x2, x1), 
+					#y = c(y2[1], y2[2], y3[2], y3[1]), 
+					#col = tc,
+					#border = NA
+				#)
+			}
+		}
+		else {
+			if(drawLatentOnset && !includeOverlap) {
+				points(simulatedData$outputData[,targetCovariateIndex],simulatedData$outputData[,numberCovariates+i],col=stageColors[i+colInc],pch=onsetPch,cex=observedCex)
+			}
+			if(shadeStage) {
+				if(i==numberStages-1) {
 					y1 = trueIntercepts[i] + trueSlopes[i] * c(x1,x2)
-					y2 = trueIntercepts[i+1] + trueSlopes[i+1] * c(x1,x2)
+					y2 = c(maxResponse,maxResponse)
 					tc = adjustcolor(stageColors[i+colInc], alpha.f = 0.1)
 					polygon( x = c(x1, x2, x2, x1), 
 						y = c(y1[1], y1[2], y2[2], y2[1]), 
@@ -251,6 +268,18 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 						border = NA
 					)
 				}
+				#else {
+					y1 = trueIntercepts[i-1] + trueSlopes[i-1] * c(x1,x2)
+					y2 = trueIntercepts[i] + trueSlopes[i] * c(x1,x2)
+					#y1 = trueIntercepts[i] + trueSlopes[i] * c(x1,x2)
+					#y2 = trueIntercepts[i+1] + trueSlopes[i+1] * c(x1,x2)
+					tc = adjustcolor(stageColors[i], alpha.f = 0.1)
+					polygon( x = c(x1, x2, x2, x1), 
+						y = c(y1[1], y1[2], y2[2], y2[1]), 
+						col = tc,
+						border = NA
+					)
+				#}
 			}
 		}
 		if(drawInferredModel) {
@@ -907,7 +936,7 @@ makeSimulatedAndTheoreticalOverlayGraph= function(mu_O, mu_C, sigma, n_hist, N, 
 #'  n = 500
 #'  minResponse = 0             #The minimum observed time should always be at least 0
 #'  maxResponse = 365
-#'  simulatedData = simulateMultistageData(n=n, nonCyclical=TRUE, nStages=nStages,nCovariates=nCovariates)
+#'  simulatedData = simulateMultistageData(n=n, nStages=nStages,nCovariates=nCovariates)
 #'
 #'  #Plotting
 #'      #Set which covariate is the x-axis in the plot
@@ -918,7 +947,6 @@ makeSimulatedAndTheoreticalOverlayGraph= function(mu_O, mu_C, sigma, n_hist, N, 
 #'  stageColors = RColorBrewer::brewer.pal(nStages+1, "Set1")
 #'
 #'  trueModels = plotMultistageSimulation(simulatedData=simulatedData,
-#'                   nonCyclical=TRUE,
 #'                   targetCovariateIndex=targetCovariateIndex,
 #'                   stageColors=stageColors,
 #'                   drawLatentOnset=FALSE,

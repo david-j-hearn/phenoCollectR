@@ -885,6 +885,7 @@ summaryStanDiagnostics = function(stanRunResult, NTotal, taxonName, diagnostics=
 #' @param durationCovariateData A data frame with each named column providing a covariate for the duration model.
 #'
 #' @return The fit linear model object that is the output of the R lm function.
+#' @noRd
 runStandardLinearModel = function(responseData, onsetCovariateData, durationCovariateData) {
 	# Combine response and predictors into one data frame
 	merged = merge_df_by_column(onsetCovariateData, durationCovariateData)
@@ -901,9 +902,9 @@ runStandardLinearModel = function(responseData, onsetCovariateData, durationCova
 }
 
 
-#' Summary of Stan parameter estimates and associated diagnostics for a phenology model with covariates
+#' Summary of Stan parameter estimates and associated diagnostics for a phenology model with covariates for 'full' model (not multistage, not intercept only models)
 #' 
-#' Provides a summary as a data frame of the results of a Stan analysis of phenology. Use runStanPhenology with type 'full'. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values. Not currently implemented for other model types.
+#' Provides a summary as a data frame of the results of a Stan analysis of phenology. Use runStanPhenology with type 'full' only. The model is assumed to include covariates with corresponding slope coefficients, mean onset, mean duration values. NOT currently implemented for other model types.
 #'
 #' @param stanRunResult The output from runStanPhenology for presence only datasets with covariates (type 'full').
 #' @param taxonName The name of the taxon being analyzed
@@ -981,7 +982,7 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	in.95CI = rep(NA, nrow(summary))
 
 	if(standardLinearModel) {
-		standardLinearModel = runStandardLinearModel(stanRunResult$responseData, stanRunResult$onsetCovariateData, stanRunResult$durationCovariateData) 
+		standardLinearModel = phenoCollectR:::runStandardLinearModel(stanRunResult$responseData, stanRunResult$onsetCovariateData, stanRunResult$durationCovariateData) 
 	}
 
 
@@ -1095,18 +1096,27 @@ summarizePhenologyResults = function(stanRunResult, taxonName, measures=c("mean"
 	return(summary)
 }
 
-checkInput = function(type=c("intercept-only","full","multistage-full","multistage-overlap-full"), responseData=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, stage=NULL, stageCounts=NULL, nStages=NULL, nOnsetCovariates=NULL, nDurationCovariates=NULL, minResponse, maxResponse, maxDiv, N, processExtremes) {
+checkInput = function(type=c("intercept-only","full","multistage-full","multistage-overlap-full"), responseData=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, stage=NULL, preN=NULL, visN=NULL, postN=NULL, stageCounts=NULL, nStages=NULL, nOnsetCovariates=NULL, nDurationCovariates=NULL, minResponse, maxResponse, scale, fixedCounts, maxDiv, N, processExtremes) {
 
 	type = match.arg(type)
 	N = length(responseData)
 
 	if(!(type=="intercept-only" || type=="full" || type=="multistage-full" || type=="multistage-overlap-full")) {
-		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'full' or 'multistage-full'.\n"))
+		cat(paste("Unsupported type: ", type, "\nType should be 'intercept-only' or 'full' or 'multistage-full' or 'multistage-overlap-full'.\n"))
 		stop("Unsupported type error.")
 	}
 
+	if(type=="multistage-overlap-full") {
+		if(scale<1) {
+			stop("Scale must be 1 or greater. The default of 50 is usually appropriate. This reduces chances of very small durations and helps to assure durations are positive.")
+		}
+		if(is.null(fixedCounts)) {
+			stop("Please indicate whether the provided minimum counts should be considered data and be kept fixed (fixedCounts = TRUE / FALSE).")
+		}
+	}
+
   if(processExtremes && (type=="multistage-overlap-full" || type=="multistage-full")) {
-    stop("Processing extremes is not supported for multistage data.")
+    stop("Processing extremes is not currently supported for multistage data.")
   }
 
 	if(processExtremes && N<0) {
@@ -1114,7 +1124,7 @@ checkInput = function(type=c("intercept-only","full","multistage-full","multista
 	}
 
 	if(maxDiv > 0) {
-		warning("The maximum number of divergences tolerated is set to greater than 0. This can result in biased estimates.")
+		warning("The maximum number of divergences tolerated is set to greater than 0. This can result in biased estimates and / or poor representation of posterior uncertainty.")
 	}
 
 	if(minResponse != 0){
@@ -1122,11 +1132,11 @@ checkInput = function(type=c("intercept-only","full","multistage-full","multista
 	}
 
 	if(maxResponse <= minResponse) {
-		stop("The maximum possible response time must be larger than the minimum response time of 0.")
+		stop("The maximum possible response time must be larger than the minimum response time.")
 	}
 
 	if(!is.vector(responseData)) {
-		stop("Expecting a vector of real numeric values of the collection times (e.g., day of year (DOY) of when specimens were collected).")
+		stop("Expecting a vector of real numeric values of the collection or observation times (e.g., day of year (DOY) of when specimens were collected).")
 	}
 
 	if(length(responseData)<10) {
@@ -1139,6 +1149,7 @@ checkInput = function(type=c("intercept-only","full","multistage-full","multista
 	N_D = nrow(durationCovariateData)
 
 	if(type=="multistage-full") {
+
 		#check that stage values match
 		N_S = length(stage)
 		S = nStages
@@ -1159,18 +1170,24 @@ checkInput = function(type=c("intercept-only","full","multistage-full","multista
   }
 
   if(type=="multistage-overlap-full") {
-#print("HERE")
+	  if(preN>1 && postN>1) {
+		  stop("Due to model identifiability issues, only one pre stage or only 1 post stage are allowed. There cannot be both pre and post stages in the current implementation.")
+	  }
+	  if(preN<0 || visN<0 || postN<0) {
+		  stop("Please provide non-negative integer values for the number of pre-unit, visible unit, and post-unit stages.")
+	  }
+	  nStages = preN + visN + postN
+	  
     if(is.null(stageCounts)) {
-      stop("Please provide a stageCounts matrix of the count of units (e.g., flower units) in each stage. Rows are individuals, columns are stages.")
+      stop("Please provide a stageCounts matrix of the count of units (e.g., flower units) in each stage. Rows are individuals, columns are stages. If there are stages that have no units, put a 1 in that stage for the count if the individual is in that stage, and put a 0 as the count in all other stages.")
     }
     N_S = nrow(stageCounts)
     S = nStages
     #print(N)
     #print(N_S)
 		if(N != N_S) {
-			stop("Make sure that there is a count of units in each stage for each observation. For example for each observed specimen report something like the following in a matrix (rows are observed specimens): 5 in bud, 10 in flower, 12 in immature fruit, 15 in mature fruit.")
+			stop("Make sure that there is a count of units in each stage for each observation. For example for each observed specimen report something like the following in a matrix (rows are observed specimens): 0 pre-reproductive, 5 in bud, 10 in flower, 12 in immature fruit, 15 in mature fruit, 0 in post-reproductive as a row: (0,5,10,12,15,0); or if the individual is in a pre-reproductive with no units, something like the following as a row: (1,0,0,0,0,0).")
 		}
-print("HERE too")
     if(ncol(stageCounts)!=nStages) {
       stop("The reported number of stages, nStages, must match the number of columns in your stage count matrix (stageCounts).")
     }
@@ -1217,8 +1234,8 @@ print("HERE too")
 	return(TRUE)
 }
 
-checkPriors = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), nStages, responseData=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, partitionDataForPriors=FALSE, minResponse, maxResponse) {
-
+#checkPriors = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), nStages=NULL, preN=NULL, visN=NULL, postN=NULL, responseData=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, stageCounts=NULL,  nTotMean=NULL, nTotSD=NULL, partitionDataForPriors=FALSE, minResponse=NULL, maxResponse=NULL) {
+checkPriors = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), nStages=NULL, preN=NULL, visN=NULL, postN=NULL, responseData=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, stageCounts=NULL, totCounts=NULL, partitionDataForPriors=FALSE, minResponse=NULL, maxResponse=NULL) {
 	if(partitionDataForPriors) {
 		cat("The data will be partitioned into two sets with 30% and 70% of the data. \n\n30% will be used to carry out a preliminary analysis using quantiles to estimate the prior distribution hyperparameter values. \n\n70% of the data will be used to carry out a Stan Bayesian analysis to obtain the posterior distributions of parameters.\n\nIf other hyperparameter information was provided as input, it will be ignored. \n\nThe calculated values based on quantiles are approximate; you may need to use other sources of data to get better estimates of prior hyperparameter values, especially if the Stan run results in divergences or other poor diagnostics.\n\n")
 		prop = 0.3
@@ -1288,8 +1305,48 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 		}
 	}
 
+    #nStages = nStages-1
   if(type=="multistage-overlap-full") {
-    nStages = nStages-1
+
+	  N_S = length(responseData)
+
+if(is.null(totCounts) || length(totCounts)!=N_S) {
+    warning("Missing minimum unit counts. Estimating via truncated normal.")
+
+    if(visN == 0) {
+        totCounts = rep(1, N_S)
+    } else {
+        totCounts = rep(0, N_S)
+        stages = 1:visN   # reindex locally
+
+        for(i in 1:N_S) {
+            cat(paste0("Estimating total counts for individual ", i, "\n"))
+
+            counts = stageCounts[i, (preN+1):(preN+visN)]
+            tot = sum(counts)
+
+            if(tot >= 5 && sum(counts > 0) >= 3) {
+
+                fit = fit_trunc_normal(stages, counts)
+
+                est = estimate_missing(fit$mu, fit$sigma, stages, counts)
+
+                tot_est = est$N_total
+
+                # cap extreme extrapolation
+                max_multiplier = 5
+                if(tot_est > tot * max_multiplier) {
+                    tot_est = tot * max_multiplier
+                }
+
+                totCounts[i] = tot_est
+
+            } else {
+                totCounts[i] = max(1, tot)  # fallback
+            }
+        }
+    }
+}
   }
 
 	if(type=="multistage-full" || type=="multistage-overlap-full") {
@@ -1297,8 +1354,8 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 		range = (maxResponse-minResponse)
 		mr = mean(responseData)
 		sdr = sd(responseData)
-		oa = range/(nStages+1) 
-		da = range/(nStages+1)
+		oa = range/(nStages) 
+		da = range/(nStages)
 		sdx = rep(0,nCovariates)
 		for(i in 1:nCovariates) {
 			sdx[i] = sd(onsetCovariateData[,i])
@@ -1314,30 +1371,21 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 		}
 		if(is.null(durationHyperBetaMean)) {
 			cat("Automatically setting prior for duration model slope means.\n")
-			durationHyperBetaMean=matrix(rep(0,(nStages-1)*nCovariates), nrow=nStages-1)
+			durationHyperBetaMean=matrix(rep(0,(nStages-2)*nCovariates), nrow=nStages-2)		#-2 because stage one has no modeled onset, onset for stage 2 is separate, and the rest are stored in durationHyperBetaMean
 		}
 		if(is.null(durationHyperBetaSD)) {
 			cat("Automatically setting prior for duration model slope SDs.\n")
-			durationHyperBetaSD=matrix(1*sdr/sdx,nrow=nStages-1, ncol=length(sdx), byrow=TRUE)
+			durationHyperBetaSD=matrix(1*sdr/sdx,nrow=nStages-2, ncol=length(sdx), byrow=TRUE)
 		}
 		if(is.null(durationHyperAnchor)) {
 			cat("Automatically setting prior for duration model anchors.\n")
-			durationHyperAnchor = data.frame(mean = rep(da,nStages-1), sd=rep(1*sdr,nStages-1))	#sd 1 standard deviation of the observed times
+			durationHyperAnchor = data.frame(mean = rep(da,nStages-2), sd=rep(1*sdr,nStages-2))	#sd 1 standard deviation of the observed times
 		}
 		if(is.null(sigmaHyper)) {
 			cat("Automatically setting prior for sigma.\n")
 			sigmaHyper=c(0,0.1*sdr)
 			#sigmaHyper=data.frame(mean=rep(0,nStages),sd=rep(0.1 * mr/sdr,nStages)) #half normal always positive (except for measure 0)
 		}
-
-		#print("Hyperparameters: sd response data, oa, ob, da, db_m, db_sd, s")
-		#print(sdr)
-		#print(onsetHyperAnchor)
-		#print(onsetHyperBeta)
-		#print(durationHyperAnchor)
-		#print(durationHyperBetaMean)
-		#print(durationHyperBetaSD)
-		#print(sigmaHyper)
 
 		if(nrow(durationHyperBetaSD) != nrow(durationHyperBetaMean)) {
 			stop("The number of stages (rows) in the durationHyperBetaSD and durationHyperBetaMean matrices need to be the same.")
@@ -1347,16 +1395,17 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 		S = nStages
 
 		#check hyperparameter specifications
-		if(nrow(onsetHyperBeta) != K || ncol(onsetHyperBeta) != 2 || nrow(durationHyperBetaMean) != (S-1) || ncol(durationHyperBetaMean) != K || nrow(durationHyperBetaSD) != (S-1) || ncol(durationHyperBetaSD) != K || length(onsetHyperAnchor) != 2 || nrow(durationHyperAnchor) != S-1 || ncol(durationHyperAnchor) != 2 || length(sigmaHyper) != 2) {
-			cat("Hyperparameters should be as follows:\n onsetHyperAnchor: a 2-element vector with mean and sd of the onset time;\n onsetHyperBeta: a data frame with two columns (mean and sd of each covariate slope of the onset model), one covariate per row;\n durationHyperAnchor: a data frame with two columns (mean and sd of the duration), one pair for each stage(rows), excluding the last stage (S-1 rows);\n durationHyperBetaMean: a matrix with S-1 rows and K columns with each stage X covariate mean slope in cells;\n durationHyperBetaSD: a matrix with S-1 rows and K columns with each stage X covariate slope sd in cells;\n sigmaHyper: a data frame with two colums (mean and sd of each model sigma) and S rows, one for each stage.")
+		if(nrow(onsetHyperBeta) != K || ncol(onsetHyperBeta) != 2 || nrow(durationHyperBetaMean) != (S-2) || ncol(durationHyperBetaMean) != K || nrow(durationHyperBetaSD) != (S-2) || ncol(durationHyperBetaSD) != K || length(onsetHyperAnchor) != 2 || nrow(durationHyperAnchor) != S-2 || ncol(durationHyperAnchor) != 2 || length(sigmaHyper) != 2) {
+			cat("Hyperparameters should be as follows:\n onsetHyperAnchor: a 2-element vector with mean and sd of the onset time for stage 2;\n onsetHyperBeta: a data frame with two columns (mean and sd of each covariate slope of the onset model for stage 2), one covariate per row;\n durationHyperAnchor: a data frame with two columns (mean and sd of the duration), one pair for each stage(rows), excluding the first and last stages ;\n durationHyperBetaMean: a matrix with S-2 rows and K columns with each stage X covariate mean slope in cells;\n durationHyperBetaSD: a matrix with S-2 rows and K columns with each stage X covariate slope sd in cells;\n sigmaHyper: a data frame with two colums (mean and sd of each model sigma) and S rows, one for each stage.")
 			stop("Please adjust hyperparameter inputs.")
 		}
 
 		#NULL's should all be set now. Checking datatypes
 		if(!is.data.frame(onsetHyperBeta) || !is.matrix(durationHyperBetaMean) || !is.matrix(durationHyperBetaSD) || !is.vector(onsetHyperAnchor) || !is.data.frame(durationHyperAnchor) || !is.vector(sigmaHyper)) {
-			cat("Expecting the following:\n\tonsetHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the onset slope coefficient for each covariate of the first stage. The second column is the standard deviation of the onset slope coefficient for each covariate of the first stage. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \n\tdurationHyperBetaMean:\n\t\tA matrix with dimensions (number of stages -1) X (number of covariates). The expected slope value for each stage X covariate combination goes in the matrix cells. \n\tdurationHyperBetaSD:\n\t\tA matrix with dimensions (number of stages -1) X (number of covariates). The SD of each slope value for each stage X covariate combination goes in the matrix cells. \n\tonsetHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the mean onset value when no covariate data are included) of the model for the first stage.\n\tdurationHyperAnchor:\n\t\tA data frame with two columns, with the mean of the prior and the standard deviation of the prior for the duration anchor (the mean duration value when no covariate data are included) in respective columns. Each row is for the duration model for each stage except for the last stage.\n\tsigmaHyper:\n\t\tA vector with two items, theman and the standard deviation of the onset sigma. \nSee documentation for additional information and examples")
+			cat("Expecting the following:\n\tonsetHyperBeta:\n\t\tA data frame with two columns. The first column is the mean hyperparameter for the onset slope coefficient for each covariate of the first stage. The second column is the standard deviation of the onset slope coefficient for each covariate of the first stage. The first row in the hyperparameters data frame is the first covariate corresponding to the first column in the covariate file, the second row with the second covariate, and so forth. \n\tdurationHyperBetaMean:\n\t\tA matrix with dimensions (number of stages -2) X (number of covariates). The expected slope value for each stage X covariate combination goes in the matrix cells. \n\tdurationHyperBetaSD:\n\t\tA matrix with dimensions (number of stages -2) X (number of covariates). The SD of each slope value for each stage X covariate combination goes in the matrix cells. \n\tonsetHyperAnchor:\n\t\tA two-element vector with the mean of the prior and the standard deviation of the prior for the onset anchor (the mean onset value when no covariate data are included) of the model for the second stage (first stage starts at baseline).\n\tdurationHyperAnchor:\n\t\tA data frame with two columns, with the mean of the prior and the standard deviation of the prior for the duration anchor (the mean duration value when no covariate data are included) in respective columns. Each row is for the duration model for each stage except the first one and the last one.\n\tsigmaHyper:\n\t\tA vector with two items, theman and the standard deviation of the onset sigma. \nSee documentation for additional information and examples")
 			stop("Please provide appropriate inputs")
 		}
+
 		#all is good - return the information
 		return( list(
 			     responseData=responseData,
@@ -1372,6 +1421,8 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 			     durationHyperBetaSD=durationHyperBetaSD,
 			     durationHyperAnchor=durationHyperAnchor,
 			     sigmaHyper=sigmaHyper
+			     #nTotMean=nTotMean,
+			     #nTotSD=nTotSD
 			)
 		)
 	}
@@ -1435,6 +1486,76 @@ checkPriors = function(type=c("intercept-only","full","multistage-full", "multis
 		)
 	}
 	stop("Checking hyperparameters failed for unknown reason.")
+}
+
+#approximation to fit a truncated normal to stage counts
+#makes tacit assumption that all stages have the same duration
+#stages are the ordered indices of stages with visible units
+#counts are the counts in those stages
+fit_trunc_normal <- function(stages, counts) {
+  # Normalize counts (optional for stability)
+  counts <- as.numeric(counts)
+  N_obs <- sum(counts)
+  
+  # Negative log-likelihood
+  nll <- function(par) {
+    mu <- par[1]
+    sigma <- exp(par[2])  # enforce sigma > 0
+    
+    # truncation bounds
+    L <- min(stages)
+    U <- max(stages)
+    
+    # truncated normal probabilities
+    Z <- pnorm((U - mu)/sigma) - pnorm((L - mu)/sigma)
+    p <- dnorm(stages, mean = mu, sd = sigma) / Z
+    
+    # avoid log(0)
+    p <- pmax(p, 1e-12)
+    
+    -sum(counts * log(p))
+  }
+  
+  # initial guesses
+  mu_init <- sum(stages * counts) / sum(counts)
+  sigma_init <- sqrt(sum(counts * (stages - mu_init)^2) / sum(counts))
+  
+  fit <- optim(
+    par = c(mu_init, log(sigma_init)),
+    fn = nll,
+    method = "BFGS",
+    hessian = TRUE
+  )
+  
+  mu_hat <- fit$par[1]
+  sigma_hat <- exp(fit$par[2])
+  
+  list(
+    mu = mu_hat,
+    sigma = sigma_hat,
+    logLik = -fit$value,
+    convergence = fit$convergence
+  )
+}
+
+#With parameters of truncated normal, estimate mass in truncated tails
+#stages are the ordered indices of stages with visible units
+#counts are the counts in those stages
+estimate_missing <- function(mu, sigma, stages, counts) {
+  L <- min(stages)
+  U <- max(stages)
+
+  P_visible <- pnorm((U - mu)/sigma) - pnorm((L - mu)/sigma)
+
+  N_obs <- sum(counts)
+  N_total <- N_obs / P_visible
+  N_missing <- N_total - N_obs
+
+  list(
+    P_visible = P_visible,
+    N_total = N_total,
+    N_missing = N_missing
+  )
 }
 
 #' @importFrom posterior quantile2

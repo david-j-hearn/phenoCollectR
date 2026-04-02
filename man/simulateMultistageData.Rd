@@ -7,11 +7,10 @@
 simulateMultistageData(
   n = 1000,
   nStages = 2,
-  nonCyclical = TRUE,
   stageNames = NULL,
-  stage1OnsetMean = NULL,
-  stage1OnsetSD = NULL,
-  stage1OnsetCovariateSlopes = NULL,
+  stage2OnsetMean = NULL,
+  stage2OnsetSD = NULL,
+  stage2OnsetCovariateSlopes = NULL,
   stageDurationMeans = NULL,
   stageDurationSDs = NULL,
   stageDurationCovariateSlopes = NULL,
@@ -42,15 +41,13 @@ simulateMultistageData(
 
 \item{nStages}{The number of stages to simulate. (default: 2)}
 
-\item{nonCyclical}{Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: TRUE)}
-
 \item{stageNames}{A vector of the names of stages. (default: NULL)}
 
-\item{stage1OnsetMean}{The mean value of the first stage's onset. (default: NULL)}
+\item{stage2OnsetMean}{The mean value of the second stage's onset. The first stage has onset time at the beginning of the time period (i.e., 0). (default: NULL)}
 
-\item{stage1OnsetSD}{The standard deviation of the first stage's onset. (default: NULL)}
+\item{stage2OnsetSD}{The standard deviation of the first stage's onset. (default: NULL)}
 
-\item{stage1OnsetCovariateSlopes}{A vector with the first stage's onset model coefficients. (default: NULL)}
+\item{stage2OnsetCovariateSlopes}{A vector with the first stage's onset model coefficients. (default: NULL)}
 
 \item{stageDurationMeans}{A vector with all but the last stage's mean durations. (default: NULL)}
 
@@ -97,6 +94,8 @@ simulateMultistageData(
 \item{maxCovariateMean}{The maximum mean value of a covariate (default: 10.0)}
 
 \item{seed}{The random number generator seed. (default: NULL)}
+
+\item{nonCyclical}{Encode the times before the first stage onset as a different stage and the times after the last stage onset as the last stage only (no wraparound). (default: TRUE)}
 }
 \value{
 A list with the following:
@@ -111,7 +110,7 @@ Parameters for simulation:
 
 	Covariate data: X
 
-	Stage 1 model: stage1OnsetMean, stage1OnsetSD, stage1OnsetCovariateSlopes
+	Stage 1 model: stage2OnsetMean, stage2OnsetSD, stage2OnsetCovariateSlopes
 
 	Duration models for all but the last stage: stageDurationMeans, stageDurationSDs, stageDurationCovariateSlopes
 }\if{html}{\out{</div>}}

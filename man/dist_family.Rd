@@ -343,11 +343,11 @@ Methods to model and simulate phenological distributions. The R convention of 'd
 
 Eight phenological properties are modeled by random variables. These include the following:
 
-O: phenological onset times
+O: phenophase onset times
 
 D: phenophase durations
 
-C: phenological cessation times
+C: phenophase cessation times
 
 Ok1: first onset (order k = 1)
 

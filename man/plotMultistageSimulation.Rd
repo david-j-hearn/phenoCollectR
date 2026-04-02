@@ -12,7 +12,7 @@ plotMultistageSimulation(
   drawObserved = TRUE,
   drawLatentOnset = TRUE,
   drawTrueModel = TRUE,
-  drawInferredModel = TRUE,
+  drawInferredModel = FALSE,
   observedCex = 0.75,
   onsetCex = 0.05,
   observedPch = 4,
@@ -20,7 +20,6 @@ plotMultistageSimulation(
   shadeStage = TRUE,
   minResponse = 0,
   maxResponse = 365,
-  nonCyclical = TRUE,
   main = NULL,
   includeOverlap = FALSE
 )
@@ -40,7 +39,7 @@ plotMultistageSimulation(
 
 \item{drawTrueModel}{Flag to draw the true mean onset model as a function of the target covariate. (default: TRUE)}
 
-\item{drawInferredModel}{Flag to draw the inferred mean onset model as a function of the target covariate based on latent onset times. (default: TRUE)}
+\item{drawInferredModel}{Flag to draw the inferred mean onset model as a function of the target covariate BASED ON UNOBSERVED LATENT ONSET TIMES, not inferred from observed data. Can be useful to see how far off the fit to the true data is from the true model. (default: FALSE)}
 
 \item{observedCex}{Set the plot point size of the observed collection times. (default: 0.75)}
 
