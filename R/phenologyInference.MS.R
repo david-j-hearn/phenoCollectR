@@ -33,12 +33,12 @@ runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, sta
 			startInd = (i-1)*nReps + 1
 			endInd = i*nReps
 			xPPD[startInd:endInd,] = sample_conditional_covariates(
-				       x_target = Xs[i],
-				       x_column = target_idx,
-				       covars = covariateData,
-				       copula_fit = fitC,
-				       n_samples = nReps
-				       )[1:nReps,]
+					       x_target = Xs[i],
+					       x_column = target_idx,
+					       covars = covariateData,
+					       copula_fit = fitC,
+					       n_samples = nReps
+					       )[1:nReps,]
 		}
 	}
 	else if(calculatePPD) {
@@ -82,33 +82,27 @@ runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, sta
 
 	cat("Preparing data for Stan.\n")
 	stanData <- list( 
-			 #debug = debug,				#Enable debugging features in Stan (scalar)
-			 #drop_ll = FALSE,			#Do not include likelihoods, for prior predictives (scalar)
-			 #priors = priorLevel,			#Type of prior (0 = flat, other = normal)
-			 #process_extremes = processExtremes,	#Process extremes (scalar)
-			 #n = n,					#Population size to estimate extremes (scalar)
-			 N = N,					#Sample size (scalar)
-			 t_raw = observed,			#Observed collection times, scaled (N vector)
-			 T_max = maxResponse,			#Maximum collection time, original scale (scalar)
-			 stage = stage,				#Observed stages (N vector)
-			 S = S,					#Number of stages (scalar) - no wraparound -> S+1
-			 X_raw = as.matrix(covariates$covariates, ncol=K),	#The scaled covariate data (N X K matrix)
-			 K = K,					#Number of covariates (scalar)
-			 ppd = calculatePPD,			#Boolean to calculate posterior predictive data
-			 nXs = nXs,				#number of x iterations of target covariate for PPD
-			 nReps = nReps,				#number of replicates per Stan sample per stage per nXs iterations
-			 xPPD = as.matrix(xPPD, ncol=K),	#the data over which to calculate PPD
-			 betaMeans = betaMeans,			#joined onset and duration model slope coefficients
-			 betaSDs = betaSDs, 			#joined onset and duration model sd on slope coefficients
-			 anchorMeans = anchorMeans, 		#joined onset and duration model anchors (with standardized data these are the marginal mean responses)
-			 anchorSDs = anchorSDs, 		#joined onset and duration model sd on anchors 
-			 sigmaMean = sigmaMean,
-			 sigmaSD = sigmaSD
+	 N = N,					#Sample size (scalar)
+	 t_raw = observed,			#Observed collection times, scaled (N vector)
+	 T_max = maxResponse,			#Maximum collection time, original scale (scalar)
+	 stage = stage,				#Observed stages (N vector)
+	 S = S,					#Number of stages (scalar) - no wraparound -> S+1
+	 X_raw = as.matrix(covariates$covariates, ncol=K),	#The scaled covariate data (N X K matrix)
+	 K = K,					#Number of covariates (scalar)
+	 ppd = calculatePPD,			#Boolean to calculate posterior predictive data
+	 nXs = nXs,				#number of x iterations of target covariate for PPD
+	 nReps = nReps,				#number of replicates per Stan sample per stage per nXs iterations
+	 xPPD = as.matrix(xPPD, ncol=K),	#the data over which to calculate PPD
+	 betaMeans = betaMeans,			#joined onset and duration model slope coefficients
+	 betaSDs = betaSDs, 			#joined onset and duration model sd on slope coefficients
+	 anchorMeans = anchorMeans, 		#joined onset and duration model anchors (with standardized data these are the marginal mean responses)
+	 anchorSDs = anchorSDs, 		#joined onset and duration model sd on anchors 
+	 sigmaMean = sigmaMean,
+	 sigmaSD = sigmaSD
 	)
 
 	cat("Attempting to compile Stan model in file withCovariates.gp.multistage.durations.stan.\n")
-	withCovariates.multistage.durations.gp_file <- system.file("stan", "withCovariates.gp.multistage.durations.stan"
-								   , package = "phenoCollectR")
+	withCovariates.multistage.durations.gp_file <- system.file("stan", "withCovariates.gp.multistage.durations.stan" , package = "phenoCollectR")
 	m = tryCatch({
 		cmdstanr::cmdstan_model(stan_file = withCovariates.multistage.durations.gp_file)
 	}, error = function(e) {
@@ -182,9 +176,6 @@ runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, sta
 		      sigmaHyper = sigmaHyper,			#Prior for onset and duration SDs
 		      result=res,				#The output from the Stan run
 		      model=m,					#The model used in Stan
-		      #priorLevel=priorLevel,			#Which prior to use (flat / normal)
-		      #processExtremes=processExtremes,		#Whether extremes were processed
-		      #N=n,					#Population size used for extremes
 		      maxDiv = maxDiv,				#Max tolerated divergences
 		      setStringent = setStringent,		#Stringent run?
 		      error = FALSE,				#Errorr?
@@ -196,6 +187,7 @@ runStan.WithCovariates.Multistage.durations.GP = function(responseData=NULL, sta
 #' @importFrom copula pobs normalCopula fitCopula 
 #runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nCovariates, minResponse=0, maxResponse=365, covariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, nTotMean=NULL, nTotSD=NULL, setStringent=TRUE, maxDiv=0, debug=FALSE, ...) {
 #runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nCovariates, minResponse=0, maxResponse=365, scale=50, covariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, setStringent=TRUE, maxDiv=0, debug=FALSE, ...) {
+#runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nCovariates, minResponse=0, maxResponse=365, scale=50, covariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, totCounts=NULL, fixedCounts=NULL, setStringent=TRUE, maxDiv=0, debug=FALSE, ...) {
 runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nCovariates, minResponse=0, maxResponse=365, scale=50, covariateData=NULL, onsetHyperBeta=NULL, onsetHyperAnchor=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, totCounts=NULL, fixedCounts=NULL, setStringent=TRUE, maxDiv=0, debug=FALSE, ...) {
 	options(mc.cores = 4)
 
@@ -219,23 +211,33 @@ runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stage
 
 	cat("Setting hyperparameters. Scaling to be done in Stan\n")
 
-	betaMeans = rbind(onsetHyperBeta[[1]], durationHyperBetaMean)
-	betaSDs = rbind(onsetHyperBeta[[2]], durationHyperBetaSD)
+	if(nStages == 2) {
+		betaMeans = matrix(onsetHyperBeta[[1]], nrow=1)
+		betaSDs = matrix(onsetHyperBeta[[2]], nrow=1)
 
-	anchorMeans = c(onsetHyperAnchor[1],durationHyperAnchor[[1]])
-	anchorSDs = c(onsetHyperAnchor[2],durationHyperAnchor[[2]])
+		anchorMeans = onsetHyperAnchor[1]
+		anchorSDs = onsetHyperAnchor[2]
+	}
+	else {
+
+		betaMeans = rbind(onsetHyperBeta[[1]], durationHyperBetaMean)
+		betaSDs = rbind(onsetHyperBeta[[2]], durationHyperBetaSD)
+
+		anchorMeans = c(onsetHyperAnchor[1],durationHyperAnchor[[1]])
+		anchorSDs = c(onsetHyperAnchor[2],durationHyperAnchor[[2]])
+	}
 
 	sigmaMean = sigmaHyper[1]
 	sigmaSD = sigmaHyper[2]
 
-#print("betaMeans")
-#print(betaMeans)
-#print("betaSDs")
-#print(betaSDs)
-#print("anchorMeans")
-#print(anchorMeans)
-#print("anchorSDs")
-#print(anchorSDs)
+	#print("betaMeans")
+	#print(betaMeans)
+	#print("betaSDs")
+	#print(betaSDs)
+	#print("anchorMeans")
+	#print(anchorMeans)
+	#print("anchorSDs")
+	#print(anchorSDs)
 
 	cat("Preparing data for Stan.\n")
 	stanData <- list( 
@@ -250,8 +252,7 @@ runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stage
 			 t_raw = observed,			#Observed collection times, scaled (N vector)
 			 X_raw = as.matrix(covariates$covariates, ncol=K),	#The scaled covariate data (N X K matrix)
 			 stage_counts = stageCounts,				#Observed stage counts of developmental unit (N X S matrix)
-			 #total_counts = totCounts,
-			 minimum_counts = totCounts,
+			 total_counts = totCounts,
 			 #minimum_counts = minCounts,		#vector of projected minimum number of units per individual during entire time period
 			 fixed = fixedCounts,			#Should the minCounts be taken as the true number of units the individual will develop during the time period?
 			 T_min = minResponse,			#Maximum collection time, original scale (scalar)
@@ -269,7 +270,7 @@ runStan.WithCovariates.Multistage.overlap.GP = function(responseData=NULL, stage
 
 	cat("Attempting to compile Stan model in file withCovariates.gp.multistage.overlap.stan.\n")
 	withCovariates.multistage.overlap.gp_file <- system.file("stan", "withCovariates.gp.multistage.overlap.stan"
-								   , package = "phenoCollectR")
+								 , package = "phenoCollectR")
 	m = tryCatch({
 		cmdstanr::cmdstan_model(stan_file = withCovariates.multistage.overlap.gp_file)
 	}, error = function(e) {

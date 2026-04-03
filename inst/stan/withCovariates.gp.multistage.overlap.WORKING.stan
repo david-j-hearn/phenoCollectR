@@ -132,7 +132,7 @@ data {
 
   vector<lower=0>[N] total_counts;   //total counts of units per individual, including latent pre-developed or post-abscised units
 
-  int<lower=0, upper=1>fixed;     //treat expected_counts as fixed parameters known a priori
+  //int<lower=0, upper=1>fixed;     //treat expected_counts as fixed parameters known a priori
 
   real<lower=1.0> scale;                     //scale to use to transform data
 
@@ -228,7 +228,7 @@ transformed data {
   //Check if a pre or post stage is set and visible unit counts are also present. Should not occur
   for(i in 1:N) {
     //missN_obs[i] = fmax(minimum_counts[i] - totN[i], 1e-6); //make sure missing count is positive.
-    missN_obs[i] = fmax(total_counts[i] - totN[i], 0); //make sure missing count is non-negative.
+    missN_obs[i] = fmax(total_counts[i] - totN[i], 0.5); //make sure missing count is positive.
   }
 
   // Standardize covariates
@@ -282,7 +282,6 @@ parameters {
                             //real<lower=0> sigma_gamma; //st dev of individual random effects
   //vector<lower=0.0>[N] missN_sampled;
   //real<lower=0> phi;
-  //vector[N] missN;
 }
 
 //transformed parameters {
@@ -307,13 +306,6 @@ model {
   alpha_d_std ~ normal(anchorMeans_std, anchorSDs_std);
   to_vector(beta_d_std) ~ normal(to_vector(betaMeans_std), to_vector(betaSDs_std));
   sigma_std ~ normal(sigmaMean_std, sigmaSD_std);	
-
-//if(visN==0 || (visN>=1 && preN==0 && postN==0) || fixed==1) {
-  //missN ~ normal(missN_obs,0.001);  //tight prior when either totals are unneeded or input as data
-//}
-//else {
-  //missN ~ normal(missN_obs,1); //looser prior when there is error to the input about latent counts
-//}
 
   //phi ~ exponential(1);
 

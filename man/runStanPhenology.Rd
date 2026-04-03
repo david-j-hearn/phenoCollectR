@@ -44,18 +44,17 @@ runStanPhenology(
   nXs = 101,
   nReps = 100,
   calculatePPD = FALSE,
-  bypass = FALSE,
   ...
 )
 }
 \arguments{
-\item{type}{The type of model to be implemented. Five options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data. Option 'multistage-full' includes randomly sampled times of individuals, their phenological stage, and covariate data, with one linear model per stage, including for the interval between the start of a time period and the first stage in that time period. Option 'multistage-overlap-full' is the most general option. This option models individuals with 1 or more units that can occur in different stages. For example, an individual plant can have multiple floral units in different stages: bud, open flower, immature fruit, mature fruit. There is no multistage option for no covariates, but if you want to run such a model, set up a dummy covariate with a constant value and ignore the parameters for the linear model in the output. The Examples section below provides example usage of each scenario (default: intercept-only)}
+\item{type}{The type of model to be implemented. Five options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data. Option 'multistage-full' includes randomly sampled times of individuals, their phenological stage, and covariate data, with one linear model per stage, including for the interval between the start of a time period and the first stage in that time period. Option 'multistage-overlap-full' is the most general option. This option models individuals with 1 or more units that can occur in different stages at the time of observation. For example, an individual plant can have multiple floral units in different stages: bud, open flower, immature fruit, mature fruit. There is no multistage option for no covariates, but if you want to run such a model, set up a dummy covariate with a constant value and ignore the parameters for the linear model in the output. The Examples section below provides example usage of each scenario (default: intercept-only)}
 
 \item{responseData}{A vector of the response data. The response data are simply the observed times of collection, often the day of year for biocollection data. This vector is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason to use preprocessing transformations. (default: NULL)}
 
 \item{stage}{Only for use with type 'multistage-full'. A vector of integers the same length as the number of observations. For each observation, the stage is the numeric value associated with each stage. The stage is 1 if the observation is in the interval between the start of the time period and before the first phenophase in the time period. (default: NULL)}
 
-\item{stageCounts}{Only for use with type 'multistage-overlap-full'. A matrix of intergers with columns representing stages and rows representing individuals. Each row represents an individual, and the counts of units (e.g. floral units) in each stage corresponding to the columns is provided. If the stage is before a unit has developed or after units have senesced, provide a count for that stage indicating the average number of units per individual when the units are active (e.g., expected number of flowers for the plant). If the individual represents the unit and stages are sequential (non-overlapping within the unit), then there is one unit, and the counts should be 0 for all stages, except for the stage the individual is in, which should have a count of 1. For example, if each season, the individual produces a single flower and that flower is open, then the stage counts for pre-reproductive, in bud, in flower, in immature fruit, in fruit, post-reproductive would be: 0, 0, 1, 0, 0, 0. This will perform the identical analysis as type 'multistage-full'.}
+\item{stageCounts}{Only for use with type 'multistage-overlap-full'. A matrix of integers with columns representing stages and rows representing individuals. The counts of units (e.g. floral units) in each stage corresponding to the column is provided. If the stage is before any units have developed or after units have abscised, provide a 1 for that stage indicating that the individual is in that stage. If the individual represents the unit and stages are sequential (non-overlapping within the unit), then there is one unit (the individual), and the counts should be 0 for all stages, except for the stage the individual is in, which should have a count of 1. For example, if each season, the individual produces a single flower and that flower is open, then the stage counts for pre-reproductive, in bud, in flower, in immature fruit, in fruit, post-reproductive would be: 0, 0, 1, 0, 0, 0. This will perform the identical analysis as type 'multistage-full'.}
 
 \item{hyperparams_noCovariates}{For use with 'intercept-only' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order. Items in the vector can be named or unnamed. (default: NULL)}
 
@@ -576,11 +575,9 @@ p = makeMultistagePosteriorPredictivePlot(stanResult=stanResults,
    postN = nPost,
    onsetCovariateData=sim$simulatedData$X,           #covariate data (same as for duration)
    totCounts = trueTotCounts,  #currently using true simulated times
-   fixedCounts = TRUE,		#not used
    minResponse = minResponse,
    maxResponse = maxResponse,
    scale = scale,	    	#scale for transforming data in Stan - default is usually fine
-   bypass=T,			#force running of multistage overlap, acknowledging still in development
    maxDiv=4000             #should be set to 0, but in case of the stray Stan divergence, set high for this example
  )
 

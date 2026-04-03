@@ -117,6 +117,7 @@ getWeightedColors = function(stageColors, simulatedIndividuals) {
 #' }
 plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, stageColors=NULL, drawIndividuals=FALSE, drawObserved=TRUE, drawLatentOnset=TRUE, drawTrueModel=TRUE, drawInferredModel=FALSE, observedCex=0.75, onsetCex=0.05, observedPch=4, onsetPch=17, shadeStage=TRUE, minResponse=0, maxResponse=365, main=NULL, includeOverlap=FALSE) {
 
+
   if(includeOverlap) {
     if(is.null(simulatedData$simulatedData)) {
       stop("Please provide the output from simulateMultistageOverlapData when includeOverlap is set to TRUE. Otherwise, provide the output from simulateMultistageData when not.")
@@ -128,6 +129,12 @@ plotMultistageSimulation = function(simulatedData=NULL, targetCovariateIndex=1, 
 
     weightedStageColors = getWeightedColors(stageColors=stageColors, simulatedIndividuals=simulatedData$simulatedIndividuals)
     simulatedData = simulatedData$simulatedData
+  }
+  else {
+    nStages = simulatedData$nStages
+    if(is.null(stageColors) || length(stageColors)<nStages) {
+	    stageColors = rainbow(nStages)
+    }
   }
 
 	if(!drawLatentOnset && !drawObserved) {

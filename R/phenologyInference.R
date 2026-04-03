@@ -847,10 +847,10 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' Normal priors are used primarily for convenience and interpretability. Under standard regularity conditions, the Bernstein–von Mises theorem implies that as sample size increases, the posterior distribution becomes approximately multivariate normal, centered near the maximum likelihood estimate, with covariance given by the inverse Fisher information scaled by \eqn{1/n}. In this large-sample regime, posterior uncertainty is therefore well summarized by normal approximations and depends only weakly on the particular prior, provided the prior assigns positive density in a neighborhood of the true parameter value. This asymptotic behavior makes normal priors a natural default choice in many settings. Moreover, in sequential Bayesian analyses where researchers use a previous large-sample posterior as the prior for a subsequent analysis, the inherited prior will itself be approximately normal.
 #' 
 #'
-#' @param type The type of model to be implemented. Five options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data. Option 'multistage-full' includes randomly sampled times of individuals, their phenological stage, and covariate data, with one linear model per stage, including for the interval between the start of a time period and the first stage in that time period. Option 'multistage-overlap-full' is the most general option. This option models individuals with 1 or more units that can occur in different stages. For example, an individual plant can have multiple floral units in different stages: bud, open flower, immature fruit, mature fruit. There is no multistage option for no covariates, but if you want to run such a model, set up a dummy covariate with a constant value and ignore the parameters for the linear model in the output. The Examples section below provides example usage of each scenario (default: intercept-only)
+#' @param type The type of model to be implemented. Five options are available. Option 'full' will model mean onset and mean duration as a linear function of covariates for presence-only data, 'intercept-only' will model the distribution of onset times and the distribution of durations with no consideration of covariates for presence-only data. Option 'multistage-full' includes randomly sampled times of individuals, their phenological stage, and covariate data, with one linear model per stage, including for the interval between the start of a time period and the first stage in that time period. Option 'multistage-overlap-full' is the most general option. This option models individuals with 1 or more units that can occur in different stages at the time of observation. For example, an individual plant can have multiple floral units in different stages: bud, open flower, immature fruit, mature fruit. There is no multistage option for no covariates, but if you want to run such a model, set up a dummy covariate with a constant value and ignore the parameters for the linear model in the output. The Examples section below provides example usage of each scenario (default: intercept-only)
 #' @param responseData A vector of the response data. The response data are simply the observed times of collection, often the day of year for biocollection data. This vector is prepared by the 'preparePhenologyData' function, or advanced users can prepare it using whatever tools they choose. The data should be in the original scale unless advanced users have a reason to use preprocessing transformations. (default: NULL)
 #' @param stage Only for use with type 'multistage-full'. A vector of integers the same length as the number of observations. For each observation, the stage is the numeric value associated with each stage. The stage is 1 if the observation is in the interval between the start of the time period and before the first phenophase in the time period. (default: NULL)
-#' @param stageCounts Only for use with type 'multistage-overlap-full'. A matrix of intergers with columns representing stages and rows representing individuals. Each row represents an individual, and the counts of units (e.g. floral units) in each stage corresponding to the columns is provided. If the stage is before a unit has developed or after units have senesced, provide a count for that stage indicating the average number of units per individual when the units are active (e.g., expected number of flowers for the plant). If the individual represents the unit and stages are sequential (non-overlapping within the unit), then there is one unit, and the counts should be 0 for all stages, except for the stage the individual is in, which should have a count of 1. For example, if each season, the individual produces a single flower and that flower is open, then the stage counts for pre-reproductive, in bud, in flower, in immature fruit, in fruit, post-reproductive would be: 0, 0, 1, 0, 0, 0. This will perform the identical analysis as type 'multistage-full'.
+#' @param stageCounts Only for use with type 'multistage-overlap-full'. A matrix of integers with columns representing stages and rows representing individuals. The counts of units (e.g. floral units) in each stage corresponding to the column is provided. If the stage is before any units have developed or after units have abscised, provide a 1 for that stage indicating that the individual is in that stage. If the individual represents the unit and stages are sequential (non-overlapping within the unit), then there is one unit (the individual), and the counts should be 0 for all stages, except for the stage the individual is in, which should have a count of 1. For example, if each season, the individual produces a single flower and that flower is open, then the stage counts for pre-reproductive, in bud, in flower, in immature fruit, in fruit, post-reproductive would be: 0, 0, 1, 0, 0, 0. This will perform the identical analysis as type 'multistage-full'.
 #' @param hyperparams_noCovariates For use with 'intercept-only' models. A vector of six elements that represent the mean and standard deviation (sd) hyperparameter values for the prior distributions of the mean onset, the mean duration, and the sigma parameters, in that order. Items in the vector can be named or unnamed. (default: NULL)
 #' @param onsetCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen observation. The number of rows must match the number of items in the responseData vector, and specimens are in the same order as they are in the response data vector. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate. (default: NULL)
 #' @param durationCovariateData For use with '*full' models. A data frame with each column representing a covariate and each row representing a specimen observation. The number of rows must match the number of items in the responseData vector, and specimens are in the same order as they are in the response data vector. In the 'multistage-full' model, the same covariates are used for onset and duration models. The function 'preparePhenologyData' can prepare this data frame, or advanced users can prepare the data frame using their own tools. Data should be in the original scale, or advanced users can transform the data as deemed appropriate. (default: NULL)
@@ -1229,11 +1229,9 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #'    postN = nPost,
 #'    onsetCovariateData=sim$simulatedData$X,           #covariate data (same as for duration)
 #'    totCounts = trueTotCounts,  #currently using true simulated times
-#'    fixedCounts = TRUE,		#not used
 #'    minResponse = minResponse,
 #'    maxResponse = maxResponse,
 #'    scale = scale,	    	#scale for transforming data in Stan - default is usually fine
-#'    bypass=T,			#force running of multistage overlap, acknowledging still in development
 #'    maxDiv=4000             #should be set to 0, but in case of the stray Stan divergence, set high for this example
 #'  )
 #'
@@ -1310,7 +1308,7 @@ fitWeibullExtremes = function(N, mu_O, sigma_O, mu_D, sigma_D=NA, minResponse=0,
 #' }
 #runStanPhenology = function(type=c("intercept-only","full","multistage-full"), responseData=NULL, stage=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, durationCovariateData=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=TRUE, processExtremes=TRUE, N=500, keepScale=FALSE, partitionDataForPriors=FALSE, maximizeSampleSize=FALSE, byPassChecks=FALSE,priorLevel=2, threshApprox=NULL, debug=0, ...) {
 #runStanPhenology = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), responseData=NULL, stage=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, nTotMean=NULL, nTotSD=NULL, minResponse=0, maxResponse=365, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=FALSE, N=500, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, calculatePPD=FALSE, ...) {
-runStanPhenology = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), responseData=NULL, stage=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, totCounts=NULL, fixedCounts=FALSE, minResponse=0, maxResponse=365, scale=50, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=FALSE, N=NULL, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, calculatePPD=FALSE, bypass=FALSE, ...) {
+runStanPhenology = function(type=c("intercept-only","full","multistage-full", "multistage-overlap-full"), responseData=NULL, stage=NULL, stageCounts=NULL, preN=NULL, visN=NULL, postN=NULL, nStages=NULL, hyperparams_noCovariates=NULL, onsetCovariateData=NULL, nOnsetCovariates=NULL, durationCovariateData=NULL, nDurationCovariates=NULL, onsetHyperBeta=NULL, onsetHyperBetaMean=NULL, onsetHyperBetaSD=NULL, onsetHyperAnchor=NULL, durationHyperBeta=NULL, durationHyperBetaMean=NULL, durationHyperBetaSD=NULL, durationHyperAnchor=NULL, sigmaHyper=NULL, totCounts=NULL, fixedCounts=FALSE, minResponse=0, maxResponse=365, scale=50, maxDiv=0, setStringent=TRUE, runMAP=FALSE, processExtremes=FALSE, N=NULL, partitionDataForPriors=FALSE, byPassChecks=FALSE, priorLevel=2, debug=0, nXs=101, nReps=100, calculatePPD=FALSE, ...) {
 
 	## ###########################################################################
 	## CHECK STAN BLOCK
@@ -1324,9 +1322,9 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 	}
 	## ###########################################################################
 
-	if(type=="multistage-overlap-full" && !bypass) {
-		stop("The multistage overlap model is not currently fullly implemented.")
-	}
+	#if(type=="multistage-overlap-full" && !bypass) {
+		#stop("The multistage overlap model is not currently fullly implemented.")
+	#}
 
   #Allow users to input one set of covariate data for multistage analyses
   if(type=="multistage-full" || type=="multistage-overlap-full") {
@@ -1361,9 +1359,10 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 		   maxResponse=maxResponse,
 		   scale=scale,
 		   maxDiv=maxDiv,
-		   fixedCounts=fixedCounts,
 		   N=N,
-		   processExtremes=processExtremes
+		   processExtremes=processExtremes,
+		   fixedCounts=fixedCounts
+
 	)
 
 	checkedPriors = checkPriors (
@@ -1407,6 +1406,10 @@ runStanPhenology = function(type=c("intercept-only","full","multistage-full", "m
 	durationHyperBetaMean=checkedPriors$durationHyperBetaMean
 	durationHyperBetaSD=checkedPriors$durationHyperBetaSD
 	sigmaHyper=checkedPriors$sigmaHyper
+	totCounts=checkedPriors$totCounts
+
+	#print("totCounts")
+	#print(totCounts)
 	#nTotMean=checkedPriors$nTotMean
 	#nTotSD=checkedPriors$nTotSD
 
