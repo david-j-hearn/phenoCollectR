@@ -799,6 +799,15 @@ simulateMultistageData = function(n=1000,
 				  maxCovariateMean=5.0,
 				  seed=NULL) {
 
+	n = floor(n)
+	nStages = floor(nStages)
+	nCovariates = floor(nCovariates)
+	nHiddenFactors = floor(nHiddenFactors)
+
+	if(stageMinimumSeparation <=0 ) {
+		stop("stageMinimumSeparation must be positive.")
+	}
+
 	#if(!nonCyclical) {
 	#stop("Currently, stages must be coded so that they are \"unrolled\" and numbered from 1 to nStages+1. So, nonCyclical must be set to TRUE.")
 	#}
@@ -869,6 +878,8 @@ simulateMultistageData = function(n=1000,
 		#simulate covariate data - is a data frame
 		X = simulateCorrelatedCovariateData(n=n, covariateNames=covariateNames, covariateMeans=covariateMeans, Sigma=Sigma, R=R, covariateSDs=covariateSDs, seed=seed) 
 
+		#print(n)
+		#print(X)
 	}
 
 	#simulate response data
@@ -948,7 +959,7 @@ simulateMultistageData = function(n=1000,
 
 	#Simulate individuals' stages
 	#	Basic checks
-	if(nrow(X) != n) {
+	if(nrow(X) != floor(n)) {
 		stop("The number of rows in the covariate data matrix does not match the requested sample size.")
 	}
 	if(ncol(X) != nCovariates) {
