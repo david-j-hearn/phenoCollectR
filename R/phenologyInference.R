@@ -46,6 +46,54 @@
 #' @noRd
 NULL
 
+onsetPDFFromStageProbs = function(pi_design_mat=NULL, t=NULL,minResponse=0, maxResponse=365) {
+	if(is.null(pi_design_mat) || is.null(t)) {
+		stop("Provide the stage probability design matrix and vector of times. The design matrix has rows corresponding to times and columns corresponding to stage probabiltiies.")
+	}
+
+	if(any(abs(rowSums(pi_design_mat) - 1) > 1e-6)) warning("rows do not sum to 1")
+	if(any(pi_design_mat < 0)) warning("negative probabilities detected")
+	if(any(diff(t) <= 0)) stop("t must be strictly increasing")
+	if(nrow(pi_design_mat) != length(t)) stop("dimension mismatch between input times and stage probability matrix")
+
+	#calculate stage onset CDFs
+	#F_O_s = matrix(0, nrow=nrow(pi_design_mat), ncol=ncol(pi_design_mat))
+	F_O_s <- t(apply(pi_design_mat, 1, function(row) rev(cumsum(rev(row)))))
+
+	#for(i in 1:nrow(pi_design_mat)) {
+		#for(j in ncol(pi_design_mat):1) {
+			#if(j == ncol(pi_design_mat)) {
+				#F_O_s[i,j] = pi_design_mat[i,j]
+			#}
+			#else {
+				#F_O_s[i,j] = F_O_s[i,j+1] + pi_design_mat[i,j]
+			#}
+		#}
+	#}
+
+	#n = length(t)
+	#calculate derivatives
+	#f_O_s <- rbind(
+  #(F_O_s[2, ] - F_O_s[1, ]) / (t[2] - t[1]),
+  #(F_O_s[3:(n-1), ] - F_O_s[1:(n-2), ]) /
+    #(t[3:n] - t[1:(n-2)]),
+  #(F_O_s[n, ] - F_O_s[n-1, ]) /
+    #(t[n] - t[n-1])
+#)
+
+
+# Calculate difference between rows, divide by time step
+dt <- times[2] - times[1]
+f_O_s <- apply(F_O_s, 2, function(x) diff(x) / dt)
+
+# Note: PDF_matrix will have one less row than F_O_s due to diff()
+pdf_times <- times[-1]
+
+
+
+	return(f_O_s)
+}
+
 #' @rdname expectation_functions
 #' @noRd
 E.C = function(mu_O, mu_D=NA, minResponse=0, maxResponse=365, type=c("GP","BB")) {

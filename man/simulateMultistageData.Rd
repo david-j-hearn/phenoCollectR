@@ -33,6 +33,9 @@ simulateMultistageData(
   maxCovariateVariance = 100,
   minCovariateMean = -5,
   maxCovariateMean = 5,
+  dirichlet = FALSE,
+  minConcentration = 2,
+  maxConcentration = 50,
   seed = NULL
 )
 }

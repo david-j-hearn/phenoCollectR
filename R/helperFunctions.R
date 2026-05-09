@@ -1,5 +1,118 @@
+#' @importFrom pgnorm dpgnorm
+dskew_gnorm <- function(x, mu = 0, sigma = 1, p = 2, lambda = 0) {
+  # Map your parameters to pgnorm's specific argument names:
+  # mu    -> mean
+  # alpha -> sigma
+  # beta  -> p
+  base_density <- dpgnorm(x, mean = mu, sigma = sigma, p = p)
+
+  # Apply skewness weighting
+  skew_factor <- pnorm(lambda * (x - mu) / sigma)
+
+  return(2 * base_density * skew_factor)
+}
+
+checkMeanOnsetSpread = function(meanOnsetSpread,nStages) {
+        if(is.null(meanOnsetSpread)) {
+                meanOnsetSpread = formals(simulateMultistageData)$meanOnsetSpread
+        }
+                if(length(meanOnsetSpread)==1) {
+                        meanOnsetSpread = rep(meanOnsetSpread,nStages)
+                }
+                if(any(meanOnsetSpread<=0)) {
+                        stop("Each mean onset spread must be positive.")
+                }
+                if(length(meanOnsetSpread)!=nStages) {
+                        stop("Provide a vector of length nStages representing the weight to give each stage when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
+                }
+return(meanOnsetSpread)
+}
+
+call_dist = function(prefix, dist_base, arg_list) {
+	#example to call the normal CDF:
+	#call_dist(
+  #"p",
+  #"norm",
+  #list(q = 0, mean = 0, sd = 1)
+	#)
+
+	fname = paste0(prefix,dist)
+	  if (!exists(fname, mode = "function")) {
+    stop("Unknown distribution function: ", fname)
+  }
+	  f <- get(fname, mode = "function")
+
+  # validate args is a named list
+  if (!is.list(args) || is.null(names(args))) {
+    stop("args must be a named list")
+  }
+
+  if (any(names(args) == "")) {
+    stop("All elements of args must be named")
+  }
+
+    do.call(f, args)
+}
+
+#' @importFrom splines2 iSpline
+generate_unimodal_sigmoid_product <- function(t, mode = 0.4, df = 6, degree = 3, alpha=3, scale = 1) {
+
+  # rescale
+  x <- (t - min(t)) / (max(t) - min(t))
+  m <- (mode - min(t)) / (max(t) - min(t))
+
+  m = 0.5 - m
+
+  # spline basis
+  B <- iSpline(x, df = df, degree = degree, intercept = TRUE)
+
+  # REXP-only latent structure
+  theta1 <- rexp(ncol(B), 1)
+  theta2 <- rexp(ncol(B), 1)
+
+  z1 <- as.vector(B %*% theta1)
+  z2 <- as.vector(B %*% theta2)
+
+  z1 <- pmax(z1, 1e-8)
+  z2 <- pmax(z2, 1e-8)
+
+  # cumulative normalization
+  dx <- c(0, diff(x))
+
+  F1 <- cumsum(z1 * dx)
+  F2 <- cumsum(z2 * dx)
+
+  F1 <- F1 / max(F1)        # 0 → 1
+  F2 <- F2 / max(F2)        # 0 → 1
+
+  # sigmoid + exponential tails restored
+  g1 <- 1 - exp(-F1)        # increasing, sigmoid-like
+  g2 <- exp(-F2)            # decreasing, exponential tail
+
+  # soft boundary anchor (does NOT distort interior)
+  eps <- 1e-6
+
+  x = x-m
+  x[x<0]=0
+  x[x>1]=0
+  b <- scale * exp(-alpha / ((x) + eps)^scale) * exp(-alpha / (1 - (x) + eps)^scale)
+
+  # final unimodal function
+  f <- g1 * g2 * b
+
+  list(
+    t = t,
+    f = f,
+    g1 = g1,
+    g2 = g2,
+    boundary = b
+  )
+}
+
 
 rdirichlet <- function(n, alpha) {
+#print(alpha)
+#print(n)
 				K <- length(alpha)
 				G <- matrix(rgamma(n * K, shape = alpha, rate = 1), nrow = n, ncol = K, byrow = TRUE)
 				G / rowSums(G)

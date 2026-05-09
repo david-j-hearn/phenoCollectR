@@ -11,6 +11,12 @@ simulateMultistageOverlapData(
   nVisible = 2,
   nPost = 1,
   nCovariates = 2,
+  meanOnsetSpread = formals(simulateMultistageData)$meanOnsetSpread,
+  dirichlet = FALSE,
+  minConcentration = 2,
+  maxConcentration = 50,
+  minResponse = 0,
+  maxResponse = 365,
   ...
 )
 }

@@ -797,6 +797,9 @@ simulateMultistageData = function(n=1000,
 				  maxCovariateVariance=100.0,
 				  minCovariateMean=-5.0,
 				  maxCovariateMean=5.0,
+				  dirichlet=FALSE,
+				  minConcentration=2,
+				  maxConcentration=50,
 				  seed=NULL) {
 
 	n = floor(n)
@@ -868,8 +871,8 @@ simulateMultistageData = function(n=1000,
 
 		#simulate mean covariate values if needed
 		if(is.null(covariateMeans)) {
-			if(minCovariateMean>=maxCovariateMean) {
-				stop("The minimum covariate mean must be smaller than the maximum covariate mean, or provide the means themselves.")
+			if(minCovariateMean>maxCovariateMean) {
+				stop("The minimum covariate mean must be smaller than or equal to the maximum covariate mean, or provide the means themselves.")
 			}
 			covariateMeans = runif(nCovariates,minCovariateMean,maxCovariateMean)
 			names(covariateMeans) = covariateNames
@@ -892,15 +895,7 @@ simulateMultistageData = function(n=1000,
 	}
 	#	simulate onset means for each stage, and convert these to durations, as needed
 	if(is.null(stage2OnsetMean) || is.null(stageDurationMeans) || length(stageDurationMeans)!=nStages-1) {
-		if(length(meanOnsetSpread)==1) {
-			meanOnsetSpread = rep(meanOnsetSpread,nStages)
-		}
-		if(any(meanOnsetSpread<0)) {
-			stop("Each mean onset spread must be positive.")
-		}
-		if(length(meanOnsetSpread)!=nStages) {
-			stop("Provide a vector of length nStages representing the weight to give each stage when randomly sampling stage lengths. Larger values give more weight and (non-intuitively) less variability in possible spread.")
-		}
+		meanOnsetSpread=checkMeanOnsetSpread(meanOnsetSpread,nStages)
 		means = phenoCollectR:::rdirichlet(1,meanOnsetSpread) * (maxResponse - minResponse) + minResponse
 		stage2OnsetMean = means[1]	
 		stageDurationMeans = means[2:nStages]	#minimum of two stages
@@ -971,30 +966,50 @@ simulateMultistageData = function(n=1000,
 	colnames(onsets) = stageNames[2:nStages]
 	for(i in 1:n) {
 		covariates = as.numeric(X[i,]) #get vector of covariate values
-		for(j in 1:(nStages-1)) {		#doesn't include onset of first stage
+		for(j in 1:(nStages-1)) {		#doesn't include onset of first stage !!!!!!
 			if(j==1) {
 				slopes = stage2OnsetCovariateSlopes
 				intercept = stage2OnsetMean - sum(as.numeric(slopes) * as.numeric(covariateMeans))
 				sd = stage2OnsetSD
-				onsets[i,j] = rnorm(1, intercept + sum(slopes * covariates),sd) #negative possible for second onset (first is at 0 or below)
+				if(dirichlet) {
+					onsets[i,j] = softplus(intercept + sum(slopes * covariates)) #negative possible for second onset (first is at 0 or below), so use softplus
+				}
+				else {
+					onsets[i,j] = softplus(rnorm(1, intercept + sum(slopes * covariates),sd)) #negative possible for second onset (first is at 0 or below)
+
+					if(onsets[i,j]>maxResponse && dirichlet) {
+						stop("Slope calculations didn't work; got onset out of response range.")
+					}
+				}
 			}
 			else {
 				slopes = as.vector(stageDurationCovariateSlopes[j-1,])
 				intercept = stageDurationMeans[j-1] - sum(as.numeric(slopes) * as.numeric(covariateMeans))
 				sd = 0  #Make it official
-				duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd)) #Softplus ok here. Sd is 0.
+				#SD is 0, duration is deterministic - rnorm returns mean
+				#duration = softplus(rnorm(1,intercept + sum(slopes * covariates),sd)) #Softplus ok here. Sd is 0.
+				duration = softplus(intercept + sum(slopes * covariates)) 
 				onsets[i,j] = onsets[i,j-1] + duration
 			}
 		}
 	}
 	#simulate the onset times for each stage and simulate sampling each individual in the population
 	times = runif(n,minResponse,maxResponse)
+	concentration=NA
+	if(dirichlet) {
+		cMin = minConcentration / min(onsets)
+		cMax = maxConcentration / min(onsets) #some will have larger than maxConcentration, but the max minimum is maxConcentration, which is larger than minConcentration
+		concentration = runif(nStages-1, cMin, cMax) #random variance for each stage 
+		}
 
 	for(i in 1:n) {
+		if(dirichlet) {
+			pi = dirichletStageProbabilities(t = times[i], meanOnsets = onsets[i,], concentration=concentration, maxResponse=maxResponse, minResponse=minResponse)
+		    stages[i] = sample(1:nStages, 1, replace=TRUE, prob=pi)
+		}
+		else {
 		for(j in 1:(nStages-1)) {
-			#if(nonCyclical) {
 			if(j==1) {
-				#if(times[i]>0 && times[i]<=onsets[i,j]) {
 				if(times[i]<=onsets[i,j]) {   #allow negative; onsets don't include stage 1, which is 0 or less, so j==1 is stage 2
 					stages[i] = 1
 				}
@@ -1007,23 +1022,7 @@ simulateMultistageData = function(n=1000,
 			if(j==nStages-1 && times[i]>=onsets[i,j]) {   #allow times past maxResponse without wraparound (nonCyclical=TRUE)
 				stages[i] = nStages
 			}
-			#}
-			#else {
-			#stop("nonCyclical must be set to TRUE.")
-			#if(j==1) {
-			#if(times[i]>0 && times[i]<=onsets[i,j]) {
-			#stages[i] = nStages
-			#}
-			#}
-			#else {
-			#if(times[i]>onsets[i,j-1] && times[i]<=onsets[i,j]) {
-			#stages[i] = j-1
-			#}
-			#}
-			#if(j==nStages && times[i]>=onsets[i,j]) {
-			#stages[i] = nStages
-			#}
-			#}
+		}
 		}
 	}
 
@@ -1045,7 +1044,8 @@ simulateMultistageData = function(n=1000,
 		    stage2OnsetCovariateSlopes=stage2OnsetCovariateSlopes,
 		    stageDurationMeans=stageDurationMeans,
 		    stageDurationSDs=stageDurationSDs,
-		    stageDurationCovariateSlopes=stageDurationCovariateSlopes))
+		    stageDurationCovariateSlopes=stageDurationCovariateSlopes,
+			concentration=concentration))
 }
 
 
@@ -1097,39 +1097,49 @@ simulateMultistageData = function(n=1000,
 #' #	create the plot
 #' plotMultistageSimulation(simulatedData=sim$simulatedData, targetCovariateIndex=1, stageColors=stageColors)
 #' }
-simulateMultistageOverlapData = function(n=500, meanUnits = 20, nPre=1, nVisible=2, nPost=1, nCovariates=2, ...) {
+simulateMultistageOverlapData = function(n=500, meanUnits = 20, nPre=1, nVisible=2, nPost=1, nCovariates=2, meanOnsetSpread=formals(simulateMultistageData)$meanOnsetSpread, dirichlet=FALSE, minConcentration=2, maxConcentration=50, minResponse=0, maxResponse=365, ...) {
+
+if(minConcentration<=1 || maxConcentration<=minConcentration) {
+
+}
 
 	if(nPre > 1 && nVisible>0) {
-		stop("There can only be one pre-unit stage if there are one or more stages where units are visible. When units are visible, the unit, not the individual on which the unit develops, is the unit of phenological attention. Since the unit is not observable in the pre stages, it is not possible to subdivide the pre stages into multiple stages.")
+		stop("There can only be one pre-unit stage if there are one or more stages where units are visible. When units are visible, the unit, not the individual on which the unit develops, is the unit of phenological attention. Since the unit is not observable in the pre stages, it is not possible to subdivide the pre stages into multiple stages with respect to the phenological unit.")
 	}
 	if(nPost > 1 && nVisible>0) {
-		stop("There can only be one post-unit stage if there are one or more stages where units are visible. When units are visible, the unit, not the individual on which the unit develops, is the unit of phenological attention. Since the unit is not observable in the post stages, it is not possible to subdivide the post stages into multiple stages.")
+		stop("There can only be one post-unit stage if there are one or more stages where units are visible. When units are visible, the unit, not the individual on which the unit develops, is the unit of phenological attention. Since the unit is not observable in the post stages, it is not possible to subdivide the post stages into multiple stages with respect to the phenological unit.")
 	}
 
 	if(nPost > 1 && nVisible==0) {
-		stop("If there are no stages with visible units, assign all stages to the 'pre' stages.")
+		stop("If there are no stages with visible units, assign all stages to the 'pre' stages. 'Pre' and 'post' stages are not distinguishable in this context, as there are no stages with visible units separating them.")
 	}
 
 	nStages = nPre + nVisible + nPost
+	meanOnsetSpread = checkMeanOnsetSpread(meanOnsetSpread,nStages)
 
 	if(nStages<2) {
 		stop("Include at least 2 stages.")
 	} 
 
-	simulatedData = simulateMultistageData(n=n, nStages=nStages, nCovariates=nCovariates, ...)    
+	simulatedData = simulateMultistageData(n=n, nStages=nStages, nCovariates=nCovariates, meanOnsetSpread=meanOnsetSpread, minResponse=minResponse, maxResponse=maxResponse, dirichlet=dirichlet,minConcentration=minConcentration,maxConcentration=maxConcentration,...)    
+	concentration=simulatedData$concentration
 	individuals = vector("list", n)
 	nUnits = rpois(n, meanUnits)
-
 	onsetCols = (nCovariates+1):(nCovariates+nStages-1) #does not include onset stage 1
 	for(i in 1:n) {
 		if(nUnits[i]==0) {	#assure at least one unit per individual
 			nUnits[i]=1
 		}
 		onsets = as.numeric(simulatedData$outputData[i,onsetCols])
-		pi = stageProbabilities(t = simulatedData$outputData$sampledTime[i], 
+		if(dirichlet) {
+			pi = dirichletStageProbabilities(t = simulatedData$outputData$sampledTime[i], meanOnsets = onsets, concentration=concentration, maxResponse=maxResponse, minResponse=minResponse)
+		}
+		else {
+			pi = stageProbabilities(t = simulatedData$outputData$sampledTime[i], 
 					onsets = onsets, 
 					SD = simulatedData$stage2OnsetSD    #just one SD with these data
-		)
+			)
+		}
 		units = sample(1:nStages, nUnits[i], replace=TRUE, prob=pi)
 		stageCounts = tabulate(units, nbins=nStages)
 
@@ -1188,10 +1198,96 @@ simulateMultistageOverlapData = function(n=500, meanUnits = 20, nPre=1, nVisible
 					pi = pi
 		)
 	}
-	return(list(simulatedIndividuals = individuals, simulatedData = simulatedData))
+	return(list(simulatedIndividuals = individuals, simulatedData = simulatedData, concentration=concentration))
 }
 
 #onsets don't include onset for stage 1, so stage is index + 1
+
+#call_dist = function(prefix, dist_base, arg_list) {
+
+#Requires ordered stages
+#the list of arg lists provides a list of lists, with each sublist providing a full description of parameters for the pdist_base function; there should be one sublist for each onset, not including stage 1, whose onset is fixed at 0.
+generalizedStageProbabiities = function(dist_base, list_of_arg_lists) {
+	S = length(list_of_arg_lists) #arg list doesn't include stage 1 onset, which is constant 0
+	if(S <= 0) {
+		stop("There must be at least two stages (one onset) to run generalizedStageProbabilities. If there are no onsets, there is one stage, and the probability is 1 for all times.")
+	}
+	pi = numeric(S+1)
+	pi[1] = 1 - call_dist("p", dist_base, list_of_arg_lists[[1]])
+	pi[S+1] = call_dist("p", dist_base, list_of_arg_lists[[S]])
+	if(S>1) {
+		for(i in 1:(S-1)) {
+			pi[i+1] = call_dist("p", dist_base, list_of_arg_lists[[i]]) - call_dist("p", dist_base, list_of_arg_lists[[i+1]])
+		}
+	}
+	pi = pmax(pi, 0)	#numerical precision sometimes results in negative value
+	return(pi / sum(pi))	#should already be normalized, but to account for numerical errors
+}
+
+dirichletStageProbabilities = function(t, meanOnsets, concentration=NULL, maxResponse=365, minResponse=0) {
+	S = length(meanOnsets) + 1
+	meanOnsets = c(0,meanOnsets)
+	if(is.null(concentration)) {
+		stop("Please provide a positive conentration parameter that defines the variance of the onset distributions. Smaller values give more variance. Or, provide a vector of such values, one for each stage onset except stage one.")
+	}
+	#if(is.na(concentration)) {
+		#stop("Please provide a positive conentration parameter that defines the variance of the onset distributions. Smaller values give more variance. Or, provide a vector of such values, one for each stage onset except stage one.")
+	#}
+	if(any(concentration<=0)) {
+		stop("Please provide a positive conentration parameter that defines the variance of the onset distributions. Smaller values give more variance. Or, provide a vector of such values, one for each stage onset except stage one.")
+	}
+	if(length(concentration) == 1) {
+		concentration = rep(concentration, S)
+	}
+	else if(length(concentration) != S-1) {
+		stop("Please provide a positive conentration parameter that defines the variance of the onset distributions. Smaller values give more variance. Or, provide a vector of such values, one for each stage onset except stage one.")
+	}
+	else {
+		concentration = c(1, concentration)
+	}
+	if(S<=1) {
+		#If there is one stage or fewer, there's no variation in stages across time
+		warning("One or fewer stages. There's no variation in stages across time. Returning probability 1.")
+		return(1);
+	}
+
+	if(minResponse!=0 || t<minResponse || t>maxResponse) {
+		stop("Please check that your input times are within the response range.")	
+	}
+
+	precision = (maxResponse-minResponse) * concentration #sum of durations is maxResponse
+
+	alphas = meanOnsets * concentration	#first shape parameter for beta distribution
+	alphas[1] = 2		#Not used later, just needs a value over 1
+	betas = precision - alphas		#second shape parameter for beta distribution
+
+	t_std = (t-minResponse) / (maxResponse - minResponse)
+
+#print(meanDurations)
+	#print("Onsets")
+#print(meanOnsets)
+#print(alphas)
+#print(betas)
+	if(any(alphas<=1)) {
+
+		stop("Some stage onset weights are less than 1. Please be sure that with the provided mean durations and concentration parameter that all weights are greater than 1.")
+	}
+	
+	pi = numeric(S) 
+	pi[1] = 1 - pbeta(t_std,alphas[2],betas[2])         
+	pi[S] = pbeta(t_std,alphas[S], betas[S])           
+
+	if(S>2) { #deal with more than two stage scenario 
+		for(i in 2:(S-1)) {                           
+			pi[i] = pbeta(t_std, alphas[i], betas[i]) - pbeta(t_std, alphas[i+1], betas[i+1]) #index i is for stage i
+		}
+	}
+	pi = pmax(pi, 0)	#numerical precision sometimes results in negative value
+	return(pi / sum(pi))	#should already be normalized, but to account for numerical errors
+}
+
+
+#requires ordered stages
 stageProbabilities = function(t, onsets, SD) {
 	#print(t)
 	#print(onsets)
@@ -1205,7 +1301,7 @@ stageProbabilities = function(t, onsets, SD) {
 	#print("B")
 	pi[S+1] = pnorm((t - onsets[S])/SD)           #after onset S, which is stage S+1
 
-	if(S>1) { #deal with the two stage scenario 
+	if(S>1) { #deal with more than two stage scenario 
 	for(i in 1:(S-1)) {                           
 	#print("C")
 		pi[i+1] = pnorm((t - onsets[i])/SD) - pnorm((t - onsets[i+1])/SD) #index i is for stage i+1
